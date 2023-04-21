@@ -4,7 +4,7 @@
 #file(GLOB_RECURSE LV_DEMOS_SOURCES ./*.c)
 
 set(include_dirs  "." "gui" "app")
-set(src_dirs  "." "gui" "app")
+set(src_dirs  "." "gui" "app" "gui/image")
 
 set(EXTRA_COMPONENT_DIRS
 
@@ -12,7 +12,6 @@ set(EXTRA_COMPONENT_DIRS
     )
 
 idf_component_register(
-    #SRCS 			main.c         # list the source files of this component
 	SRC_DIRS		${src_dirs}
     INCLUDE_DIRS    ${include_dirs} # optional, add here public include directories
 

@@ -4,20 +4,22 @@
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
 //
-//#include <sys/time.h>
-//#include "freertos/FreeRTOS.h"
-//#include "freertos/task.h"
-//#include "freertos/semphr.h"
-//#include "esp_log.h"
-//#include "esp_check.h"
-//#include "bsp/esp-box.h"
+#include <sys/time.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "esp_log.h"
+#include "esp_check.h"
+#include "bsp/esp-box.h"
 #include "lvgl.h"
-//#include "lv_symbol_extra_def.h"
+#include "lv_symbol_extra_def.h"
 //#include "bsp_btn.h"
 //#include "app_wifi.h"
 //#include "app_rmaker.h"
-//#include "settings.h"
+#include "settings.h"
 #include "ui_main.h"
+#include "ui.h"
+
 //#include "ui_sr.h"
 //#include "ui_mute.h"
 //#include "ui_hint.h"
@@ -25,31 +27,31 @@
 //#include "ui_device_ctrl.h"
 //#include "ui_about_us.h"
 //#include "ui_net_config.h"
-//#include "ui_boot_animate.h"
-//
-//static const char *TAG = "ui_main";
-//
-//static TaskHandle_t g_lvgl_task_handle;
-//static int g_item_index = 0;
+#include "ui_boot_animate.h"
+
+static const char *TAG = "ui_main";
+
+static TaskHandle_t g_lvgl_task_handle;
+static int g_item_index = 0;
 //static lv_group_t *g_btn_op_group = NULL;
 //static lv_indev_t *g_button_indev = NULL;
-//static button_style_t g_btn_styles;
-//static lv_obj_t *g_page_menu = NULL;
-//
-///* Creates a semaphore to handle concurrent call to lvgl stuff
-// * If you wish to call *any* lvgl function from other threads/tasks
-// * you should lock on the very same semaphore! */
-//SemaphoreHandle_t g_guisemaphore;
+static button_style_t g_btn_styles;
+static lv_obj_t *g_page_menu = NULL;
+
+/* Creates a semaphore to handle concurrent call to lvgl stuff
+ * If you wish to call *any* lvgl function from other threads/tasks
+ * you should lock on the very same semaphore! */
+SemaphoreHandle_t g_guisemaphore;
 //static lv_obj_t *g_lab_wifi = NULL;
 //static lv_obj_t *g_lab_cloud = NULL;
 //static lv_obj_t *g_status_bar = NULL;
 //
-//static void ui_main_menu(int32_t index_id);
+static void ui_main_menu(int32_t index_id);
 ////static void ui_led_set_visible(bool visible);
 //
-//typedef enum _screen_id {
-//	MAIN_SCREEN = 0, APP_SCREEN, BLOWER_SCREEN, SETTING_SCREEN
-//} screen_id;
+typedef enum _screen_id {
+	MAIN_SCREEN = 0, APP_SCREEN, BLOWER_SCREEN, SETTING_SCREEN
+} screen_id;
 ///**
 // * Get active screen
 // * @ret scr pointer to a screen
@@ -104,21 +106,21 @@
 //
 //	vTaskDelete(NULL);
 //}
-//
-//void ui_acquire(void) {
-//	TaskHandle_t task = xTaskGetCurrentTaskHandle();
-//	if (g_lvgl_task_handle != task) {
-//		xSemaphoreTake(g_guisemaphore, portMAX_DELAY);
-//	}
-//}
-//
-//void ui_release(void) {
-//	TaskHandle_t task = xTaskGetCurrentTaskHandle();
-//	if (g_lvgl_task_handle != task) {
-//		xSemaphoreGive(g_guisemaphore);
-//	}
-//}
-//
+
+void ui_acquire(void) {
+	TaskHandle_t task = xTaskGetCurrentTaskHandle();
+	if (g_lvgl_task_handle != task) {
+		xSemaphoreTake(g_guisemaphore, portMAX_DELAY);
+	}
+}
+
+void ui_release(void) {
+	TaskHandle_t task = xTaskGetCurrentTaskHandle();
+	if (g_lvgl_task_handle != task) {
+		xSemaphoreGive(g_guisemaphore);
+	}
+}
+
 //static void ui_status_bar_set_visible(bool visible) {
 //	if (visible) {
 //// update all state
@@ -256,19 +258,8 @@
 //		break;
 //	}
 //}
-//
-//static void ui_after_boot(void) {
-//	sys_param_t *param = settings_get_parameter();
-//	if (param->need_hint) {
-//		/* Show default hint page */
-//		ui_help();
-//		param->need_hint = 0;
-//		settings_write_parameter_to_nvs();
-//	} else {
-//		ui_main_menu(g_item_index);
-//	}
-//}
-//
+
+
 //static void clock_run_cb(lv_timer_t *timer) {
 //	lv_obj_t *lab_time = (lv_obj_t*) timer->user_data;
 //	time_t now;
@@ -352,4 +343,40 @@
 //		}
 //	}
 //}
-//
+
+static void ui_after_boot(void)
+{
+    sys_param_t *param = settings_get_parameter();
+    // Fill in the parametesrs in the header
+    // - IP address of the event handler
+    // - Node name
+    // Set the wifi symbol if connected
+	lv_disp_load_scr(ui_Screen1);
+
+}
+
+esp_err_t ui_main_start(void)
+{
+    ui_acquire();
+
+
+    lv_indev_t *indev = lv_indev_get_next(NULL);
+
+//    if (lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD) {
+//        ESP_LOGI(TAG, "Input device type is keypad");
+//        g_btn_op_group = lv_group_create();
+//        lv_indev_set_group(indev, g_btn_op_group);
+//    } else if (lv_indev_get_type(indev) == LV_INDEV_TYPE_BUTTON) {
+//        ESP_LOGI(TAG, "Input device type have button");
+//    } else if (lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER) {
+//        ESP_LOGI(TAG, "Input device type have pointer");
+//    }
+    ui_init();
+
+    boot_animate_start(ui_after_boot);
+//    ui_after_boot();
+
+    ui_release();
+    return ESP_OK;
+}
+

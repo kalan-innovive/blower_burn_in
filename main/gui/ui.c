@@ -344,6 +344,7 @@ void ui_Screen1_screen_init(void) {
 	NULL);
 
 }
+
 void ui_Screen2_screen_init(void) {
 	ui_Screen2 = lv_obj_create(NULL);
 	lv_obj_clear_flag(ui_Screen2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -1184,6 +1185,6 @@ void ui_init(void) {
 	ui_Screen2_screen_init();
 	ui_Screen4_screen_init();
 	ui_Screen0_screen_init();
-	lv_disp_load_scr(ui_Screen1);
+	//lv_disp_load_scr(ui_Screen1);
 
 }

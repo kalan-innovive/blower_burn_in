@@ -43,7 +43,7 @@ void app_main(void)
     bsp_board_init();
     ESP_LOGI(TAG, "Display LVGL demo");
     bsp_display_backlight_on();
-//    ESP_ERROR_CHECK(ui_main_start());
+    ESP_ERROR_CHECK(ui_main_start());
 
     // Initialize Values from settings
 //    const board_res_desc_t *brd = bsp_board_get_description();
