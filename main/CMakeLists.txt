@@ -17,8 +17,8 @@ idf_component_register(
     INCLUDE_DIRS    ${include_dirs} # optional, add here public include directories
 
     PRIV_INCLUDE_DIRS   # optional, add here private include directories
-    REQUIRES            app_event_handler esp-box	# optional, list the public requirements (component names)
-    PRIV_REQUIRES       bsp es7210# optional, list the private requirements
+    REQUIRES            app_event_handler esp-box 	# optional, list the public requirements (component names)
+    PRIV_REQUIRES       bsp es7210 nvs_flash# optional, list the private requirements
 )
 #
 #file(GLOB_RECURSE LV_DEMOS_SOURCES ./*.c)
