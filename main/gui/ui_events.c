@@ -6,6 +6,7 @@
 #include "ui.h"
 #include <stdio.h>
 #include "esp_log.h"
+#include "ui_blower_burn_in.h"
 
 #define BURN_IN_TIME 10 *60
 
@@ -36,6 +37,18 @@ void update_timer_counter(lv_event_t *e) {
 }
 
 void set_sa_pressed(lv_event_t *e) {
+	lv_obj_t *chart = e->user_data;
+	if (update_detail_values(SA_INDEX)) {
+		lv_chart_refresh(chart); /*Required after direct set*/
+	}
+
+}
+
+
+void set_sb_pressed(lv_event_t *e) {
+	lv_obj_t *chart = e->user_data;
+	update_detail_values(SB_INDEX);
+	lv_chart_refresh(chart); /*Required after direct set*/
 
 }
 
@@ -52,38 +65,38 @@ void update_time_counter(lv_event_t *e) {
 
 void lv_chart_cb(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
-
-	lv_chart_set_type(chart, LV_CHART_TYPE_LINE); /*Show lines and points too*/
-
-	/*Add three data series*/
-	lv_chart_series_t *ser1 = lv_chart_add_series(chart,
-			lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
-	lv_chart_series_t *ser2 = lv_chart_add_series(chart,
-			lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_SECONDARY_Y);
-
-	/*Set the next points on 'ser1'*/
-	lv_chart_set_next_value(chart, ser1, 10);
-	lv_chart_set_next_value(chart, ser1, 10);
-	lv_chart_set_next_value(chart, ser1, 10);
-	lv_chart_set_next_value(chart, ser1, 10);
-	lv_chart_set_next_value(chart, ser1, 10);
-	lv_chart_set_next_value(chart, ser1, 10);
-	lv_chart_set_next_value(chart, ser1, 10);
-	lv_chart_set_next_value(chart, ser1, 30);
-	lv_chart_set_next_value(chart, ser1, 70);
-	lv_chart_set_next_value(chart, ser1, 90);
-
-	/*Directly set points on 'ser2'*/
-	ser2->y_points[0] = 90;
-	ser2->y_points[1] = 70;
-	ser2->y_points[2] = 65;
-	ser2->y_points[3] = 65;
-	ser2->y_points[4] = 65;
-	ser2->y_points[5] = 65;
-	ser2->y_points[6] = 65;
-	ser2->y_points[7] = 65;
-	ser2->y_points[8] = 65;
-	ser2->y_points[9] = 65;
+//
+//	lv_chart_set_type(chart, LV_CHART_TYPE_LINE); /*Show lines and points too*/
+//
+//	/*Add three data series*/
+//	lv_chart_series_t *ser1 = lv_chart_add_series(chart,
+//			lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
+//	lv_chart_series_t *ser2 = lv_chart_add_series(chart,
+//			lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_SECONDARY_Y);
+//
+//	/*Set the next points on 'ser1'*/
+//	lv_chart_set_next_value(chart, ser1, 10);
+//	lv_chart_set_next_value(chart, ser1, 10);
+//	lv_chart_set_next_value(chart, ser1, 10);
+//	lv_chart_set_next_value(chart, ser1, 10);
+//	lv_chart_set_next_value(chart, ser1, 10);
+//	lv_chart_set_next_value(chart, ser1, 10);
+//	lv_chart_set_next_value(chart, ser1, 10);
+//	lv_chart_set_next_value(chart, ser1, 30);
+//	lv_chart_set_next_value(chart, ser1, 70);
+//	lv_chart_set_next_value(chart, ser1, 90);
+//
+//	/*Directly set points on 'ser2'*/
+//	ser2->y_points[0] = 90;
+//	ser2->y_points[1] = 70;
+//	ser2->y_points[2] = 65;
+//	ser2->y_points[3] = 65;
+//	ser2->y_points[4] = 65;
+//	ser2->y_points[5] = 65;
+//	ser2->y_points[6] = 65;
+//	ser2->y_points[7] = 65;
+//	ser2->y_points[8] = 65;
+//	ser2->y_points[9] = 65;
 
 	lv_chart_refresh(chart); /*Required after direct set*/
 }

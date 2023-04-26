@@ -113,6 +113,11 @@ extern lv_obj_t *ui_Settings_Keyboard;
 void lv_chart_cb(lv_event_t *e);
 void update_timer_counter(lv_event_t *e);
 void set_sa_pressed(lv_event_t *e);
+void set_sb_pressed(lv_event_t *e);
+//void set_ea_pressed(lv_event_t *e);
+//void set_eb_pressed(lv_event_t *e);
+
+
 void stop_data_requests(lv_event_t *e);
 void update_time_counter(lv_event_t *e);
 void clock_run_cb(lv_timer_t *timer);

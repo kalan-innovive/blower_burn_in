@@ -19,6 +19,7 @@
 #include "settings.h"
 #include "ui_main.h"
 #include "ui.h"
+#include "ui_blower_burn_in.h"
 
 //#include "ui_sr.h"
 //#include "ui_mute.h"
@@ -108,17 +109,19 @@ typedef enum _screen_id {
 //}
 
 void ui_acquire(void) {
-	TaskHandle_t task = xTaskGetCurrentTaskHandle();
-	if (g_lvgl_task_handle != task) {
-		xSemaphoreTake(g_guisemaphore, portMAX_DELAY);
-	}
+	bsp_display_lock(0);
+//	TaskHandle_t task = xTaskGetCurrentTaskHandle();
+//	if (g_lvgl_task_handle != task) {
+//		xSemaphoreTake(g_guisemaphore, portMAX_DELAY);
+//	}
 }
 
 void ui_release(void) {
-	TaskHandle_t task = xTaskGetCurrentTaskHandle();
-	if (g_lvgl_task_handle != task) {
-		xSemaphoreGive(g_guisemaphore);
-	}
+	bsp_display_unlock();
+//	TaskHandle_t task = xTaskGetCurrentTaskHandle();
+//	if (g_lvgl_task_handle != task) {
+//		xSemaphoreGive(g_guisemaphore);
+//	}
 }
 
 //static void ui_status_bar_set_visible(bool visible) {
@@ -351,7 +354,7 @@ static void ui_after_boot(void)
     // - IP address of the event handler
     // - Node name
     // Set the wifi symbol if connected
-	lv_disp_load_scr(ui_Screen1);
+//	lv_disp_load_scr(ui_Screen1);
 
 }
 
@@ -361,6 +364,7 @@ esp_err_t ui_main_start(void)
 
 
     lv_indev_t *indev = lv_indev_get_next(NULL);
+    init_test_vals();
 
 //    if (lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD) {
 //        ESP_LOGI(TAG, "Input device type is keypad");
@@ -373,8 +377,8 @@ esp_err_t ui_main_start(void)
 //    }
     ui_init();
 
-    boot_animate_start(ui_after_boot);
-//    ui_after_boot();
+//    boot_animate_start(ui_after_boot);
+    ui_after_boot();
 
     ui_release();
     return ESP_OK;
