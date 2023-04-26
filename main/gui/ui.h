@@ -57,6 +57,10 @@ extern lv_obj_t *ui_ChipIDValLabel2;
 extern lv_obj_t *ui_OffsetValLabel2;
 extern lv_obj_t *ui_PassedLabel2;
 void ui_event_BlowerSAPanel(lv_event_t *e);
+void ui_event_BlowerSBPanel(lv_event_t *e);
+void ui_event_BlowerEAPanel(lv_event_t *e);
+void ui_event_BlowerEBPanel(lv_event_t *e);
+
 extern lv_obj_t *ui_BlowerSAPanel;
 extern lv_obj_t *ui_BlowerLabel3;
 extern lv_obj_t *ui_ChipIDLabel3;
@@ -114,8 +118,8 @@ void lv_chart_cb(lv_event_t *e);
 void update_timer_counter(lv_event_t *e);
 void set_sa_pressed(lv_event_t *e);
 void set_sb_pressed(lv_event_t *e);
-//void set_ea_pressed(lv_event_t *e);
-//void set_eb_pressed(lv_event_t *e);
+void set_ea_pressed(lv_event_t *e);
+void set_eb_pressed(lv_event_t *e);
 
 
 void stop_data_requests(lv_event_t *e);

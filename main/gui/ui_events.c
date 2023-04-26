@@ -39,7 +39,7 @@ void update_timer_counter(lv_event_t *e) {
 void set_sa_pressed(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
 	if (update_detail_values(SA_INDEX)) {
-		lv_chart_refresh(chart); /*Required after direct set*/
+//		lv_chart_refresh(chart); /*Required after direct set*/
 	}
 
 }
@@ -48,7 +48,23 @@ void set_sa_pressed(lv_event_t *e) {
 void set_sb_pressed(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
 	update_detail_values(SB_INDEX);
-	lv_chart_refresh(chart); /*Required after direct set*/
+//	lv_chart_refresh(chart); /*Required after direct set*/
+
+}
+
+
+void set_ea_pressed(lv_event_t *e) {
+	lv_obj_t *chart = e->user_data;
+	update_detail_values(EA_INDEX);
+//	lv_chart_refresh(chart); /*Required after direct set*/
+
+}
+
+
+void set_eb_pressed(lv_event_t *e) {
+	lv_obj_t *chart = e->user_data;
+	update_detail_values(EB_INDEX);
+//	lv_chart_refresh(chart); /*Required after direct set*/
 
 }
 

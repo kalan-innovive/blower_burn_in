@@ -60,6 +60,6 @@ void app_main(void)
 
     while (true) {
         printf("Hello from app_main!\n");
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }

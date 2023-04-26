@@ -54,6 +54,10 @@ lv_obj_t *ui_ChipIDValLabel2;
 lv_obj_t *ui_OffsetValLabel2;
 lv_obj_t *ui_PassedLabel2;
 void ui_event_BlowerSAPanel(lv_event_t *e);
+void ui_event_BlowerSBPanel(lv_event_t *e);
+void ui_event_BlowerEAPanel(lv_event_t *e);
+void ui_event_BlowerEBPanel(lv_event_t *e);
+
 lv_obj_t *ui_BlowerSAPanel;
 lv_obj_t *ui_BlowerLabel3;
 lv_obj_t *ui_ChipIDLabel3;
@@ -173,7 +177,23 @@ void ui_event_BlowerSBPanel(lv_event_t *e) {
 	lv_obj_t *target = lv_event_get_target(e);
 	if (event_code == LV_EVENT_PRESSED) {
 		_ui_screen_change(ui_Screen4, LV_SCR_LOAD_ANIM_MOVE_LEFT, 500, 30);
-		set_sa_pressed(e);
+		set_sb_pressed(e);
+	}
+}
+void ui_event_BlowerEAPanel(lv_event_t *e) {
+	lv_event_code_t event_code = lv_event_get_code(e);
+	lv_obj_t *target = lv_event_get_target(e);
+	if (event_code == LV_EVENT_PRESSED) {
+		_ui_screen_change(ui_Screen4, LV_SCR_LOAD_ANIM_MOVE_LEFT, 500, 30);
+		set_ea_pressed(e);
+	}
+}
+void ui_event_BlowerEBPanel(lv_event_t *e) {
+	lv_event_code_t event_code = lv_event_get_code(e);
+	lv_obj_t *target = lv_event_get_target(e);
+	if (event_code == LV_EVENT_PRESSED) {
+		_ui_screen_change(ui_Screen4, LV_SCR_LOAD_ANIM_MOVE_LEFT, 500, 30);
+		set_eb_pressed(e);
 	}
 }
 void ui_event_Screen4_Back_Button(lv_event_t *e) {
@@ -860,11 +880,15 @@ void ui_Screen2_screen_init(void) {
 
 	lv_obj_add_event_cb(ui_StartButton, ui_event_Timer_Label, LV_EVENT_ALL,
 			timer);
+
 	lv_obj_add_event_cb(ui_BlowerSAPanel, ui_event_BlowerSAPanel, LV_EVENT_ALL,
 	NULL);
 	lv_obj_add_event_cb(ui_BlowerSBPanel, ui_event_BlowerSBPanel, LV_EVENT_ALL,
 		NULL);
-
+	lv_obj_add_event_cb(ui_BlowerEAPanel, ui_event_BlowerEAPanel, LV_EVENT_ALL,
+		NULL);
+	lv_obj_add_event_cb(ui_BlowerSAPanel2, ui_event_BlowerEBPanel, LV_EVENT_ALL,
+		NULL);
 }
 void ui_Screen4_screen_init(void) {
 	ui_Screen4 = lv_obj_create(NULL);
@@ -1198,3 +1222,4 @@ void ui_init(void) {
 	lv_disp_load_scr(ui_Screen1);
 
 }
+

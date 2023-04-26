@@ -49,6 +49,7 @@ static lv_color_t lv_green ;
 static lv_color_t lv_red;
 static lv_color_t lv_default;
 static lv_color_t lv_light;
+static lv_chart_series_t *series;
 
 static burn_in_lv_obj_map_t brn_ui_map;
 static burn_in_test_value_t brn_val;
@@ -200,19 +201,24 @@ esp_err_t init_test_vals(void){
 	init_colors();
 
 
-	bool res;
-	res = test_vals_acquire(0);
+	bool res = ESP_OK;
+	semaphore_burnin_display_values = xSemaphoreCreateBinary();
 
-	if (res){
-	vSemaphoreCreateBinary(semaphore_burnin_display_values);
+//	res = test_vals_acquire(0);
+
 	if (semaphore_burnin_display_values == NULL) {
 		ESP_LOGE(tag, "Could not create Semaphore.");
-		return ESP_FAIL;
-	}
-	setup_burnin_test_struct();
+		res = ESP_FAIL;
+	} else {
+		ESP_LOGI(tag, "Created Semaphore.");
 
+		setup_burnin_test_struct();
+		xSemaphoreGive(semaphore_burnin_display_values);
 	}
-	ESP_LOGI(tag, "Blower burn in UI structure initialized %s", (res)?"Seccess":"Failed");
+	// Initialize the series
+    series = lv_chart_add_series(brn_ui_map.detail_lv.chart, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
+
+	ESP_LOGI(tag, "Blower burn in UI structure initialized %s", (res)?"Success":"Failed");
 	return (res) ? ESP_OK : ESP_FAIL;
 
 
@@ -321,18 +327,33 @@ esp_err_t update_test_values(void){
 	return ESP_OK;
 }
 
+static void print_blower_vals(blower_test_value_t *b_val) {
+	printf("Blower DevID: %s\n", b_val->name);
+	printf("Blower ChipID: %s\n", b_val->chip_id);
+	printf("   Offset: %d\n", b_val->offset);
+	printf("   Range: %d\n", b_val->range);
+	printf("   VAS Offset: %d\n", b_val->pre_rec_offset);
+	printf("   QC Offset: %d\n", b_val->post_rec_offset);
+	for (size_t i = 0;i<NUM_OF_TEST; i++){
+		printf("  %d Offset: %d\n", i, b_val->burn_in_offset[i]);
+
+	}
+
+}
+
 esp_err_t update_detail_values(int dev_id){
 	esp_err_t ret = ESP_FAIL;
-	ESP_LOGI(tag, " Updating details page for %d", dev_id);
+	ESP_LOGI(tag, " Updating details page for %s passed index:%d", test_blower_device_names[dev_id], dev_id);
 	if (test_vals_acquire(10)){
 
 			// set the values for the selected blower
 		blower_details_lv_obj_map_t *b_map = &brn_ui_map.detail_lv;
     	blower_test_value_t *b_vals = &brn_val.blowers[dev_id];
-
+    	print_blower_vals(b_vals);
     	// Update the title
-    	lv_label_set_text(b_map->name_label, b_vals->name);
-		ESP_LOGI(tag, " Updating chart Title %s", b_vals->name);
+    	const char *name = b_vals->name;
+    	lv_label_set_text(b_map->name_label, name);
+		ESP_LOGI(tag, " Updating chart Title %s", name);
 
 
     	// Update the chart
@@ -351,6 +372,7 @@ esp_err_t update_detail_values(int dev_id){
 
     	create_chart_with_data(b_map->chart, vals, data_points_count);
     	ret = ESP_OK;
+    	test_vals_release();
 	}
 	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
 	return ret;
@@ -367,6 +389,7 @@ void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_p
 //    lv_obj_align(chart, NULL, LV_ALIGN_CENTER, 0, 0);
 
     lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_update_mode(chart, LV_CHART_UPDATE_MODE_CIRCULAR);
 
     int16_t min_value = INT16_MAX;
     int16_t max_value = INT16_MIN;
@@ -392,25 +415,33 @@ void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_p
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
 
     uint16_t num_ticks = (y_max - y_min) / tick_step + 1;
-    char ticks_buf[256] = {0};
-    for (uint16_t i = 0; i < num_ticks; i++) {
-        char tick_label[16];
-        lv_snprintf(tick_label, sizeof(tick_label), "%d", y_min + i * tick_step);
-        strcat(ticks_buf, tick_label);
-        if (i != num_ticks - 1) {
-            strcat(ticks_buf, "\n");
-        }
-    }
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 5, 0, num_ticks, 0, true, 20);
+//    char ticks_buf[256] = {0};
+//    for (uint16_t i = 0; i < num_ticks; i++) {
+//        char tick_label[16];
+//        lv_snprintf(tick_label, sizeof(tick_label), "%d", y_min + i * tick_step);
+//        strcat(ticks_buf, tick_label);
+//        if (i != num_ticks - 1) {
+//            strcat(ticks_buf, "\n");
+//        }
+//    }
+    lv_coord_t maj = 0;
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 5, 1, num_ticks, 1, true, 20);
 //    lv_chart_set_y_tick_texts(chart, ticks_buf, LV_CHART_AXIS_TICK_LABEL_AUTO_RECOLOR, 0);
 
 //    lv_chart_set_y_tick_length(chart, 0, 0);
 
-    lv_chart_series_t *series = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
+//    lv_chart_clear_series(chart, series);
+
+    lv_coord_t *y_ser = lv_chart_get_y_array(chart, series);
+
 
     for (size_t i = 0; i < data_points_count; i++) {
-        lv_chart_set_next_value(chart, series, data_points[i]);
+//    	[i] = data_points[i];
+//        lv_chart_set_next_value(chart, series, data_points[i]);
+    	y_ser[i] = data_points[i];
     }
+	lv_chart_refresh(chart); /*Required after direct set*/
+
 }
 
 

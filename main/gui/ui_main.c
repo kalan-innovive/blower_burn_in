@@ -364,7 +364,6 @@ esp_err_t ui_main_start(void)
 
 
     lv_indev_t *indev = lv_indev_get_next(NULL);
-    init_test_vals();
 
 //    if (lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD) {
 //        ESP_LOGI(TAG, "Input device type is keypad");
@@ -378,9 +377,11 @@ esp_err_t ui_main_start(void)
     ui_init();
 
 //    boot_animate_start(ui_after_boot);
-    ui_after_boot();
+//    ui_after_boot();
 
     ui_release();
+    init_test_vals();
+
     return ESP_OK;
 }
 
