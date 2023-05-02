@@ -108,8 +108,12 @@ typedef enum _screen_id {
 //	vTaskDelete(NULL);
 //}
 
-void ui_acquire(void) {
-	bsp_display_lock(0);
+esp_err_t ui_acquire(void) {
+	bool ret = bsp_display_lock(0);
+	if (!ret){
+		ESP_LOGW(TAG, "Failed to aquire ui Semaphore");
+	}
+	return (ret)  ? ESP_OK:ESP_FAIL;
 //	TaskHandle_t task = xTaskGetCurrentTaskHandle();
 //	if (g_lvgl_task_handle != task) {
 //		xSemaphoreTake(g_guisemaphore, portMAX_DELAY);

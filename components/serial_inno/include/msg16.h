@@ -9,6 +9,10 @@
 #define COMPONENTS_SERIAL_INNO_INCLUDE_MSG16_H_
 #include <stdint.h>
 
+const uint16_t type_read = 0x20;
+const uint16_t type_write = 0x20;
+const uint16_t type_read_req = 0x20;
+const uint16_t type_write_req = 0x20;
 
 typedef struct {
     uint16_t type;

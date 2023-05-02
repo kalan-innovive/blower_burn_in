@@ -4,8 +4,9 @@
  *  Created on: Apr 23, 2023
  *      Author: ekalan
  */
-
-#include "ui_blower_burn_in.h"
+#include <stddef.h>
+#include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,18 +21,16 @@
 #include "esp_log.h"
 
 #include "ui.h"
-//#include "main.h"
-//#include "lvgl.h"
+#include "ui_blower_burn_in.h"
+#include "ui_main.h"
 
-//#include "lvgl/lvgl.h"
-#include <stddef.h>
-#include <limits.h>
-#include <math.h>
+
+
 
 // Used for debug and dev
-#include <time.h>
-#include "stdlib.h"
-
+#include "esp_random.h"
+//#include "stdlib.h"
+extern lv_timer_t *ui_timer;
 
 static void init_colors(void);
 static void set_array_to_default(int *arr, int length);
@@ -40,6 +39,7 @@ static void setup_burnin_ui_structs(void);
 static void setup_burnin_test_struct(void);
 static void update_label_with_int(lv_obj_t *label, int value);
 void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_points_count);
+static void print_blower_vals(blower_test_value_t *b_val);
 
 
 
@@ -49,6 +49,10 @@ static lv_color_t lv_green ;
 static lv_color_t lv_red;
 static lv_color_t lv_default;
 static lv_color_t lv_light;
+static lv_color_t lv_dark;
+static lv_color_t lv_blue;
+
+
 static lv_chart_series_t *series;
 
 static burn_in_lv_obj_map_t brn_ui_map;
@@ -56,7 +60,7 @@ static burn_in_test_value_t brn_val;
 
 SemaphoreHandle_t semaphore_burnin_display_values = NULL;
 
-const char test_blower_device_names[4][16] = {"Supply A", "Exhaust A","Supply B", "Exhaust B"};
+char test_blower_device_names[4][16] = {"Supply A", "Exhaust A","Supply B", "Exhaust B"};
 const char default_chip_id[16] = {"000"};
 const char *tag = "UI_blower-BI";
 
@@ -87,36 +91,57 @@ static void set_array_to_default(int *arr, int length) {
     }
 }
 
+const char* t_state_to_str(burn_in_test_state_t state) {
+	switch (state) {
+		case ERROR_VAL:
+			return "ERROR_VAL";
+		case STARTING_BURNIN_TEST:
+			return "STARTING_BURNIN_TEST";
+		case RUNNING_BURNIN_TEST:
+			return "RUNNING_BURNIN_TEST";
+		case FINISHED_BURNIN_TEST:
+			return "FINISHED_BURNIN_TEST";
+		case RUNNING_COOLDOWN_TEST:
+			return "RUNNING_COOLDOWN_TEST";
+		case FINISHED_BURNIN_CYCLE:
+			return "FINISHED_BURNIN_CYCLE";
+		case CANCEL_BURNIN_TEST:
+			return "CANCEL_BURNIN_TEST";
+		default:
+			return "UNKNOWN_STATE";
+	}
+}
 
-//static void setup_burnin_test_struct(void){
-//	brn_val.brn_state = STARTING_BURNIN_TEST;
-//	brn_val.values_changed = true;
-//	for (int i = 0; i<4; i++) {
-//		brn_val.blowers[i].is_testing = false;
-//		brn_val.blowers[i].values_changed = true;
-//
-//		strcpy(brn_val.blowers[i].name, test_blower_device_names[i]);
-//		strcpy(brn_val.blowers[i].chip_id, default_chip_id);
-//
-//		brn_val.blowers[i].offset = DEF_OFFSET_VAL;
-//		brn_val.blowers[i].range = DEF_OFFSET_VAL;
-//		brn_val.blowers[i].pre_rec_offset = DEF_OFFSET_VAL;
-//		brn_val.blowers[i].post_rec_offset = DEF_OFFSET_VAL;
-//		set_array_to_default(brn_val.blowers[i].burn_in_offset, NUM_OF_TEST);
-//		brn_val.blowers[i].min_val = DEF_OFFSET_VAL;
-//		brn_val.blowers[i].max_val = DEF_OFFSET_VAL;
-//
-//	}
-//}
-
-// For testing
 static void setup_burnin_test_struct(void){
 	brn_val.brn_state = STARTING_BURNIN_TEST;
 	brn_val.values_changed = true;
-	srand(time(NULL));   // Initialization, should only be called once.
-
 	for (int i = 0; i<4; i++) {
 		brn_val.blowers[i].is_testing = false;
+		brn_val.blowers[i].values_changed = true;
+
+		strcpy(brn_val.blowers[i].name, test_blower_device_names[i]);
+		strcpy(brn_val.blowers[i].chip_id, default_chip_id);
+
+		brn_val.blowers[i].offset = DEF_OFFSET_VAL;
+		brn_val.blowers[i].range = DEF_OFFSET_VAL;
+		brn_val.blowers[i].pre_rec_offset = DEF_OFFSET_VAL;
+		brn_val.blowers[i].post_rec_offset = DEF_OFFSET_VAL;
+		set_array_to_default(brn_val.blowers[i].burn_in_offset, NUM_OF_TEST);
+		brn_val.blowers[i].min_val = DEF_OFFSET_VAL;
+		brn_val.blowers[i].max_val = DEF_OFFSET_VAL;
+		brn_val.blowers[i].num_point = 0;
+
+	}
+}
+
+// For testing
+void setup_blower_random_struct(blower_test_value_t *b_vals){
+	brn_val.brn_state = STARTING_BURNIN_TEST;
+	brn_val.values_changed = true;
+//	srand(time(NULL));   // Initialization, should only be called once.
+
+	for (int i = 0; i<4; i++) {
+		brn_val.blowers[i].is_testing = true;
 		brn_val.blowers[i].values_changed = true;
 
 		strcpy(brn_val.blowers[i].name, test_blower_device_names[i]);
@@ -138,6 +163,8 @@ static void setup_burnin_test_struct(void){
 		brn_val.blowers[i].post_rec_offset = brn_val.blowers[i].burn_in_offset[1];
 		brn_val.blowers[i].min_val = min_v;
 		brn_val.blowers[i].max_val = max_v;
+		brn_val.blowers[i].num_point = 3;
+
 
 	}
 }
@@ -149,10 +176,10 @@ static void setup_burnin_ui_structs(void){
 
 	brn_ui_map.detail_lv.name_label = ui_BlowerHeaderLabel;
 	brn_ui_map.detail_lv.chart = ui_Blower_Val_Chart;
-	brn_ui_map.detail_lv.pre_offset = ui_BloweSAPanel;
-	brn_ui_map.detail_lv.post_offset = ui_BloweSAPanel;
-	brn_ui_map.detail_lv.min_offset_label = ui_BloweSAPanel;
-	brn_ui_map.detail_lv.max_offset_label = ui_BloweSAPanel;
+	brn_ui_map.detail_lv.pre_offset = NULL;
+	brn_ui_map.detail_lv.post_offset = NULL;
+	brn_ui_map.detail_lv.min_offset_label = NULL;
+	brn_ui_map.detail_lv.max_offset_label = NULL;
 
 	// Supply A pointer Mapping
 	brn_ui_map.blower_lv[0].panel = ui_BloweSAPanel;
@@ -160,12 +187,12 @@ static void setup_burnin_ui_structs(void){
 	brn_ui_map.blower_lv[0].chip_id_label = ui_ChipIDValLabel3;
 	brn_ui_map.blower_lv[0].offset_label = ui_OffsetValLabel3;
 	brn_ui_map.blower_lv[0].range_label = ui_RangeValLabel3;
-	brn_ui_map.blower_lv[0].status_label = ui_PassedLabelSA;
+	brn_ui_map.blower_lv[0].status_label = ui_PassedLabel3;
 
 	// Exhaust A pointer Mapping
 	brn_ui_map.blower_lv[1].panel = ui_BlowerEAPanel;
 	brn_ui_map.blower_lv[1].name_label = ui_BlowerLabel1;
-	brn_ui_map.blower_lv[1].chip_id_label = ui_ChipIDLabel1;
+	brn_ui_map.blower_lv[1].chip_id_label = ui_ChipIDValLabel1;
 	brn_ui_map.blower_lv[1].offset_label = ui_OffsetValLabel1;
 	brn_ui_map.blower_lv[1].range_label = ui_RangeValLabel1;
 	brn_ui_map.blower_lv[1].status_label = ui_PassedLabel1;
@@ -246,56 +273,55 @@ static void update_blower_id_ui(blower_test_label_map_t *b_lv, blower_test_value
 
 
 static void init_colors(void){
-	lv_green = lv_color_hex(0x00E946);
-	lv_red = lv_color_hex(0xFF0000);
-	lv_default = lv_color_hex(0x00DB24);
-	lv_light = lv_color_hex(0xffffff);
+	lv_default = lv_color_hex(0x000000);
+	lv_red = lv_color_hex(0xeb0404);
+	lv_green = lv_color_hex(0x00db24);
+	lv_dark = lv_color_hex(0x000024);
+	lv_light = lv_color_hex(0xe0e0e0);
+	lv_blue = lv_color_hex(0x002189);
 }
 
 static void update_blower_status_ui(lv_obj_t *lv_label, blower_test_state_t state){
 	 const char *state_str;
-
-
-
 	 lv_color_t text_color;
 	    lv_color_t bg_color;
 
 	    switch (state) {
 	        case UNINIT_BLOWER_TEST:
 	            state_str = "Uninitialized";
-	            text_color = lv_default;
-	            bg_color = lv_light;
+	            text_color = lv_light;
+	            bg_color = lv_dark;
 	            break;
 	        case STARTING_BLOWER_TEST:
 	            state_str = "Starting";
-	            text_color = lv_default;
+	            text_color = lv_blue;
 	            bg_color = lv_green;
 	            break;
 	        case RUNNING_BLOWER_TEST:
 	            state_str = "Running";
-	            text_color = lv_green;
+	            text_color = lv_default;
 	            bg_color = lv_light;
 	            break;
 	        case SUCCESS_BLOWER_TEST:
-	            state_str = "Success";
-	            text_color = lv_default;
-	            bg_color = lv_green;
+	            state_str = "Passed";
+	            text_color = lv_green;
+	            bg_color = lv_light;
 	            break;
 	        case FAILED_BLOWER_TEST:
 	            state_str = "Failed";
-	            text_color = lv_light;
+	            text_color = lv_red;
 	            bg_color = lv_red;
 	            break;
 	        default:
 	            state_str = "";
 	            text_color = lv_default;
-	            bg_color = lv_light;
+	            bg_color = lv_dark;
 	            break;
 	    }
 	    lv_label_set_text(lv_label, state_str);
 
-		lv_obj_set_style_bg_color(lv_label, bg_color,
-				LV_PART_MAIN | LV_STATE_DEFAULT);
+//		lv_obj_set_style_bg_color(lv_label, bg_color,
+//				LV_PART_MAIN | LV_STATE_DEFAULT);
 		lv_obj_set_style_text_color(lv_label, text_color,
 				LV_PART_MAIN | LV_STATE_DEFAULT);
 //	    lv_style_set_text_color(&style, text_color);
@@ -307,24 +333,204 @@ static void update_blower_status_ui(lv_obj_t *lv_label, blower_test_state_t stat
  * Call function when updating the ui
  */
 esp_err_t update_test_values(void){
-	if (test_vals_acquire(4)){
+//	ESP_LOGI(tag, "Updating testing values: %d, values changed %d",brn_val.brn_state, brn_val.values_changed);
+
+	if (test_vals_acquire(1)){
 		// We do not need to update values if the test is cancelled and we are not restarting or no values have changed
 		if(brn_val.brn_state < CANCEL_BURNIN_TEST && brn_val.values_changed){
+			ESP_LOGI(tag, "Brn in state: %d, values changed %d",brn_val.brn_state, brn_val.values_changed);
+
 		    for (int i = 0; i < 4; i++) {
 		    	blower_test_label_map_t *b_map = &brn_ui_map.blower_lv[i];
 		    	blower_test_value_t *b_vals = &brn_val.blowers[i];
 
 		    	// Check if any blower values changed
 		    	if (b_vals->values_changed && b_vals->is_testing) {
+		    		ESP_LOGI(tag, "Updating Blower %s", test_blower_device_names[i]);
+		    		print_blower_vals(b_vals);
 		    		update_blower_test_val_ui(b_map, b_vals);
 		    		update_blower_status_ui(b_map->status_label, b_vals->state);
 		    		update_blower_id_ui(b_map, b_vals);
+		    		b_vals->values_changed = false;
 
 		    	}
 		    }
 		}
+		brn_val.values_changed = false;
+		test_vals_release();
+		return ESP_OK;
+
 	}
-	return ESP_OK;
+	return ESP_FAIL;
+}
+
+/*
+ * Call function when updating the ui
+ */
+esp_err_t update_test_state(burn_in_test_state_t state){
+	burn_in_test_state_t cur_state = ERROR_VAL;
+	esp_err_t ret  = ESP_FAIL;
+
+	if (test_vals_acquire(1)){
+		ret =  ESP_OK;
+		cur_state = brn_val.brn_state;
+		brn_val.brn_state = state;
+		test_vals_release();
+
+		if (cur_state != state){
+			ESP_LOGI(tag, "Updating testing state|Current: %s|Updated: %s|",t_state_to_str(cur_state), t_state_to_str(state));
+		}
+
+	} else {
+		ESP_LOGI(tag, "Updating testing state|Could not acquire semaphore to update test state");
+
+	}
+	return ret;
+}
+
+
+/*
+ * Call function when not in UI thread
+ * Function updates the current state to RUNNING_COOLDOWN_TEST
+ *  and Resets the timer for the ui
+ *  Ret the success of the operations
+ */
+esp_err_t start_cooldown(){
+	burn_in_test_state_t cur_state = get_test_state();
+	esp_err_t ret  = ESP_FAIL;
+
+	if (cur_state == ERROR_VAL){
+		ret =  ESP_FAIL;
+		ESP_LOGW(tag, "Could not Start cooldown");
+
+	}else if  (cur_state == FINISHED_BURNIN_TEST){
+		// Aquire the ui semaphore to update timer
+		if (ui_acquire() == ESP_OK){
+			burn_in_cooldown_start(ui_timer);
+			ui_release();
+			// Update the state
+			if (update_test_state(RUNNING_COOLDOWN_TEST) == ESP_OK) {
+				ret = ESP_OK;
+				ESP_LOGI(tag, "Starting Cooldown");
+
+			}
+		}
+
+	}else if  (cur_state == RUNNING_COOLDOWN_TEST){
+		// Already in state
+		// TODO: check the timer to verify that it is running
+		ESP_LOGW(tag, "Already running Cooldown Test");
+
+	}else {
+		ESP_LOGW(tag, "Calling Start_Cooldown from incorrect state");
+
+	}
+	return ret;
+}
+
+/*
+ * Call function when not in UI thread
+ * Function updates the current state to RUNNING_COOLDOWN_TEST
+ *  and Resets the timer for the ui
+ *  Ret the success of the operations
+ */
+esp_err_t start_burnin(){
+	burn_in_test_state_t cur_state = get_test_state();
+	esp_err_t ret  = ESP_FAIL;
+
+	if (cur_state == ERROR_VAL){
+		ret =  ESP_FAIL;
+		ESP_LOGW(tag, "Could not Start burnin");
+
+	}else if  (cur_state == STARTING_BURNIN_TEST){
+		// Aquire the ui semaphore to update timer
+		if (ui_acquire() == ESP_OK){
+			burn_in_test_start(ui_timer);
+			ui_release();
+			// Update the state
+			if (update_test_state(RUNNING_BURNIN_TEST) == ESP_OK) {
+				ret = ESP_OK;
+				ESP_LOGI(tag, "Starting Cooldown");
+
+			}
+		}
+
+	}else if  (cur_state == RUNNING_BURNIN_TEST){
+		// Already in state
+		// TODO: check the timer to verify that it is running
+		ESP_LOGW(tag, "Already running burnin Test");
+
+	}else {
+		ESP_LOGW(tag, "Calling Start_Cooldown from incorrect state");
+
+	}
+	return ret;
+}
+
+blower_test_state_t get_test_state(void){
+	blower_test_state_t ret =ERROR_VAL;
+	if (test_vals_acquire(1)){
+		// We do not need to update values if the test is cancelled and we are not restarting or no values have changed
+//		ESP_LOGI(tag, "Current State: %d",brn_val.brn_state);
+		ret =  brn_val.brn_state;
+		test_vals_release();
+	}
+	return ret;
+}
+
+esp_err_t test_timer_finished(void){
+	burn_in_test_state_t current_state = ERROR_VAL;
+	burn_in_test_state_t next_state = ERROR_VAL;
+	esp_err_t ret = ESP_FAIL;
+	ESP_LOGI(tag, "Test timer finished");
+
+
+	// Timer State change
+	// TODO: add global timer struct to update the state
+	if (test_vals_acquire(10)){
+		current_state = brn_val.brn_state;
+		test_vals_release();
+		switch (current_state){
+		case STARTING_BURNIN_TEST:
+			// Ignore timer
+			next_state = STARTING_BURNIN_TEST;
+			break;
+		case RUNNING_BURNIN_TEST:
+			// Burn in has finished and state should be updated
+			next_state = FINISHED_BURNIN_TEST;
+			ret = ESP_OK;
+			break;
+		case FINISHED_BURNIN_TEST:
+			// No change in state
+			next_state = FINISHED_BURNIN_TEST;
+			ret = ESP_OK;
+			break;
+		case RUNNING_COOLDOWN_TEST:
+			// Cooldown in has finished and state should be updated
+			next_state = FINISHED_BURNIN_CYCLE;
+			ret = ESP_OK;
+			break;
+		case FINISHED_BURNIN_CYCLE:
+			// Already in the cool down cycle
+			next_state = FINISHED_BURNIN_CYCLE;
+			ret = ESP_OK;
+			break;
+		case CANCEL_BURNIN_TEST:
+			next_state = CANCEL_BURNIN_TEST;
+			// State should not be in this state
+			ret = ESP_FAIL;
+			break;
+		default:
+			ESP_LOGE(tag, "Error: Hit default state when updating timer State: %d", current_state);
+		}
+		update_test_state(next_state);
+	} else {
+		ESP_LOGW(tag, "Could not acquire Semaphore to update timer state change: Current State:%d",  current_state);
+
+	}
+
+	return ret;
+
 }
 
 static void print_blower_vals(blower_test_value_t *b_val) {
@@ -438,6 +644,9 @@ void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_p
     for (size_t i = 0; i < data_points_count; i++) {
 //    	[i] = data_points[i];
 //        lv_chart_set_next_value(chart, series, data_points[i]);
+    	if (data_points[i] == DEF_OFFSET_VAL){
+    		continue;
+    	}
     	y_ser[i] = data_points[i];
     }
 	lv_chart_refresh(chart); /*Required after direct set*/

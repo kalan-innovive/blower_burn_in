@@ -12,6 +12,7 @@ extern "C" {
 
 #define DEF_OFFSET_VAL 0xFFFF
 #define NUM_OF_TEST 10
+#define REQ_POINTS_PASS 6
 
 //#define SA_DEVID 0x1
 //#define EA_DEVID 0x3
@@ -35,6 +36,7 @@ typedef enum{
 
 // This should hold the current state
 typedef enum{
+	ERROR_VAL = -1,
 	STARTING_BURNIN_TEST, 	// Screen 1 waiting for start to be pressed
 	RUNNING_BURNIN_TEST,  	// Screen 2 Collecting samples and saving values before controller starts controlleing
 	FINISHED_BURNIN_TEST,	// 10 minut timer is done waiting for blowers to be turned off
@@ -43,7 +45,7 @@ typedef enum{
 	CANCEL_BURNIN_TEST
 } burn_in_test_state_t;
 
-
+const char* t_state_to_str(burn_in_test_state_t state);
 
 
 
@@ -59,6 +61,7 @@ typedef struct {
 	int burn_in_offset[NUM_OF_TEST]; // Last 10 burn in values
 	int min_val;			// 1/2 ALLowable range + mean or 80
 	int max_val;			// 1/2 ALLowable range - mean or -80
+	int num_point;
 	blower_test_state_t state;
 
 } blower_test_value_t;
@@ -105,10 +108,20 @@ esp_err_t update_detail_values(int dev_id);
  * Default burnin_test_struct
  */
 burn_in_test_value_t* get_test_vals(void);
+blower_test_state_t get_test_state(void);
 esp_err_t init_test_vals(void);
 bool test_vals_acquire(uint32_t timeout_ms) ; 	// Must be succesful to get the test vals
 void test_vals_release(void);
 esp_err_t update_test_values(void);
+esp_err_t update_test_state(burn_in_test_state_t state);
+esp_err_t test_timer_finished(void);
+void setup_blower_random_struct(blower_test_value_t *b_vals);
+esp_err_t start_cooldown(void);
+esp_err_t start_burnin(void);
+
+
+extern char test_blower_device_names[4][16];
+
 
 #ifdef __cplusplus
 }

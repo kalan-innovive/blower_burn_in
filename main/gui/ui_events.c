@@ -8,31 +8,67 @@
 #include "esp_log.h"
 #include "ui_blower_burn_in.h"
 
+#if UI_BURN_TEST
 #define BURN_IN_TIME 10 *60
-
+#define BURN_IN_COOLDOWN_TIME 30 *60
+#else
+#define BURN_IN_TIME 10 *1
+#define BURN_IN_COOLDOWN_TIME  1*20
+#endif
+//const char *tag = "UI_EVENT";
+const char *tag_timer = "UI_Timer";
+const char *tag_det = "UI_Detail";
 void clock_run_cb(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;
 	lv_obj_t *lab_time = gt->lab_time;
-	int time = gt->time--;
-	ESP_LOGI("clock CB", "Timer: %d\n", time);
-	if (time == 0) {
+	gt->time--;
+//	ESP_LOGI(tag_timer, "Timer: %d\n", time);
+	if (gt->time <= 0) {
 		lv_timer_pause(timer);
+		esp_err_t ret = test_timer_finished();
+		// only pause timer after successfully changing the state
+		if (ret == ESP_OK){
+			lv_timer_pause(timer);
+			ESP_LOGI(tag_timer, "Pausing Timer: %d\n", gt->time);
+
+		}
+		gt->time = 0;
 	}
+	int time = gt->time;
 	int tm_time = time / 60;
 	int ts_time = time % 60;
 	lv_label_set_text_fmt(lab_time, "%02d:%02d", tm_time, ts_time);
 }
 
-void update_timer_counter(lv_event_t *e) {
-//	ESP_LOGI("LabelCB", "Event Called: %d\n", (int ) e->code);
-	lv_timer_t *timer = (lv_timer_t*) e->user_data;
-	lv_timer_set_repeat_count(timer, -1);
+void burn_in_test_start(lv_timer_t *timer){
+	ESP_LOGI(tag_timer, "Start Pressed");
+	update_test_state(RUNNING_BURNIN_TEST);
+	update_timer_counter(timer, BURN_IN_TIME);
+
+}
+
+
+
+void burn_in_cooldown_start(lv_timer_t *timer){
+//	t_gui_timer *gt = timer->user_data;
+	ESP_LOGI(tag_timer, "Cool Down Start Timer Event");
+	update_timer_counter(timer, BURN_IN_COOLDOWN_TIME);
+}
+
+
+void burn_in_cancel(lv_timer_t *timer){
 	t_gui_timer *gt = timer->user_data;
-	lv_obj_t *ui_Timer_Label = gt->lab_time;
-	lv_label_set_text_static(ui_Timer_Label, "23:00");
-//	lv_timer_pause(timer);
-	gt->time = BURN_IN_TIME;
-//	lv_timer_reset(timer);
+	gt->time = 0;
+	lv_timer_pause(timer);
+	ESP_LOGI(tag_timer, "Cancel Event");
+	update_test_state(CANCEL_BURNIN_TEST);
+}
+
+void update_timer_counter(lv_timer_t *timer, int t) {
+	ESP_LOGI(tag_timer, "update the timer %d\n", (int ) t);
+	t_gui_timer *gt = timer->user_data;
+	gt->time = t;
+	lv_timer_resume(timer);
 
 }
 

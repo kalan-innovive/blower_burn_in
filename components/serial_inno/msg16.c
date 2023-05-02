@@ -11,7 +11,28 @@
 #include "msg16.h"
 
 
+#define FLAG 0x07e
+#define ESC 0x07d
 
+
+unsigned calc_chk(uint8_t * mem, unsigned len) {
+    unsigned chk = 0;
+    uint8_t *p = mem;
+    while (len--) {
+        chk += *p++;
+    }
+    return chk;
+}
+void add_chk(void * buf, unsigned buf_len) {
+    uint8_t * p;
+    uint16_t chk;
+    p = buf;
+    chk = (uint16_t)calc_chk(p,buf_len);
+    p[buf_len] = chk;
+    p[buf_len+1] = chk>>8;
+    // return the new length
+    return;
+}
 static int get_next_word(uint8_t* packed_msg, size_t len, uint8_t *low, uint8_t *high){
 	uint16_t wrd = 0;
 	if (len < 2) {
@@ -29,6 +50,15 @@ static int get_next_word(uint8_t* packed_msg, size_t len, uint8_t *low, uint8_t 
 	}
 	return 1;
 }
+
+// TODO: adjust to send entire message
+void easy_ack(uint8_t msg_id) {
+    msg_id |= 0x80;
+    start_wr();
+    cont_wr(&msg_id,1);
+    finish_wr();
+}
+
 void pack_msg16(msg16_t* msg16, uint8_t* packed_msg, size_t packed_msg_size) {
     // pack the msg16 struct into bytes with escape characters
     size_t i = 0;
@@ -66,6 +96,12 @@ void pack_msg16(msg16_t* msg16, uint8_t* packed_msg, size_t packed_msg_size) {
             packed_msg[i++] = (uint8_t) (msg_val & 0xff);
         }
     }
+    unsigned c_sum = calc_chk(&packed_msg[1]);
+    // Checksum
+        packed_msg[i++] = (uint8_t) ((c_sum >> 8) & 0xff);
+        packed_msg[i++] = (uint8_t) (c_sum & 0xff);
+
+
 
     // end byte
     packed_msg[i++] = 0x7e;
@@ -113,5 +149,6 @@ void unpack_msg16(const uint8_t* packed_msg, size_t packed_msg_size, msg16_t* ms
         // error
         return;
     }
+}
 
 //    for (int j = 0; j < msg16->len

@@ -115,7 +115,7 @@ extern lv_obj_t *ui_Program_Dropdown;
 void ui_event_Settings_Keyboard(lv_event_t *e);
 extern lv_obj_t *ui_Settings_Keyboard;
 void lv_chart_cb(lv_event_t *e);
-void update_timer_counter(lv_event_t *e);
+void update_timer_counter(lv_timer_t *timer, int t);
 void set_sa_pressed(lv_event_t *e);
 void set_sb_pressed(lv_event_t *e);
 void set_ea_pressed(lv_event_t *e);
@@ -125,11 +125,17 @@ void set_eb_pressed(lv_event_t *e);
 void stop_data_requests(lv_event_t *e);
 void update_time_counter(lv_event_t *e);
 void clock_run_cb(lv_timer_t *timer);
+void burn_in_test_start(lv_timer_t *timer);
+void burn_in_cooldown_start(lv_timer_t *timer);
+void burn_in_cancel(lv_timer_t *timer);
+
+
 
 typedef struct _t_gui_timer {
 	int time;
 	lv_obj_t *lab_time;
 } t_gui_timer;
+extern t_gui_timer gui_timer;
 
 void ui_init(void);
 

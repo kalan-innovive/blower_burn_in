@@ -6,6 +6,7 @@
 #include "stdbool.h"
 #include "ui.h"
 #include "ui_helpers.h"
+#include "esp_log.h"
 
 
 ///////////////////// VARIABLES ////////////////////
@@ -112,6 +113,7 @@ lv_obj_t *ui_Program_Dropdown;
 void ui_event_Settings_Keyboard(lv_event_t *e);
 lv_obj_t *ui_Settings_Keyboard;
 t_gui_timer gui_timer;
+lv_timer_t *ui_timer;
 
 ///////////////////// TEST LVGL SETTINGS ////////////////////
 #if LV_COLOR_DEPTH != 16
@@ -129,12 +131,14 @@ void ui_event_Header_Descriptors_Label(lv_event_t *e) {
 	lv_obj_t *target = lv_event_get_target(e);
 	if (event_code == LV_EVENT_PRESSED) {
 		_ui_screen_change(ui_Screen0, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 500, 0);
+
 	}
 }
 void ui_event_StartButton(lv_event_t *e) {
 	lv_event_code_t event_code = lv_event_get_code(e);
 	lv_obj_t *target = lv_event_get_target(e);
 	if (event_code == LV_EVENT_PRESSED) {
+		burn_in_test_start(ui_timer);
 		_ui_screen_change(ui_Screen2, LV_SCR_LOAD_ANIM_OVER_LEFT, 500, 50);
 	}
 }
@@ -150,6 +154,8 @@ void ui_event_Screen2_Button3(lv_event_t *e) {
 	lv_event_code_t event_code = lv_event_get_code(e);
 	lv_obj_t *target = lv_event_get_target(e);
 	if (event_code == LV_EVENT_PRESSED) {
+		ESP_LOGI("SCR2_BTN3", "Event_Pressed");
+		burn_in_cancel(ui_timer);
 		_ui_screen_change(ui_Screen1, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 500, 0);
 
 	}
@@ -158,7 +164,7 @@ void ui_event_Timer_Label(lv_event_t *e) {
 	lv_event_code_t event_code = lv_event_get_code(e);
 	lv_obj_t *target = lv_event_get_target(e);
 	if (event_code == LV_EVENT_PRESSED) {
-		update_timer_counter(e);
+//		burn_in_cancel(ui_timer);
 	}
 	if (event_code == LV_EVENT_CANCEL) {
 		_ui_screen_change(ui_Screen1, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 500, 0);
@@ -874,12 +880,16 @@ void ui_Screen2_screen_init(void) {
 	lv_obj_add_event_cb(ui_Screen2_Button2, ui_event_Screen2_Button2,
 			LV_EVENT_ALL, NULL);
 	gui_timer.lab_time = ui_Timer_Label;
-	gui_timer.time = 30;
+	gui_timer.time = 0;
+	//TODO: fix timer start stop
 //	ESP_LOGI("Create Timer", "time:%d pointer")
-	lv_timer_t *timer = lv_timer_create(clock_run_cb, 1000, &gui_timer);
+	ui_timer = lv_timer_create(clock_run_cb, 1000, &gui_timer);
+	lv_timer_set_repeat_count(ui_timer, -1);
 
+//	lv_obj_add_event_cb(ui_Back, ui_event_Cancel_Label, LV_EVENT_,
+//			ui_timer);
 	lv_obj_add_event_cb(ui_StartButton, ui_event_Timer_Label, LV_EVENT_ALL,
-			timer);
+				ui_timer);
 
 	lv_obj_add_event_cb(ui_BlowerSAPanel, ui_event_BlowerSAPanel, LV_EVENT_ALL,
 	NULL);

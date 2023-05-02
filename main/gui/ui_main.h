@@ -14,6 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#define UI_BURN_TEST 1
 
 typedef struct {
 	lv_style_t style;
@@ -23,7 +24,7 @@ typedef struct {
 } button_style_t;
 //
 esp_err_t ui_main_start(void);
-void ui_acquire(void);
+esp_err_t ui_acquire(void);
 void ui_release(void);
 //lv_group_t *ui_get_btn_op_group(void);
 //lv_indev_t *ui_get_button_indev(void);
