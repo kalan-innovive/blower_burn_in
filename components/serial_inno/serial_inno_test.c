@@ -32,6 +32,7 @@ static esp_err_t insys_test_transact(void);
 static esp_err_t unit_test_rack_task_(void);
 static esp_err_t system_test_transact_(void);
 static esp_err_t system_test_chipID_(void);
+static esp_err_t system_test_rawPres(void);
 
 
 static void print_msg16(const msg16_t* msg);
@@ -79,7 +80,8 @@ esp_err_t serial_inno_system_tests(void){
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 
-	ret = system_test_chipID_();
+//	ret = system_test_chipID_();
+	ret = system_test_rawPres();
 //	ret = system_test_transact_();
 
 	vTaskDelete(rack_task_handle);
@@ -512,9 +514,40 @@ static esp_err_t system_test_chipID_(void){
 
 	if (suc <1){
 		ret = ESP_FAIL;
-		ESP_LOGW(tag, "Testing ID:%x ChipID Error Success code 0x%02x", DEV_SUPA, suc);
+		ESP_LOGW(tag, "Testing ID:%x ChipID Error Success code %d", DEV_SUPA, suc);
 	} else {
-		ESP_LOGI(tag, "Chip ID Received %d", chipid);
+		ESP_LOGI(tag, "Chip ID Received %u", chipid);
+		ret = ESP_OK;
+	}
+
+	vTaskDelay(10000 / portTICK_PERIOD_MS);
+
+
+	return ret;
+}
+
+/*
+ * Test requires uart0rx and uart0tx to be connected to rack
+ * This is a system test
+ * Test should be run with other system tests configurations
+ * TODO: send write and read the result
+ */
+static esp_err_t system_test_rawPres(void){
+	// Setup
+	esp_err_t ret;
+	ret = ESP_OK;
+	ESP_LOGI(tag, "____Testing Blower Raw Pressure____");
+
+	int raw = 0;
+	int suc = 0;
+
+	suc = get_raw_pressure(DEV_SUPA, &raw);
+
+	if (suc <1){
+		ret = ESP_FAIL;
+		ESP_LOGW(tag, "Testing ID:%x raw Pres Error Success code %d", DEV_SUPA, suc);
+	} else {
+		ESP_LOGI(tag, "Raw Pressure Received %d", raw);
 		ret = ESP_OK;
 	}
 

@@ -225,16 +225,19 @@ static size_t unpack_data(msg16_t* msg16, uint8_t* packed_msg){
  */
 size_t unpack_msg16(uint8_t* packed_msg, size_t packed_msg_size, msg16_t* msg16) {
     // unpack the packed message into a msg16 struct
-    static size_t i = 0;
+    size_t i = 0;
     for (int j =0; j<packed_msg_size;j++){
         	ESP_LOGI(tag, "%d. Val: %02x", j, packed_msg[j]);
     	}
 
     // start byte
-    if (packed_msg[i++] != 0x7e) {
+    if (packed_msg[i] != 0x7e) {
         // error
+    	ESP_LOGI(tag, "%d. Illegal start byte : 0X%02x",i, packed_msg[i]);
+
         return 0;
     }
+    i++;
 
 
     // device ID

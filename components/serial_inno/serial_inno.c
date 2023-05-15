@@ -121,7 +121,7 @@ void uart_rx_task(void *pvParameters) {
         // read from UART buffer
 //		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        int read_len = uart_read_bytes(UART_SERIAL_INNO, uart_buffer + uart_pos, UART_BUFFER_SIZE - uart_pos, 1000 / portTICK_PERIOD_MS);
+        int read_len = uart_read_bytes(UART_SERIAL_INNO, uart_buffer + uart_pos, UART_BUFFER_SIZE - uart_pos, 10 / portTICK_PERIOD_MS);
         if (read_len <= 0) {
 
             continue;
@@ -273,9 +273,7 @@ int transact_read(const msg16_t* request, msg16_t* response, TickType_t timeout)
     /* Todo: check if the queeue is empty first /*/
 
     // send the packed message
-	vTaskDelay(3 / portTICK_PERIOD_MS);
     num_bytes = uart_tx_task(packed_request, packed_size);
-	vTaskDelay(3 / portTICK_PERIOD_MS);
 
 	ESP_LOGI(tag, "Bytes written-%d",num_bytes);
 
@@ -299,6 +297,9 @@ int transact_read(const msg16_t* request, msg16_t* response, TickType_t timeout)
 			response->dev_id = received_msg->dev_id;
 			response->addr = received_msg->addr;
 			response->len = received_msg->len;
+			for (int i=0; i<response->len; i++){
+				response->msg_val[i]= received_msg->msg_val[i];
+			}
 			ret = 1;
 			break;
 		}
