@@ -16,7 +16,7 @@ idf_component_register(
     INCLUDE_DIRS    ${include_dirs} # optional, add here public include directories
 
     PRIV_INCLUDE_DIRS   # optional, add here private include directories
-    REQUIRES            app_event_handler esp-box 	# optional, list the public requirements (component names)
+    REQUIRES            app_event_handler esp-box serial_inno	# optional, list the public requirements (component names)
     PRIV_REQUIRES       bsp es7210 nvs_flash# optional, list the private requirements
 )
 #

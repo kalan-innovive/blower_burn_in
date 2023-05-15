@@ -12,13 +12,13 @@ enum {
 };
 
 
-typedef struct {
-    uint16_t type;
-    uint16_t dev_id;
-    uint16_t addr;
-    uint16_t len;
-    uint16_t* msg_val;
-} msg16_t;
+//typedef struct {
+//    uint16_t type;
+//    uint16_t dev_id;
+//    uint16_t addr;
+//    uint16_t len;
+//    uint16_t* msg_val;
+//} msg16_t;
 
 
 

@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "cJSON.h"
+#include "msg16.h"
 
 extern queue_task_t task;
 extern QueueHandle_t task_queue_handle;
@@ -108,12 +109,12 @@ static void msg16_request_handler(app_request_t* request) {
     }
     msg16.len = (uint16_t) atoi(token);
 
-    msg16.msg_val = malloc(msg16.len * sizeof(uint16_t));
-    if (msg16.msg_val == NULL) {
-        cJSON_Delete(json);
-        request->respons_cb((void*) request);
-        return;
-    }
+//    msg16.msg_val = malloc(msg16.len * sizeof(uint16_t));
+//    if (msg16.msg_val == NULL) {
+//        cJSON_Delete(json);
+//        request->respons_cb((void*) request);
+//        return;
+//    }
 
     for (int i = 0; i < msg16.len; i++) {
         token = strtok(NULL, "|");
