@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <limits.h>
-//#include <std>
+#include <string.h>
 
 #include "offset_data.h"
 

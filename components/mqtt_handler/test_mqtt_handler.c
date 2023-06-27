@@ -204,7 +204,7 @@ static esp_err_t test_mqtt_handler_send_db_request(void) {
  */
 static esp_err_t test_server_set_calibration_val(void) {
 
-	// Call the set_calibration_val function 
+	// Call the set_calibration_val function
 	esp_err_t err = set_calibration_val(482184725, -36);
 
 	return ESP_OK;

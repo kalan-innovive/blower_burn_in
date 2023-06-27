@@ -124,8 +124,8 @@ static void setup_burnin_test_struct(void){
 
 		brn_val.blowers[i].offset = DEF_OFFSET_VAL;
 		brn_val.blowers[i].range = DEF_OFFSET_VAL;
-		brn_val.blowers[i].pre_rec_offset = DEF_OFFSET_VAL;
-		brn_val.blowers[i].post_rec_offset = DEF_OFFSET_VAL;
+		brn_val.blowers[i].vas_offset = DEF_OFFSET_VAL;
+		brn_val.blowers[i].qc_offset = DEF_OFFSET_VAL;
 		set_array_to_default(brn_val.blowers[i].burn_in_offset, NUM_OF_TEST);
 		brn_val.blowers[i].min_val = DEF_OFFSET_VAL;
 		brn_val.blowers[i].max_val = DEF_OFFSET_VAL;
@@ -161,8 +161,8 @@ void setup_blower_random_struct(blower_test_value_t *b_vals){
 		}
 		brn_val.blowers[i].offset =brn_val.blowers[i].burn_in_offset[9];
 		brn_val.blowers[i].range = max_v - min_v ;
-		brn_val.blowers[i].pre_rec_offset = brn_val.blowers[i].burn_in_offset[0];
-		brn_val.blowers[i].post_rec_offset = brn_val.blowers[i].burn_in_offset[1];
+		brn_val.blowers[i].vas_offset = brn_val.blowers[i].burn_in_offset[0];
+		brn_val.blowers[i].qc_offset = brn_val.blowers[i].burn_in_offset[1];
 		brn_val.blowers[i].min_val = min_v;
 		brn_val.blowers[i].max_val = max_v;
 		brn_val.blowers[i].num_point = 3;
@@ -564,8 +564,8 @@ static void print_blower_vals(blower_test_value_t *b_val) {
 	printf("Blower ChipID: %s\n", b_val->chip_id);
 	printf("   Offset: %d\n", b_val->offset);
 	printf("   Range: %d\n", b_val->range);
-	printf("   VAS Offset: %d\n", b_val->pre_rec_offset);
-	printf("   QC Offset: %d\n", b_val->post_rec_offset);
+	printf("   VAS Offset: %d\n", b_val->vas_offset);
+	printf("   QC Offset: %d\n", b_val->qc_offset);
 	printf("   Num Points: %d\n", b_val->num_point);
 
 	for (size_t i = 0;i<NUM_OF_TEST; i++){

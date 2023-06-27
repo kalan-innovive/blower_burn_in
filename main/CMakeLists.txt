@@ -14,7 +14,7 @@ idf_component_register(
 
     PRIV_INCLUDE_DIRS   															# optional, add here private include directories
     REQUIRES            app_event_handler esp-box serial_inno lvgl	mqtt_handler protocol_examples_common	# optional, list the public requirements (component names)
-    PRIV_REQUIRES       bsp es7210 nvs_flash										# optional, list the private requirements
+    PRIV_REQUIRES       bsp es7210 nvs_flash 										# optional, list the private requirements
 )
 #
 #file(GLOB_RECURSE LV_DEMOS_SOURCES ./*.c)

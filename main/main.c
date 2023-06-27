@@ -1,13 +1,16 @@
 #include <stdio.h>
-#include "esp_heap_caps.h"
+#include "string.h"
+#include <time.h>
+#include "stdlib.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
 
 #include "esp_netif.h"
-#include "protocol_examples_common.h"
-
+#include "esp_heap_caps.h"
+#include "esp_err.h"
+#include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "nvs.h"
@@ -21,17 +24,14 @@
 #include "bsp_board.h"
 #include "bsp/esp-bsp.h"
 
+#include "protocol_examples_common.h"
+
 #include "ui_blower_burn_in.h"
 #include "serial_inno.h"
 #include "rack_device.h"
 
-#include "esp_err.h"
-#include "esp_event.h"
-
-#include "string.h"
-#include <time.h>
-#include "stdlib.h"
 #include "burn_in.h"
+#include "mqtt_handler.h"
 
 //#define TESTING_INNO_COMPONENTS 0
 
@@ -57,6 +57,8 @@ QueueHandle_t rack_queue;
 TaskHandle_t rack_task_handle;
 TaskHandle_t uart_rx_handle;
 TaskHandle_t burn_in_handle;
+
+mqtt_handler_config_t app_cfg;
 
 #ifdef TESTING_EH_LOOP		// Testing Event Loop includes an variables
 
