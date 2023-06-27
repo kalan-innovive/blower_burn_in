@@ -1,0 +1,22 @@
+menu "Innovive MQTT Broker Configuration"
+    config INN_BROKER_URL
+        string "Broker URL"
+        default "mqtt://mqtt.innovive.com"
+        help
+            URL of the broker to connect to
+
+    config INN_BROKER_URL_FROM_STDIN
+        bool
+        default y if BROKER_URL = "FROM_STDIN"
+
+    config INN_BROKER_MQTT_PROTOCOL_VERSION
+        default 3 if !INN_BROKER_MQTT_PROTOCOL_VERSION_5
+        default 5 if INN_BROKER_MQTT_PROTOCOL_VERSION_5
+        help
+            Select the MQTT protocol version to use.
+
+    config INN_BROKER_MQTT_PROTOCOL_VERSION_5
+        bool "Version 5"
+        help
+            Enable MQTT protocol version 5 support.
+endmenu

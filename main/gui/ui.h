@@ -12,6 +12,11 @@ extern "C" {
 
 #include "lvgl.h"
 
+extern  const char *notify_burnin_on;
+extern  const char *notify_burnin_off;
+extern const char *notify_burnin_ready;
+
+
 extern lv_obj_t *ui_Screen1;
 extern lv_obj_t *ui_Header_Main_Panel;
 void ui_event_Header_Descriptors_Label(lv_event_t *e);
@@ -128,7 +133,20 @@ void clock_run_cb(lv_timer_t *timer);
 void burn_in_test_start(lv_timer_t *timer);
 void burn_in_cooldown_start(lv_timer_t *timer);
 void burn_in_cancel(lv_timer_t *timer);
+void start_pressed(void);
 
+// Notification panel
+extern lv_obj_t *ui_NotaficationPanel;
+extern lv_obj_t *ui_NotificationLabel;
+void ui_event_OKButton( lv_event_t * e);
+extern lv_obj_t *ui_OKButton;
+extern lv_obj_t *ui_OKLabel;
+//extern lv_obj_t *ui____initial_actions0;
+
+extern lv_obj_t *ui_TimerNotificationPanel;
+void ui_event_TimerButton( lv_event_t * e);
+extern lv_obj_t *ui_TimerButton;
+extern lv_obj_t *ui_TimerNotificationLabel;
 
 
 typedef struct _t_gui_timer {

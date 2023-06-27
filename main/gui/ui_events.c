@@ -16,8 +16,13 @@
 #define BURN_IN_COOLDOWN_TIME  1*20
 #endif
 //const char *tag = "UI_EVENT";
-const char *tag_timer = "UI_Timer";
-const char *tag_det = "UI_Detail";
+static const char *tag_timer = "UI_Timer";
+//static const char *tag_det = "UI_Detail";
+const char *notify_burnin_on = "Calibration Finished.\n Turn Power Supply Off";
+const char *notify_burnin_off = "Burn In Cycle Finished.\n Turn Power Supply On";
+const char *notify_burnin_ready = "Burn In Ready.\n Turn Power Supply On";
+
+
 void clock_run_cb(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;
 	lv_obj_t *lab_time = gt->lab_time;
@@ -30,6 +35,11 @@ void clock_run_cb(lv_timer_t *timer) {
 		if (ret == ESP_OK){
 			lv_timer_pause(timer);
 			ESP_LOGI(tag_timer, "Pausing Timer: %d\n", gt->time);
+			lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+
+			lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+
 
 		}
 		gt->time = 0;
@@ -38,12 +48,42 @@ void clock_run_cb(lv_timer_t *timer) {
 	int tm_time = time / 60;
 	int ts_time = time % 60;
 	lv_label_set_text_fmt(lab_time, "%02d:%02d", tm_time, ts_time);
+
+	lv_label_set_text_fmt(ui_TimerNotificationLabel, "%02d:%02d", tm_time, ts_time);
 }
 
 void burn_in_test_start(lv_timer_t *timer){
 	ESP_LOGI(tag_timer, "Start Pressed");
-	update_test_state(RUNNING_BURNIN_TEST);
-	update_timer_counter(timer, BURN_IN_TIME);
+//	update_test_state(RUNNING_BURNIN_TEST);
+	// Check if the rack is initialised
+	burn_in_test_state_t state =  get_test_state();
+
+	if (state == RUNNING_BURNIN_TEST){
+//		update_test_state(RUNNING_BURNIN_TEST);
+		update_timer_counter(timer, BURN_IN_TIME);
+		lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+		lv_label_set_text(ui_NotificationLabel, notify_burnin_on);
+
+		lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+	} else {
+		update_timer_counter(timer, 0);
+		lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+		lv_label_set_text(ui_NotificationLabel, notify_burnin_ready);
+
+		lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+		ESP_LOGW(tag_timer, "Start pressed timer not reset current state: %d\n", state);
+
+	}
+
+
+}
+
+void start_pressed(void){
+	update_test_state(STARTING_BURNIN_TEST);
+	lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
 
 }
 
@@ -53,6 +93,12 @@ void burn_in_cooldown_start(lv_timer_t *timer){
 //	t_gui_timer *gt = timer->user_data;
 	ESP_LOGI(tag_timer, "Cool Down Start Timer Event");
 	update_timer_counter(timer, BURN_IN_COOLDOWN_TIME);
+	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+	lv_label_set_text(ui_NotificationLabel, notify_burnin_off);
+
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+
 }
 
 
@@ -61,7 +107,14 @@ void burn_in_cancel(lv_timer_t *timer){
 	gt->time = 0;
 	lv_timer_pause(timer);
 	ESP_LOGI(tag_timer, "Cancel Event");
+	lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+	lv_label_set_text(ui_NotificationLabel, notify_burnin_ready);
+
+	lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
 	update_test_state(CANCEL_BURNIN_TEST);
+
+
 }
 
 void update_timer_counter(lv_timer_t *timer, int t) {
@@ -69,6 +122,11 @@ void update_timer_counter(lv_timer_t *timer, int t) {
 	t_gui_timer *gt = timer->user_data;
 	gt->time = t;
 	lv_timer_resume(timer);
+	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+
 
 }
 
@@ -78,6 +136,9 @@ void set_sa_pressed(lv_event_t *e) {
 //		lv_chart_refresh(chart); /*Required after direct set*/
 	}
 
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+
 }
 
 
@@ -85,6 +146,9 @@ void set_sb_pressed(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
 	update_detail_values(SB_INDEX);
 //	lv_chart_refresh(chart); /*Required after direct set*/
+
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
 
 }
 
@@ -94,6 +158,9 @@ void set_ea_pressed(lv_event_t *e) {
 	update_detail_values(EA_INDEX);
 //	lv_chart_refresh(chart); /*Required after direct set*/
 
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+
 }
 
 
@@ -101,6 +168,9 @@ void set_eb_pressed(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
 	update_detail_values(EB_INDEX);
 //	lv_chart_refresh(chart); /*Required after direct set*/
+
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
 
 }
 
@@ -154,3 +224,5 @@ void lv_chart_cb(lv_event_t *e) {
 }
 
 //#endif
+
+

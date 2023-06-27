@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 #define DEF_OFFSET_VAL 0xFFFF
-#define NUM_OF_TEST 10
+#define NUM_OF_TEST 12
 #define REQ_POINTS_PASS 6
 
 //#define SA_DEVID 0x1
@@ -108,7 +108,7 @@ esp_err_t update_detail_values(int dev_id);
  * Default burnin_test_struct
  */
 burn_in_test_value_t* get_test_vals(void);
-blower_test_state_t get_test_state(void);
+burn_in_test_state_t get_test_state(void);
 esp_err_t init_test_vals(void);
 bool test_vals_acquire(uint32_t timeout_ms) ; 	// Must be succesful to get the test vals
 void test_vals_release(void);

@@ -38,10 +38,9 @@ static void update_blower_test_val_ui(blower_test_label_map_t *b_lv, blower_test
 static void setup_burnin_ui_structs(void);
 static void setup_burnin_test_struct(void);
 static void update_label_with_int(lv_obj_t *label, int value);
-void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_points_count);
+void create_chart_with_data(lv_obj_t *chart, int *data_points, size_t data_points_count);
 static void print_blower_vals(blower_test_value_t *b_val);
-
-
+static void default_blower_test_val_ui(blower_test_label_map_t *b_lv, blower_test_value_t *b_vals);
 
 
 
@@ -113,7 +112,8 @@ const char* t_state_to_str(burn_in_test_state_t state) {
 }
 
 static void setup_burnin_test_struct(void){
-	brn_val.brn_state = STARTING_BURNIN_TEST;
+	ESP_LOGI(tag, " Setting up burnin blower structs to default");
+	brn_val.brn_state = CANCEL_BURNIN_TEST;
 	brn_val.values_changed = true;
 	for (int i = 0; i<4; i++) {
 		brn_val.blowers[i].is_testing = false;
@@ -130,6 +130,8 @@ static void setup_burnin_test_struct(void){
 		brn_val.blowers[i].min_val = DEF_OFFSET_VAL;
 		brn_val.blowers[i].max_val = DEF_OFFSET_VAL;
 		brn_val.blowers[i].num_point = 0;
+		brn_val.blowers[i].state = UNINIT_BLOWER_TEST;
+
 
 	}
 }
@@ -228,7 +230,8 @@ esp_err_t init_test_vals(void){
 	init_colors();
 
 
-	bool res = ESP_OK;
+
+	esp_err_t res = ESP_OK;
 	semaphore_burnin_display_values = xSemaphoreCreateBinary();
 
 //	res = test_vals_acquire(0);
@@ -238,15 +241,16 @@ esp_err_t init_test_vals(void){
 		res = ESP_FAIL;
 	} else {
 		ESP_LOGI(tag, "Created Semaphore.");
-
-		setup_burnin_test_struct();
 		xSemaphoreGive(semaphore_burnin_display_values);
 	}
+
+	setup_burnin_test_struct();
+	update_test_values();
 	// Initialize the series
     series = lv_chart_add_series(brn_ui_map.detail_lv.chart, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
 
-	ESP_LOGI(tag, "Blower burn in UI structure initialized %s", (res)?"Success":"Failed");
-	return (res) ? ESP_OK : ESP_FAIL;
+	ESP_LOGI(tag, "Blower burn in UI structure initialized %s", ((res==ESP_OK) ? "Success" : "Failed"));
+	return res;
 
 
 }
@@ -259,8 +263,18 @@ static void update_label_with_int(lv_obj_t *label, int value) {
 }
 
 static void update_blower_test_val_ui(blower_test_label_map_t *b_lv, blower_test_value_t *b_vals){
-	update_label_with_int(b_lv->offset_label, b_vals->offset);
+	int tmp = ( b_vals->offset == DEF_OFFSET_VAL) ? 0: b_vals->offset;
+	update_label_with_int(b_lv->offset_label,tmp);
 	update_label_with_int(b_lv->range_label, b_vals->range);
+}
+
+
+static void default_blower_test_val_ui(blower_test_label_map_t *b_lv, blower_test_value_t *b_vals){
+
+	lv_label_set_text(b_lv->name_label, b_vals->name);
+	lv_label_set_text(b_lv->offset_label, " ");
+	lv_label_set_text(b_lv->range_label, " ");
+	lv_label_set_text(b_lv->chip_id_label, " ");
 }
 
 
@@ -288,14 +302,14 @@ static void update_blower_status_ui(lv_obj_t *lv_label, blower_test_state_t stat
 
 	    switch (state) {
 	        case UNINIT_BLOWER_TEST:
-	            state_str = "Uninitialized";
-	            text_color = lv_light;
-	            bg_color = lv_dark;
+	            state_str = "No Blower";
+	            text_color = lv_dark;
+	            bg_color = lv_light;
 	            break;
 	        case STARTING_BLOWER_TEST:
 	            state_str = "Starting";
 	            text_color = lv_blue;
-	            bg_color = lv_green;
+	            bg_color = lv_light;
 	            break;
 	        case RUNNING_BLOWER_TEST:
 	            state_str = "Running";
@@ -310,7 +324,7 @@ static void update_blower_status_ui(lv_obj_t *lv_label, blower_test_state_t stat
 	        case FAILED_BLOWER_TEST:
 	            state_str = "Failed";
 	            text_color = lv_red;
-	            bg_color = lv_red;
+	            bg_color = lv_light;
 	            break;
 	        default:
 	            state_str = "";
@@ -337,20 +351,29 @@ esp_err_t update_test_values(void){
 
 	if (test_vals_acquire(1)){
 		// We do not need to update values if the test is cancelled and we are not restarting or no values have changed
-		if(brn_val.brn_state < CANCEL_BURNIN_TEST && brn_val.values_changed){
-			ESP_LOGI(tag, "Brn in state: %d, values changed %d",brn_val.brn_state, brn_val.values_changed);
+//		if(brn_val.brn_state < CANCEL_BURNIN_TEST && brn_val.values_changed){
+		if( brn_val.values_changed){
+
+			ESP_LOGI(tag, "Burn in state: %d, values changed %d",brn_val.brn_state, brn_val.values_changed);
 
 		    for (int i = 0; i < 4; i++) {
 		    	blower_test_label_map_t *b_map = &brn_ui_map.blower_lv[i];
 		    	blower_test_value_t *b_vals = &brn_val.blowers[i];
 
 		    	// Check if any blower values changed
-		    	if (b_vals->values_changed && b_vals->is_testing) {
+//		    	if (b_vals->values_changed && b_vals->is_testing) {
+		    	if (b_vals->values_changed ){
 		    		ESP_LOGI(tag, "Updating Blower %s", test_blower_device_names[i]);
-		    		print_blower_vals(b_vals);
-		    		update_blower_test_val_ui(b_map, b_vals);
-		    		update_blower_status_ui(b_map->status_label, b_vals->state);
-		    		update_blower_id_ui(b_map, b_vals);
+//		    		print_blower_vals(b_vals);
+		    		if (b_vals->is_testing){
+						update_blower_test_val_ui(b_map, b_vals);
+			    		update_blower_id_ui(b_map, b_vals);
+
+		    		} else {
+		    			default_blower_test_val_ui(b_map, b_vals);
+		    		}
+					update_blower_status_ui(b_map->status_label, b_vals->state);
+
 		    		b_vals->values_changed = false;
 
 		    	}
@@ -445,14 +468,17 @@ esp_err_t start_burnin(){
 	}else if  (cur_state == STARTING_BURNIN_TEST){
 		// Aquire the ui semaphore to update timer
 		if (ui_acquire() == ESP_OK){
-			burn_in_test_start(ui_timer);
-			ui_release();
-			// Update the state
 			if (update_test_state(RUNNING_BURNIN_TEST) == ESP_OK) {
 				ret = ESP_OK;
-				ESP_LOGI(tag, "Starting Cooldown");
-
+				ESP_LOGI(tag, "Starting burnin");
+				burn_in_test_start(ui_timer);
 			}
+			ui_release();
+			// Update the state
+
+		} else{
+			ESP_LOGI(tag, "start_burnin failed to get ui Semaphore");
+
 		}
 
 	}else if  (cur_state == RUNNING_BURNIN_TEST){
@@ -467,7 +493,7 @@ esp_err_t start_burnin(){
 	return ret;
 }
 
-blower_test_state_t get_test_state(void){
+burn_in_test_state_t get_test_state(void){
 	blower_test_state_t ret =ERROR_VAL;
 	if (test_vals_acquire(1)){
 		// We do not need to update values if the test is cancelled and we are not restarting or no values have changed
@@ -540,6 +566,8 @@ static void print_blower_vals(blower_test_value_t *b_val) {
 	printf("   Range: %d\n", b_val->range);
 	printf("   VAS Offset: %d\n", b_val->pre_rec_offset);
 	printf("   QC Offset: %d\n", b_val->post_rec_offset);
+	printf("   Num Points: %d\n", b_val->num_point);
+
 	for (size_t i = 0;i<NUM_OF_TEST; i++){
 		printf("  %d Offset: %d\n", i, b_val->burn_in_offset[i]);
 
@@ -555,28 +583,20 @@ esp_err_t update_detail_values(int dev_id){
 			// set the values for the selected blower
 		blower_details_lv_obj_map_t *b_map = &brn_ui_map.detail_lv;
     	blower_test_value_t *b_vals = &brn_val.blowers[dev_id];
-    	print_blower_vals(b_vals);
+//    	print_blower_vals(b_vals);
     	// Update the title
     	const char *name = b_vals->name;
     	lv_label_set_text(b_map->name_label, name);
-		ESP_LOGI(tag, " Updating chart Title %s", name);
+		ESP_LOGD(tag, " Updating chart Title %s", name);
 
 
-    	// Update the chart
+    	 // Update the chart
     	 // Add the original 2 vals
-    	size_t data_points_count = NUM_OF_TEST +2;
-        int16_t vals[data_points_count];
+    	size_t data_points_count = b_vals->num_point;
 
-		vals[0] = (int16_t) b_vals->pre_rec_offset;
-		vals[1] = (int16_t) b_vals->post_rec_offset;
+		ESP_LOGD(tag, " Populating chart");
 
-		for (size_t i = 0; i < NUM_OF_TEST; i++) {
-				// Copy the chart values adding the initial values post production and qc value to the beginning
-				vals[i+2] =  b_vals->burn_in_offset[i];
-		}
-		ESP_LOGI(tag, " Populating chart");
-
-    	create_chart_with_data(b_map->chart, vals, data_points_count);
+    	create_chart_with_data(b_map->chart, b_vals->burn_in_offset, data_points_count);
     	ret = ESP_OK;
     	test_vals_release();
 	}
@@ -585,7 +605,7 @@ esp_err_t update_detail_values(int dev_id){
 }
 
 
-void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_points_count) {
+void create_chart_with_data(lv_obj_t *chart, int *data_points, size_t data_points_count) {
     if (!data_points || data_points_count == 0) {
         return;
     }
@@ -621,22 +641,10 @@ void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_p
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
 
     uint16_t num_ticks = (y_max - y_min) / tick_step + 1;
-//    char ticks_buf[256] = {0};
-//    for (uint16_t i = 0; i < num_ticks; i++) {
-//        char tick_label[16];
-//        lv_snprintf(tick_label, sizeof(tick_label), "%d", y_min + i * tick_step);
-//        strcat(ticks_buf, tick_label);
-//        if (i != num_ticks - 1) {
-//            strcat(ticks_buf, "\n");
-//        }
-//    }
+
     lv_coord_t maj = 0;
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 5, 1, num_ticks, 1, true, 20);
-//    lv_chart_set_y_tick_texts(chart, ticks_buf, LV_CHART_AXIS_TICK_LABEL_AUTO_RECOLOR, 0);
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 5, 1, num_ticks, 1, true, 30);
 
-//    lv_chart_set_y_tick_length(chart, 0, 0);
-
-//    lv_chart_clear_series(chart, series);
 
     lv_coord_t *y_ser = lv_chart_get_y_array(chart, series);
 
@@ -647,7 +655,8 @@ void create_chart_with_data(lv_obj_t *chart, int16_t *data_points, size_t data_p
     	if (data_points[i] == DEF_OFFSET_VAL){
     		continue;
     	}
-    	y_ser[i] = data_points[i];
+//    	printf("%d LVChart add %d", i, data_points[i]);
+    	y_ser[i] = (int16_t) data_points[i];
     }
 	lv_chart_refresh(chart); /*Required after direct set*/
 

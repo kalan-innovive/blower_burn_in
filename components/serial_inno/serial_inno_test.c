@@ -41,8 +41,8 @@ static esp_err_t comp_msg16(const msg16_t *msg_exp, const msg16_t *msg);
 
 
 
-TaskHandle_t rack_task_handle;
-TaskHandle_t uart_rx_handle;
+extern TaskHandle_t rack_task_handle;
+extern TaskHandle_t uart_rx_handle;
 extern QueueHandle_t uart_rx_queue;
 
 
@@ -77,7 +77,7 @@ esp_err_t serial_inno_system_tests(void){
 				NULL, configMAX_PRIORITIES, &uart_rx_handle);
 	xTaskCreate(&rack_task, "rack_task", 2048,
 					NULL, 6, &rack_task_handle);
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
+	vTaskDelay(1000000 / portTICK_PERIOD_MS);
 
 
 //	ret = system_test_chipID_();
@@ -524,6 +524,68 @@ static esp_err_t system_test_chipID_(void){
 
 
 	return ret;
+}
+
+/*
+ * Test requires uart0rx and uart0tx to be connected to rack
+ * This is a system test to test turning on the rack
+ * To complete test turn the rack off start test and turn rack on for a second and then back off
+ * Test should be run with other system tests configurations
+ * TODO: send write and read the result
+ */
+static esp_err_t system_test_available_dev(void){
+	// Setup
+	esp_err_t ret;
+	ret = ESP_OK;
+	ESP_LOGI(tag, "____Testing Rack Device Detection ____");
+
+	unsigned chipid = 0;
+	int suc = 0;
+
+	/* TODO set a timer to test the on off loop*/
+	bool rack_on = false;
+	int rack_state = 0;// Rack state
+	int num_dev = 4;
+	int num_avail = 0;
+	int dev_id[4] = {DEV_SUPA, DEV_EXHA, DEV_SUPB, DEV_EXB};
+	unsigned dev_chipid[4] = {0};
+
+	// Rack state even is off odd is on
+	// 0=not on
+	// 1=on
+	// 2=off
+	while (rack_state<1){
+		// Value that holds available devices
+		// Iterate throught the devices and check if they respond
+		rack_on = false;
+		for (int i=0;i<num_dev; i++){
+			// Send a message and check for response
+			suc = get_chipid(dev_id[i], &chipid);
+			if (suc>=1){
+				ESP_LOGI(tag, "Chip ID Received %u for Dev:%d", chipid, dev_id[i]);
+				dev_chipid[i] = chipid;
+				num_avail +=1;
+				rack_on = true;
+			}
+		}
+//		for (int i=0;i<num_dev; i++){
+//			num_avail += (dev_chipid )
+//		}
+		// If the rack is on and the state is even increment state
+		if (rack_on && (rack_state %2) ==0){
+			rack_state +=1;
+			//report chipid
+		}
+		// If the rack is off and the state is odd increment state
+		else if (!rack_on && (rack_state %2) ==1){
+			rack_state +=1;
+			num_avail = 0;
+		}
+		// Delay for a second try again
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+
+	return ESP_OK;
 }
 
 /*

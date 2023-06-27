@@ -6,18 +6,15 @@
 set(include_dirs  "." "gui" "app")
 set(src_dirs  "." "gui" "app" "gui/image")
 
-set(EXTRA_COMPONENT_DIRS
-
-    $ENV{IDF_PATH}/examples/common_components
-    )
+#set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components)
 
 idf_component_register(
 	SRC_DIRS		${src_dirs}
-    INCLUDE_DIRS    ${include_dirs} # optional, add here public include directories
+    INCLUDE_DIRS    ${include_dirs} 												# optional, add here public include directories
 
-    PRIV_INCLUDE_DIRS   # optional, add here private include directories
-    REQUIRES            app_event_handler esp-box serial_inno	# optional, list the public requirements (component names)
-    PRIV_REQUIRES       bsp es7210 nvs_flash# optional, list the private requirements
+    PRIV_INCLUDE_DIRS   															# optional, add here private include directories
+    REQUIRES            app_event_handler esp-box serial_inno lvgl	mqtt_handler protocol_examples_common	# optional, list the public requirements (component names)
+    PRIV_REQUIRES       bsp es7210 nvs_flash										# optional, list the private requirements
 )
 #
 #file(GLOB_RECURSE LV_DEMOS_SOURCES ./*.c)
@@ -49,3 +46,6 @@ idf_component_register(
 #    -DLV_LVGL_H_INCLUDE_SIMPLE)
 
 #spiffs_create_partition_image(storage ../spiffs FLASH_IN_PROJECT)
+
+target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-format")
+
