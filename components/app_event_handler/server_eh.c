@@ -69,9 +69,9 @@ static server_event_t srv_cmd_str_to_enum(const char *cmd_str);
 esp_err_t init_event_handler() {
 	esp_event_loop_args_t loop_args = {
 			.queue_size = 10,
-			.task_name = "app_eh_event_task",
+			.task_name = "app_eh_event",
 			.task_priority = 6,
-			.task_stack_size = 2048,
+			.task_stack_size = 2048 * 4,
 			.task_core_id = tskNO_AFFINITY };
 	ESP_LOGI(TAG, "%s, APP Event Loop initiated", __FUNCTION__);
 	ESP_ERROR_CHECK(esp_event_loop_create(&loop_args, &eh_loop));
@@ -134,6 +134,8 @@ static server_event_t srv_cmd_str_to_enum(const char *cmd_str) {
 	}
 }
 
+//esp_err_t get_ip
+
 // The event handler
 // Receives incoming requests.
 /*
@@ -170,7 +172,7 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 					(e->valid) ? "True" : "False");
 			break;
 		case SERVER_EH_RESPONSE:
-			ESP_LOGI(TAG, "%s, SERVER_EH_RESPONSE type:%s, msg_id=%d, valid=%s",
+			ESP_LOGD(TAG, "%s, SERVER_EH_RESPONSE type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
 					(e->valid) ? "True" : "False");
 
@@ -178,27 +180,30 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 
 			ESP_ERROR_CHECK(
 					esp_event_post_to(*app_loop, base, DB_GET_PRE_POST_BURNIN, new_event, sizeof(*new_event), portMAX_DELAY));
+			esp_event_loop_run(*app_loop, 100);
+			vTaskDelay(5 / portTICK_PERIOD_MS);
 
 			delete_event(new_event); // Free the memory allocated in server_eh_process_resp
 
 			break;
 		case DB_REQUEST:
 			// Handle DB_REQUEST: once the message is parsed it is posted on the proper handle
-			ESP_LOGI(TAG, "%s, DB_REQUEST type:%s, msg_id=%d, valid=%s",
+			ESP_LOGD(TAG, "%s, DB_REQUEST type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
 					(e->valid) ? "True" : "False");
 			break;
 		case DB_GET_PRE_POST_BURNIN:
 			// Handle DB_GET_PRE_POST_BURNIN
-			ESP_LOGI(TAG,
-					"%s, DB_GET_PRE_POST_BURNIN type:%s, msg_id=%d, valid=%s",
+			ESP_LOGD(TAG,
+					"%s, DB_GET_PRE_POST_BURNIN type:%s, msg_id=%d, valid=%s, msg_struct=%p NULL=%d",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
-					(e->valid) ? "True" : "False");
+					(e->valid) ? "True" : "False", (void* )e->msg_struct,
+					e->msg_struct == NULL);
 
 			break;
 		case DB_SET_CALIBRATION:
 			// Handle DB_SET_CALIBRATION
-			ESP_LOGI(TAG,
+			ESP_LOGD(TAG,
 					"%s, DB_SET_CALIBRATION type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
 					(e->valid) ? "True" : "False");
@@ -206,14 +211,14 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 		case DB_LIST_BUCKETS:
 			// Handle DB_LIST_BUCKETS
 			// Handle DB_SET_CALIBRATION
-			ESP_LOGI(TAG,
+			ESP_LOGD(TAG,
 					"%s, DB_LIST_BUCKETS type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
 					(e->valid) ? "True" : "False");
 			break;
 		default:
 			// Handle unknown id
-			ESP_LOGI(TAG,
+			ESP_LOGD(TAG,
 					"%s, Handle unknown id type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
 					(e->valid) ? "True" : "False");
@@ -348,8 +353,8 @@ esp_err_t db_pre_post_parser(cJSON *root, db_resp_pre_post_burnin_t **db_ppb) {
 	(*db_ppb)->burnin_len = 0; // Seems redundant
 
 	cJSON *chip_id = cJSON_GetObjectItem(root, "chip_id");
-	cJSON *vas_value = cJSON_GetObjectItem(root, "vas_value");
-	cJSON *qc_value = cJSON_GetObjectItem(root, "qc_value");
+	cJSON *vas_value = cJSON_GetObjectItem(root, "vas_val");
+	cJSON *qc_value = cJSON_GetObjectItem(root, "qc_val");
 	cJSON *burnin_value = cJSON_GetObjectItem(root, "burnin_value");
 
 	if (!cJSON_IsNumber(chip_id) || !cJSON_IsNumber(vas_value)
@@ -357,15 +362,16 @@ esp_err_t db_pre_post_parser(cJSON *root, db_resp_pre_post_burnin_t **db_ppb) {
 		// Log that we didn't find a mandatory field
 		return ESP_ERR_INVALID_ARG;
 	}
+	unsigned c_id = (unsigned) chip_id->valueint;
 	ESP_LOGD(TAG, "JSON max value:%d ", INT_MAX);
-	ESP_LOGD(TAG, "%s, chipID:%d ", __FUNCTION__,
-			chip_id->valueint);
+	ESP_LOGD(TAG, "%s, chipID:%d , %u ", __FUNCTION__,
+			chip_id->valueint, c_id);
 	ESP_LOGD(TAG, "%s, vas_value:%f ", __FUNCTION__,
 			vas_value->valuedouble);
 	ESP_LOGD(TAG, "%s, qc_value:%f ", __FUNCTION__,
 			qc_value->valuedouble);
 
-	(*db_ppb)->chipID = chip_id->valueint;
+	(*db_ppb)->chipID = (unsigned) chip_id->valuedouble;
 	(*db_ppb)->vas_cal_val = vas_value->valuedouble;
 	(*db_ppb)->qc_cal_val = qc_value->valuedouble;
 

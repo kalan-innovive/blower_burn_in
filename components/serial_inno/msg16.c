@@ -89,7 +89,7 @@ static size_t pack_write_req_data(const msg16_t *msg16, uint8_t *packed_msg) {
 	packed_msg[len_++] = READ_PAYLOAD_LEN;
 	//Pack data
 	for (int ii = 0; ii < msg16->len; ii++) {
-		// Base register + the number of reads requested
+		// Base register + the number of write requested
 		// Base register lsb first
 		packed_msg[len_++] = (uint8_t) (msg16->addr & 0xff);
 		packed_msg[len_++] = (uint8_t) ((msg16->addr >> 8) & 0xff);
@@ -101,17 +101,6 @@ static size_t pack_write_req_data(const msg16_t *msg16, uint8_t *packed_msg) {
 }
 
 static size_t pack_read_req_data(const msg16_t *msg16, uint8_t *packed_msg) {
-//	//Payload length
-//	size_t len_ = 0;
-//	packed_msg[len_++] = READ_PAYLOAD_LEN;
-//	//Pack data
-//	// Base register + the number of reads requested
-//	// Base register lsb first
-//	packed_msg[len_++] = (uint8_t) (msg16->addr & 0xff);
-//	packed_msg[len_++] = (uint8_t) ((msg16->addr >> 8) & 0xff);
-//	// length
-//	packed_msg[len_++] = (uint8_t) msg16->len;
-//	return len_;
 	//Payload length
 	size_t len_ = 0;
 	packed_msg[0] = READ_PAYLOAD_LEN;
@@ -134,20 +123,20 @@ static size_t pack_read_req_data(const msg16_t *msg16, uint8_t *packed_msg) {
 }
 static size_t pack_data(const msg16_t *msg16, uint8_t *packed_msg) {
 	switch (msg16->type) {
-	case READ_REQ:
-		ESP_LOGI(tag, "packing msg type: READ_REQ");
-		return pack_read_req_data(msg16, packed_msg);
-	case WRITE_REQ:
-		ESP_LOGI(tag, "packing msg type: WRITE_REQ");
-		return pack_write_req_data(msg16, packed_msg);
-	case READ_RESP:
-		ESP_LOGI(tag, "packing msg type: READ_RESP");
-		return pack_read_resp_data(msg16, packed_msg);
-	case WRITE_RESP:
-		ESP_LOGI(tag, "packing msg type: READ_REQ");
-		return pack_write_resp_data(msg16, packed_msg);
-	default:
-		ESP_LOGW(tag, "Error packing data msg type: %d", msg16->type);
+		case READ_REQ:
+			ESP_LOGI(tag, "packing msg type: READ_REQ");
+			return pack_read_req_data(msg16, packed_msg);
+		case WRITE_REQ:
+			ESP_LOGI(tag, "packing msg type: WRITE_REQ");
+			return pack_write_req_data(msg16, packed_msg);
+		case READ_RESP:
+			ESP_LOGI(tag, "packing msg type: READ_RESP");
+			return pack_read_resp_data(msg16, packed_msg);
+		case WRITE_RESP:
+			ESP_LOGI(tag, "packing msg type: READ_REQ");
+			return pack_write_resp_data(msg16, packed_msg);
+		default:
+			ESP_LOGW(tag, "Error packing data msg type: %d", msg16->type);
 	}
 	return 0;
 }
@@ -189,39 +178,22 @@ size_t pack_msg16(const msg16_t *msg16, uint8_t *packed_msg,
 	return i;
 }
 
-//void send_msg16(msg16_t* msg16, char* response, size_t response_size) {
-//    // pack the msg16 struct into bytes with escape characters
-//    uint8_t packed_msg[128];
-//    size_t packed_size, msg_len;
-//    msg_len = pack_msg16(msg16, packed_msg, &packed_size);
-//    if (packed_size != msg_len){
-//        	// Need to add error to queue
-//    	return;
-//     }
-//
-//    // send the packed message and receive the response
-//    // ...
-//
-//    // for this example, we just copy the packed message to the response
-//    snprintf(response, response_size, "write|%d|%d|%d|%d", msg16->dev_id, msg16->addr, msg16->len, msg16->msg_val[0]);
-//}
-
 static size_t unpack_data(msg16_t *msg16, uint8_t *packed_msg) {
 	switch (msg16->type) {
-	case READ_REQ:
-		ESP_LOGI(tag, "packing msg type: READ_REQ");
-		return pack_read_req_data(msg16, packed_msg);
-	case WRITE_REQ:
-		ESP_LOGI(tag, "packing msg type: WRITE_REQ");
-		return pack_write_req_data(msg16, packed_msg);
-	case READ_RESP:
-		ESP_LOGI(tag, "packing msg type: READ_RESP");
-		return pack_read_resp_data(msg16, packed_msg);
-	case WRITE_RESP:
-		ESP_LOGI(tag, "packing msg type: READ_REQ");
-		return pack_write_resp_data(msg16, packed_msg);
-	default:
-		ESP_LOGW(tag, "Error packing data msg type: %d", msg16->type);
+		case READ_REQ:
+			ESP_LOGI(tag, "packing msg type: READ_REQ");
+			return pack_read_req_data(msg16, packed_msg);
+		case WRITE_REQ:
+			ESP_LOGI(tag, "packing msg type: WRITE_REQ");
+			return pack_write_req_data(msg16, packed_msg);
+		case READ_RESP:
+			ESP_LOGI(tag, "packing msg type: READ_RESP");
+			return pack_read_resp_data(msg16, packed_msg);
+		case WRITE_RESP:
+			ESP_LOGI(tag, "packing msg type: READ_REQ");
+			return pack_write_resp_data(msg16, packed_msg);
+		default:
+			ESP_LOGW(tag, "Error packing data msg type: %d", msg16->type);
 	}
 	return 0;
 }

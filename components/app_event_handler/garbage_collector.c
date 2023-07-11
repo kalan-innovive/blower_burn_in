@@ -14,7 +14,7 @@
 #include "esp_err.h"
 #include "string.h"
 
-#ifdef INCLUDE_eTaskGetState 
+#ifdef INCLUDE_eTaskGetState
 #endif
 typedef struct
 {
@@ -117,7 +117,7 @@ void garbage_collector_task(void *param)
 
 /**
  * Testing for garbage collector
- * 
+ *
  */
 #define TEST_PTR_COUNT 3
 

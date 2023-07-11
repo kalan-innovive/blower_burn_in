@@ -38,8 +38,8 @@
 #ifdef TESTING_INNO_COMPONENTS
 
 //#define TESTING_SER_INNO 1
-#define TESTING_MQTT_HANDLER_INNO 1
-//#define TESTING_EH_LOOP 1
+//#define TESTING_MQTT_HANDLER_INNO 1
+#define TESTING_EH_LOOP 1
 
 #ifdef TESTING_MQTT_HANDLER_INNO
 #include "test_mqtt_handler.h"
@@ -236,9 +236,9 @@ void app_main(void) {
 	ESP_ERROR_CHECK(settings_read_parameter_from_nvs());
 	/* Initialize Board. */
 
-//	bsp_i2c_init();
-//	bsp_display_start();
-//	bsp_board_init();
+	bsp_i2c_init();
+	bsp_display_start();
+	bsp_board_init();
 #ifdef TESTING_INNO_COMPONENTS
 #ifdef TESTING_EH_LOOP
 	run_event_handler_tests();
@@ -265,16 +265,20 @@ void app_main(void) {
 	ESP_ERROR_CHECK(example_connect());
 
 	esp_log_level_set("msg16", ESP_LOG_WARN);
-	esp_log_level_set("serial_inno", ESP_LOG_INFO);
-	esp_log_level_set("burn-in", ESP_LOG_INFO);
-	esp_log_level_set("UI_blower-BI", ESP_LOG_INFO);
-	esp_log_level_set("UI_Timer", ESP_LOG_INFO);
+	esp_log_level_set("serial_inno", ESP_LOG_ERROR);
+	esp_log_level_set("burn-in", ESP_LOG_DEBUG);
+	esp_log_level_set("UI_blower-BI", ESP_LOG_DEBUG);
+	esp_log_level_set("UI_Timer", ESP_LOG_WARN);
+	esp_log_level_set("UI_EVENT", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_Detail", ESP_LOG_INFO);
 	esp_log_level_set("spi_master", ESP_LOG_WARN);
 	esp_log_level_set("efuse", ESP_LOG_WARN);
-	esp_log_level_set("msg16", ESP_LOG_INFO);
-	ESP_LOGI(TAG, "Display LVGL setup");
+	esp_log_level_set("GC_task", ESP_LOG_DEBUG);
+	esp_log_level_set("user_event_loop", ESP_LOG_DEBUG);
+	esp_log_level_set("offset_data", ESP_LOG_DEBUG);
+
 	bsp_display_backlight_on();
+
 	ESP_ERROR_CHECK(ui_main_start());
 	ESP_ERROR_CHECK(run_blower_burn_in_app());
 #endif

@@ -42,5 +42,12 @@ ChipData* getChipData(unsigned int chipID);
 int chip_data_index(unsigned int chipID);
 int addOffset(unsigned int chipID, int offset);
 int copy_array(CircularArray *ca, int *new_array, int n);
+int insert_array(CircularArray *ca, int *new_array, int n);
+int get_max_last_n(CircularArray *ca, int last_n);
+int get_min_last_n(CircularArray *ca, int last_n);
+int offset_range(ChipData *cd);
+int offset_min_last_n(ChipData *cd, int last_n);
+int offset_max_last_n(ChipData *cd, int last_n);
+int offset_range_last_n(ChipData *cd, int last_n);
 
 #endif /* MAIN_APP_OFFSET_DATA_H_ */

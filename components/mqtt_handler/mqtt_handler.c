@@ -57,7 +57,7 @@ static esp_mqtt_client_handle_t client;
  */
 esp_err_t request_ppb_vals(unsigned chipID) {
 	const char *ppb_jsn =
-			"{\"node_name\": \"%s\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": %d}";
+			"{\"node_name\": \"%s\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": %u}";
 	int ppb_jsn_len = strlen(ppb_jsn);
 	const char *topic = "esp/get";
 	char msg[100];
@@ -87,9 +87,36 @@ esp_err_t set_calibration_val(unsigned chipID, int val) {
 			"{\"node_name\": \"%s\", \"cmd\": \"calibration\", \"chip_id\": %u, \"value\":%d}";
 	int cal_jsn_len = strlen(cal_jsn);
 	const char *topic = "esp/set";
-	char msg[100];
+	char msg[150];
 	int msg_id = 0;
-	int len = sprintf(msg, cal_jsn, espname, chipID);
+	int len = sprintf(msg, cal_jsn, espname, chipID, val);
+
+	ESP_LOGI(TAG, "sending cal_jsn request; topic=%s, msg_id=%d, msg=%s ",
+			topic, msg_id, msg);
+
+	if (is_mqtt_connected) {
+		msg_id = esp_mqtt_client_publish(client, topic, msg, 0, 1, 0);
+	}
+
+	ESP_LOGI(TAG, "Sent ppb request; topic=%s, msg=%s msg_id=%d",
+			topic, msg, msg_id);
+
+	return (len > cal_jsn_len) ? ESP_OK : ESP_FAIL;
+
+}
+
+/**
+ * Send server event handler calibration val
+ *
+ */
+esp_err_t set_cal_burnin_val(unsigned chipID, int val) {
+	const char *cal_jsn =
+			"{\"node_name\": \"%s\", \"cmd\": \"calibration/burn_in_val\", \"chip_id\": %u, \"value\":%d}";
+	int cal_jsn_len = strlen(cal_jsn);
+	const char *topic = "esp/set";
+	char msg[150];
+	int msg_id = 0;
+	int len = sprintf(msg, cal_jsn, espname, chipID, val);
 
 	ESP_LOGI(TAG, "sending cal_jsn request; topic=%s, msg_id=%d, msg=%s ",
 			topic, msg_id, msg);

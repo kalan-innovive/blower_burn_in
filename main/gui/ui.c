@@ -900,7 +900,7 @@ void ui_Screen2_screen_init(void) {
 
 	ui_NotaficationPanel = lv_obj_create(ui_Screen2);
 	lv_obj_set_width(ui_NotaficationPanel, 284);
-	lv_obj_set_height(ui_NotaficationPanel, 155);
+	lv_obj_set_height(ui_NotaficationPanel, 160);
 	lv_obj_set_x(ui_NotaficationPanel, 1);
 	lv_obj_set_y(ui_NotaficationPanel, 20);
 	lv_obj_set_align(ui_NotaficationPanel, LV_ALIGN_CENTER);
@@ -921,8 +921,9 @@ void ui_Screen2_screen_init(void) {
 
 	ui_NotificationLabel = lv_label_create(ui_NotaficationPanel);
 	lv_obj_set_width(ui_NotificationLabel, lv_pct(100));
-	lv_obj_set_height(ui_NotificationLabel, lv_pct(50));
-	lv_obj_set_align(ui_NotificationLabel, LV_ALIGN_CENTER);
+	lv_obj_set_height(ui_NotificationLabel, lv_pct(60));
+	lv_obj_set_align(ui_NotificationLabel, LV_ALIGN_TOP_MID);
+	lv_obj_set_style_text_align(ui_NotificationLabel, LV_TEXT_ALIGN_CENTER, 0);
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_ready);
 	lv_obj_set_style_text_font(ui_NotificationLabel, &lv_font_montserrat_16,
 			LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -951,12 +952,12 @@ void ui_Screen2_screen_init(void) {
 	lv_obj_set_style_text_font(ui_OKButton, &lv_font_montserrat_16,
 			LV_PART_MAIN | LV_STATE_DEFAULT);
 
-	ui_OKLabel = lv_label_create(ui_NotaficationPanel);
+	ui_OKLabel = lv_label_create(ui_OKButton);
 	lv_obj_set_width(ui_OKLabel, LV_SIZE_CONTENT);  /// 1
 	lv_obj_set_height(ui_OKLabel, LV_SIZE_CONTENT);   /// 1
 	lv_obj_set_x(ui_OKLabel, 0);
 	lv_obj_set_y(ui_OKLabel, -8);
-	lv_obj_set_align(ui_OKLabel, LV_ALIGN_BOTTOM_MID);
+	lv_obj_set_align(ui_OKLabel, LV_ALIGN_CENTER);
 	lv_label_set_text(ui_OKLabel, "OK");
 	lv_obj_set_style_text_font(ui_OKLabel, &lv_font_montserrat_16,
 			LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -1010,7 +1011,7 @@ void ui_Screen2_screen_init(void) {
 			LV_EVENT_ALL, NULL);
 
 	lv_obj_add_event_cb(ui_TimerButton, ui_event_TimerButton, LV_EVENT_ALL,
-			NULL);
+	NULL);
 
 	/* Set up timer*/
 

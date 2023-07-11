@@ -89,6 +89,7 @@ const char** create_esp_subscriptions(unsigned int userNode,
 esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg);
 esp_err_t request_ppb_vals(unsigned chipID);
 esp_err_t set_calibration_val(unsigned chipID, int val);
+esp_err_t set_cal_burnin_val(unsigned chipID, int val);
 
 #ifdef __cplusplus
 }

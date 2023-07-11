@@ -267,6 +267,81 @@ int transact_read(const msg16_t *request, msg16_t *response, TickType_t timeout)
 	return ret;
 }
 
+/*
+ * Creates a write transaction on the modbus inno network
+ * @Param: request struct, response struct, timout value
+ * Timeout is reset on every return
+ * @Return:  1 if successful, 0 or -1 if failed to get transaction
+ *  Error: -1 on invalid response
+ *  Error: 0 on if response timed out
+ */
+
+int transact_write(const msg16_t *request, msg16_t *response,
+		TickType_t timeout) {
+	// pack the request message into bytes
+	uint8_t packed_request[128]; // = { 0 };
+	size_t len, packed_size = 0;
+	int num_bytes = 0;
+	int ret = 0;
+	packed_size = pack_msg16((const msg16_t*) request, packed_request, &len);
+
+	/* Todo: check if the queeue is empty first /*/
+
+	// send the packed message
+	num_bytes = uart_tx_task(packed_request, packed_size);
+
+	// wait for response
+	msg16_t *r_msg = malloc(sizeof(msg16_t));
+	if (r_msg == NULL) {
+		return 0;
+	}
+
+	while (xQueueReceive(uart_rx_queue, r_msg, timeout) == pdTRUE) {
+
+		ESP_LOGI(tag, "Queue Received type%d, dev ID=%d, addr=%d, len=%d",
+				r_msg->type, r_msg->dev_id, r_msg->addr, r_msg->len);
+
+		// validate response
+		if (r_msg->type != (READ_RESP) || r_msg->dev_id != request->dev_id) {
+			//invalid response
+			ESP_LOGW(tag, "Msg_type %d, Received DevID:%d Request DevID:%d",
+					r_msg->type, r_msg->dev_id, request->dev_id);
+			ret = -1;
+		} else {
+
+			// fill out response struct
+			response->type = r_msg->type;
+			response->dev_id = r_msg->dev_id;
+			response->addr = r_msg->addr;
+			response->len = r_msg->len;
+			for (int i = 0; i < response->len; i++) {
+				response->msg_val[i] = r_msg->msg_val[i];
+			}
+			ret = 1;
+			break;
+		}
+	}
+	if (ret == 0) {
+		// timeout
+		ESP_LOGW(tag, "Transact Timed out");
+	}
+
+	// free received message
+	if (r_msg != NULL) {
+		free(r_msg);
+	}
+
+	return ret;
+}
+
+/*
+ * Creates a read transaction to get the chipID
+ * @Param: int devid, unsigned *chipid
+ * Stores chip id in pointer adress provided
+ * @Return:  1 if successful, 0 or -1 if failed to get transaction
+ *  Error: -1 on invalid response
+ *  Error: 0 on if response timed out dev unavailable
+ */
 int get_chipid(int devid, unsigned *chipid) {
 	int ret = 0;
 	TickType_t timeout = 30 / portTICK_PERIOD_MS;
@@ -306,6 +381,13 @@ int get_chipid(int devid, unsigned *chipid) {
 
 }
 
+/*
+ * Creates a read transaction to get the offset pressure
+ * @Param: int devid, unsigned *raw_pressure
+ * @Return:  1 if successful, 0 or -1 if failed to get transaction
+ *  Error: -1 on invalid response
+ *  Error: 0 on if response timed out dev unavailable
+ */
 int get_raw_pressure(int devid, int *raw_pressure) {
 	int ret = 0;
 	TickType_t timeout = 30 / portTICK_PERIOD_MS;
@@ -325,7 +407,7 @@ int get_raw_pressure(int devid, int *raw_pressure) {
 
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
-//		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, "Transact Error: %d", ret);
 
 	}
 	tmp = (int16_t) msg_resp.msg_val[0];
@@ -333,6 +415,48 @@ int get_raw_pressure(int devid, int *raw_pressure) {
 
 	*raw_pressure = tmp;
 
+	return ret;
+}
+
+/*
+ * Creates a read transaction for modbus id check, used to check if a modbus id is connected
+ * @Param: int devid to check
+ * @Return:  1 if successful, 0 or -1 if failed to get transaction
+ *  Error: -1 on invalid response
+ *  Error: 0 on if response timed out dev unavailable
+ */
+int check_dev_id(int devid) {
+	ESP_LOGD(tag, "%s Checking Modbus id : %d", __FUNCTION__, devid);
+	int ret = 0;
+	TickType_t timeout = 30 / portTICK_PERIOD_MS;
+	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid,
+			.addr = REG_MODBUS_ADDR, .len = 1 };
+
+	// Set up the msg set the msg to default and msg_val to 0 as we expect response 0xffff
+	msg16_t msg_resp;
+	msg_resp.len = 0;
+	msg_resp.msg_val[0] = 0x00;
+
+	int num_cleared = clear_uart_rx_queue();
+
+	if (num_cleared > 0) {
+		ESP_LOGW(tag, "Cleared %d messages from the Queue", num_cleared);
+	}
+
+	ret = transact_read(&msg_req, &msg_resp, timeout);
+	if (ret == 1) {
+		ESP_LOGD(tag, "Modbus id found for id 0x%x resp code: %d", devid, ret);
+
+	} else if (ret == 0) {
+		ESP_LOGD(tag, "Did not receive response from id 0x%x resp code: %d",
+				devid, ret);
+
+	} else if (ret == -1) {
+		ESP_LOGE(tag,
+				"Error sending message not receive response from id 0x%x resp code: %d",
+				devid, ret);
+
+	}
 	return ret;
 }
 

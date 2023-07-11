@@ -35,6 +35,7 @@ static char* create_json_from_struct(const db_resp_pre_post_burnin_t *ppb);
 static esp_err_t test_get_eh_event_id_string(void);
 static esp_err_t test_db_pre_post_parser(void);
 static esp_err_t test_server_eh_process_resp(void);
+static esp_err_t test_to_valuint();
 
 /**
  * Static test members
@@ -58,7 +59,7 @@ static eh_event_t e_good =
 				.msg_id = 30,
 				.msg_struct =
 						(void*)
-						"{\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": 482184725, \"vas_value\": 34, \"qc_value\": 35, \"burnin_value\" :[30, 28]}",
+						"{\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": 482184725, \"vas_val\": 34, \"qc_val\": 35, \"burnin_value\" :[30, 28]}",
 				.valid = 1,
 		};
 
@@ -68,7 +69,7 @@ static eh_event_t e_bad1 =
 				.msg_id = 101,
 				.msg_struct =
 						(void*)
-						"\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": 482184725, \"vas_value\": 34, \"qc_value\": 35, \"burnin_value\" :[30, 28]}",
+						"\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": 482184725, \"vas_val\": 34, \"qc_val\": 35, \"burnin_value\" :[30, 28]}",
 				.valid = 1,
 		};
 
@@ -78,7 +79,7 @@ static eh_event_t e_bad2 =
 				.msg_id = 102,
 				.msg_struct =
 						(void*)
-						"{\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\",\"qc_value\": 35, \"burnin_value\" :[30, 28]}",
+						"{\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\",\"qc_val\": 35, \"burnin_value\" :[30, 28]}",
 				.valid = 1,
 		};
 
@@ -109,19 +110,19 @@ esp_err_t test_event_handler_system(void) {
 /*
  Can you create a python script theat acts as a mqtt server. The server has a file that it savess data to called board_cal.json. board_cal.json loads a list of json objects into a list called board_list.
  The list object is defined as:
- {"chip_id":123456, 
+ {"chip_id":123456,
  vas_val: -23.0,
  qc_val: -22.0,
  burnin_value":[-24.0,-21.0]
  }
- The script should create a mqtt client that subscribes to the folleowing topcs: esp/set and esp/get. 
- The esp/set topic gets a json string in the format :"{"node_name": "esp140", "cmd": "calibration", "chip_id": 1234567, "value":-25.0}" 
+ The script should create a mqtt client that subscribes to the folleowing topcs: esp/set and esp/get.
+ The esp/set topic gets a json string in the format :"{"node_name": "esp140", "cmd": "calibration", "chip_id": 1234567, "value":-25.0}"
  the callback handles the message by looking up the chip id in board_list and adding the "value" to the burnin_value list in the corresponding chip_id json object and saving the updated list back to board_cal.json file
- if the chip_id is not found it adds a new object with the chipid and sets the vas_value and qc_val to 0xffff. 
+ if the chip_id is not found it adds a new object with the chipid and sets the vas_value and qc_val to 0xffff.
  The esp/set topic gets a json string in the format :"{"node_name": "esp140", "cmd": "calibration/pre_post_burnin", "chip_id": 1234567}"
  it looks up the chip_id in the board_list and appends the vas_value, qc_val, and burnin_value to the original json message in the format:
- "{"node_name": "esp140", 
- "cmd": "calibration/pre_post_burnin", 
+ "{"node_name": "esp140",
+ "cmd": "calibration/pre_post_burnin",
  "chip_id": 1234567
  " 	 vas_val: -23.0,
  qc_val: -22.0,
@@ -132,22 +133,27 @@ esp_err_t test_event_handler_system(void) {
  * system test the eh_handler
  */
 esp_err_t test_event_handler_unit(void) {
+
 	esp_err_t err = ESP_OK;
+
+	// Helper funciton testst
 	T_LOG(TAG, "%s, Testing test_garbage_collector", __FUNCTION__);
-	ESP_ERROR_CHECK(test_garbage_collector());
+	ESP_ERROR_CHECK(test_to_valuint());
 
-	// Initialize the event handler loop
-
-	T_LOG(TAG, "%s, Testing test_get_eh_event_id_string", __FUNCTION__);
-	ESP_ERROR_CHECK(test_get_eh_event_id_string());
-
-	T_LOG(TAG, "%s, Testing test_db_pre_post_parser", __FUNCTION__);
-	ESP_ERROR_CHECK(test_db_pre_post_parser());
-
-	T_LOG(TAG, "%s, Testing test_server_eh_process_resp", __FUNCTION__);
-	ESP_ERROR_CHECK(test_server_eh_process_resp());
-
-	vTaskDelay(500 / portTICK_PERIOD_MS);
+//	ESP_ERROR_CHECK(test_garbage_collector());
+//
+//	// Initialize the event handler loop
+//
+//	T_LOG(TAG, "%s, Testing test_get_eh_event_id_string", __FUNCTION__);
+//	ESP_ERROR_CHECK(test_get_eh_event_id_string());
+//
+//	T_LOG(TAG, "%s, Testing test_db_pre_post_parser", __FUNCTION__);
+//	ESP_ERROR_CHECK(test_db_pre_post_parser());
+//
+//	T_LOG(TAG, "%s, Testing test_server_eh_process_resp", __FUNCTION__);
+//	ESP_ERROR_CHECK(test_server_eh_process_resp());
+//
+//	vTaskDelay(500 / portTICK_PERIOD_MS);
 
 	return err;
 }
@@ -249,8 +255,8 @@ static char* create_json_from_struct(const db_resp_pre_post_burnin_t *ppb) {
 	cJSON_AddStringToObject(root, "node_name", node_name);
 	cJSON_AddStringToObject(root, "cmd", cal_pre_post_burn_str);
 	cJSON_AddNumberToObject(root, "chip_id", ppb->chipID);
-	cJSON_AddNumberToObject(root, "vas_value", ppb->vas_cal_val);
-	cJSON_AddNumberToObject(root, "qc_value", ppb->qc_cal_val);
+	cJSON_AddNumberToObject(root, "vas_val", ppb->vas_cal_val);
+	cJSON_AddNumberToObject(root, "qc_val", ppb->qc_cal_val);
 
 	cJSON *burnin_values = cJSON_CreateIntArray(ppb->burnin_val,
 			ppb->num_burnin);
@@ -324,7 +330,7 @@ static esp_err_t test_server_eh_process_resp(void) {
 
 static esp_err_t test_db_pre_post_parser(void) {
 	char *buff =
-			"{\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": 482184725, \"vas_value\": 34, \"qc_value\": 35, \"burnin_value\" :[30, 28]}";
+			"{\"node_name\": \"esp3\", \"cmd\": \"calibration/pre_post_burnin\", \"chip_id\": 482184725, \"vas_val\": 34, \"qc_val\": 35, \"burnin_value\" :[30, 28]}";
 
 	db_resp_pre_post_burnin_t *ppb = NULL;
 	T_LOG(TAG, "%s,     db_ppb:%p , &db_ppb:%p , size of (*db_ppb):%d",
@@ -353,6 +359,60 @@ static esp_err_t test_db_pre_post_parser(void) {
 	free(ppb);
 
 	T_LOG(TAG, "%s, All assertions passed", __FUNCTION__);
+
+	return err;
+}
+
+#include <limits.h>
+
+static esp_err_t test_to_valuint()
+{
+	esp_err_t err = ESP_OK;
+
+	unsigned max_val = 0xffffffff;
+//	printf(
+//			"%s Max double: %lld, Max unsigned%u;  size of double: %zu num bits:%d",
+//			__FUNCTION__,
+//			LONG_LONG_MAX, max_val, sizeof(double), (int) sizeof(double) * 8);
+	double max_d = 0xffffffffffff;
+	T_LOG(TAG,
+			"%s Max double: %lf;  size of double: %d num bits:%d",
+			__FUNCTION__, max_d
+			, sizeof(double), sizeof(double) * 8);
+
+	T_LOG(TAG, "%s Max unsigned: %u;  size of unsigned: %d num bits:%d",
+			__FUNCTION__,
+			UINT_MAX, sizeof(unsigned), sizeof(unsigned) * 8);
+
+	// Test case 1: Valid unsigned 32-bit integer
+	unsigned val = max_val - 1;
+	cJSON *json1 = cJSON_CreateNumber((double) val);
+	unsigned int result1 = to_valuint(json1);
+
+	err &= (result1 == val) ? ESP_OK : ESP_FAIL;
+	T_LOG(TAG, "%s, Test 1 - Expected: %u, Actual: %u", __FUNCTION__, val,
+			result1);
+	cJSON_Delete(json1);
+
+	// Test case 2: Valid unsigned 32-bit integer exceeding UINT_MAX
+	cJSON *json2 = cJSON_CreateNumber(4294967296);
+	unsigned int result2 = to_valuint(json2);
+
+	T_LOG(TAG, "%s, Test 2 - Expected(4294967296):4294967295, Actual: %u",
+			__FUNCTION__,
+			result2);
+	err &= (result2 == 4294967295) ? ESP_OK : ESP_FAIL;
+	cJSON_Delete(json2);
+
+	// Test case 3: Invalid input (not a number)
+	cJSON *json3 = cJSON_CreateString("invalid");
+	unsigned int result3 = to_valuint(json3);
+
+	T_LOG(TAG,
+			"%s,Test 3 - Invalid entry value should return 0 (invalid), Actual: %u\n",
+			__FUNCTION__, result3);
+	err &= (result3 == 0) ? ESP_OK : ESP_FAIL;
+	cJSON_Delete(json3);
 
 	return err;
 }

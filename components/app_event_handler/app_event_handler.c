@@ -44,17 +44,17 @@ void event_handler_task(void *pvParams) {
 
 		// process the request based on the message id
 		switch (request.msg_id) {
-		case MSG16_REQUEST:
-			msg16_request_handler(&request);
-			break;
-		case SETTINGS_REQUEST:
-			settings_request_handler(&request);
-			break;
-		case DB_REQUEST:
-			db_request_handler(&request);
-			break;
-		default:
-			break;
+			case MSG16_REQUEST:
+				msg16_request_handler(&request);
+				break;
+			case SETTINGS_REQUEST:
+				settings_request_handler(&request);
+				break;
+			case DB_REQUEST:
+				db_request_handler(&request);
+				break;
+			default:
+				break;
 		}
 	}
 }
@@ -214,8 +214,8 @@ int db_get_handler(queue_task_t *task) {
 	}
 
 	// get and set the vas_offset and qc_offset
-	cJSON *vas_value = cJSON_GetObjectItem(root, "vas_value");
-	cJSON *qc_value = cJSON_GetObjectItem(root, "qc_value");
+	cJSON *vas_value = cJSON_GetObjectItem(root, "vas_val");
+	cJSON *qc_value = cJSON_GetObjectItem(root, "qc_val");
 	if (vas_value != NULL && cJSON_IsNumber(vas_value) && qc_value != NULL
 			&& cJSON_IsNumber(qc_value)) {
 		db_ppb->vas_cal_val = vas_value->valuedouble;

@@ -11,7 +11,7 @@
 #define UPDATE_UI()
 
 // If defined the app has a shorter cycle time and monitors the heap
-#define TESTING_APP_BURNIN 1
+#define TESTING_APP_BURNIN 0
 
 #ifdef TESTING_APP_BURNIN
 

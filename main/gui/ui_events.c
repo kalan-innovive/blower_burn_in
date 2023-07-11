@@ -6,41 +6,45 @@
 #include "ui.h"
 #include <stdio.h>
 #include "esp_log.h"
+#include "esp_err.h"
 #include "ui_blower_burn_in.h"
-
-#if UI_BURN_TEST
+#define UI_BURN 0
+#if UI_BURN
 #define BURN_IN_TIME 10 *60
 #define BURN_IN_COOLDOWN_TIME 30 *60
 #else
 #define BURN_IN_TIME 10 *1
 #define BURN_IN_COOLDOWN_TIME  1*20
 #endif
-//const char *tag = "UI_EVENT";
+const char *tag = "UI_EVENT";
 static const char *tag_timer = "UI_Timer";
 //static const char *tag_det = "UI_Detail";
-const char *notify_burnin_on = "Calibration Finished.\n Turn Power Supply Off";
-const char *notify_burnin_off = "Burn In Cycle Finished.\n Turn Power Supply On";
-const char *notify_burnin_ready = "Burn In Ready.\n Turn Power Supply On";
-
+const char *notify_burnin_on =
+		"Calibration Cycle Complete.\n Press \"OK\"\n Record values then\nTurn Power Supply Off";
+const char *notify_burnin_off = "Off Cycle Complete\n Turn Power Supply On";
+const char *notify_burnin_ready = "Burn In Ready\n Turn Power Supply On";
 
 void clock_run_cb(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;
 	lv_obj_t *lab_time = gt->lab_time;
 	gt->time--;
-//	ESP_LOGI(tag_timer, "Timer: %d\n", time);
+	ESP_LOGD(tag_timer, "%s, Timer: %d\n", __FUNCTION__, gt->time);
 	if (gt->time <= 0) {
 		lv_timer_pause(timer);
-		esp_err_t ret = test_timer_finished();
+
+		//
+		esp_err_t ret = ui_timer_finished();
 		// only pause timer after successfully changing the state
-		if (ret == ESP_OK){
+		if (ret == ESP_OK) {
 			lv_timer_pause(timer);
 			ESP_LOGI(tag_timer, "Pausing Timer: %d\n", gt->time);
 			lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 
 			lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-
-
+		} else {
+			// Could not update the state let loop go around again
+			ESP_LOGW(tag_timer, "Pausing Timer: %d\n", gt->time);
 		}
 		gt->time = 0;
 	}
@@ -49,21 +53,22 @@ void clock_run_cb(lv_timer_t *timer) {
 	int ts_time = time % 60;
 	lv_label_set_text_fmt(lab_time, "%02d:%02d", tm_time, ts_time);
 
-	lv_label_set_text_fmt(ui_TimerNotificationLabel, "%02d:%02d", tm_time, ts_time);
+	lv_label_set_text_fmt(ui_TimerNotificationLabel, "%02d:%02d", tm_time,
+			ts_time);
 }
 
-void burn_in_test_start(lv_timer_t *timer){
-	ESP_LOGI(tag_timer, "Start Pressed");
+void burn_in_test_start(lv_timer_t *timer) {
+	ESP_LOGI(tag, "Start Pressed");
 //	update_test_state(RUNNING_BURNIN_TEST);
 	// Check if the rack is initialised
-	burn_in_test_state_t state =  get_test_state();
+	burn_in_testing_state_t state = get_burn_in_state();
 
-	if (state == RUNNING_BURNIN_TEST){
+	if (state == RUNNING_BURNIN_TEST) {
 //		update_test_state(RUNNING_BURNIN_TEST);
 		update_timer_counter(timer, BURN_IN_TIME);
 		lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 		lv_label_set_text(ui_NotificationLabel, notify_burnin_on);
-
+		lv_obj_clear_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
 		lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
 	} else {
@@ -73,40 +78,36 @@ void burn_in_test_start(lv_timer_t *timer){
 
 		lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-		ESP_LOGW(tag_timer, "Start pressed timer not reset current state: %d\n", state);
+		ESP_LOGW(tag, "Start pressed timer not reset current state: %d\n",
+				state);
 
 	}
 
-
 }
 
-void start_pressed(void){
+void start_pressed(void) {
 	update_test_state(STARTING_BURNIN_TEST);
 	lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-
 }
 
-
-
-void burn_in_cooldown_start(lv_timer_t *timer){
+void burn_in_cooldown_start(lv_timer_t *timer) {
 //	t_gui_timer *gt = timer->user_data;
-	ESP_LOGI(tag_timer, "Cool Down Start Timer Event");
+	ESP_LOGI(tag, "Cool Down Start Timer Event");
 	update_timer_counter(timer, BURN_IN_COOLDOWN_TIME);
 	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_off);
+	lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
 
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-
 }
 
-
-void burn_in_cancel(lv_timer_t *timer){
+void burn_in_cancel(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;
 	gt->time = 0;
 	lv_timer_pause(timer);
-	ESP_LOGI(tag_timer, "Cancel Event");
+	ESP_LOGI(tag, "Cancel Event");
 	lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_ready);
 
@@ -114,19 +115,16 @@ void burn_in_cancel(lv_timer_t *timer){
 
 	update_test_state(CANCEL_BURNIN_TEST);
 
-
 }
 
 void update_timer_counter(lv_timer_t *timer, int t) {
-	ESP_LOGI(tag_timer, "update the timer %d\n", (int ) t);
+	ESP_LOGI(tag, "update the timer %d\n", (int ) t);
 	t_gui_timer *gt = timer->user_data;
 	gt->time = t;
 	lv_timer_resume(timer);
 	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
-
-
 
 }
 
@@ -138,9 +136,7 @@ void set_sa_pressed(lv_event_t *e) {
 
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-
 }
-
 
 void set_sb_pressed(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
@@ -149,9 +145,7 @@ void set_sb_pressed(lv_event_t *e) {
 
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-
 }
-
 
 void set_ea_pressed(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
@@ -160,9 +154,7 @@ void set_ea_pressed(lv_event_t *e) {
 
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-
 }
-
 
 void set_eb_pressed(lv_event_t *e) {
 	lv_obj_t *chart = e->user_data;
@@ -170,7 +162,6 @@ void set_eb_pressed(lv_event_t *e) {
 //	lv_chart_refresh(chart); /*Required after direct set*/
 
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
-
 
 }
 
@@ -224,5 +215,4 @@ void lv_chart_cb(lv_event_t *e) {
 }
 
 //#endif
-
 

@@ -51,7 +51,10 @@ static void ui_main_menu(int32_t index_id);
 ////static void ui_led_set_visible(bool visible);
 //
 typedef enum _screen_id {
-	MAIN_SCREEN = 0, APP_SCREEN, BLOWER_SCREEN, SETTING_SCREEN
+	MAIN_SCREEN = 0,
+	APP_SCREEN,
+	BLOWER_SCREEN,
+	SETTING_SCREEN
 } screen_id;
 ///**
 // * Get active screen
@@ -110,10 +113,10 @@ typedef enum _screen_id {
 
 esp_err_t ui_acquire(void) {
 	bool ret = bsp_display_lock(0);
-	if (!ret){
+	if (!ret) {
 		ESP_LOGW(TAG, "Failed to aquire ui Semaphore");
 	}
-	return (ret)  ? ESP_OK:ESP_FAIL;
+	return (ret) ? ESP_OK : ESP_FAIL;
 //	TaskHandle_t task = xTaskGetCurrentTaskHandle();
 //	if (g_lvgl_task_handle != task) {
 //		xSemaphoreTake(g_guisemaphore, portMAX_DELAY);
@@ -266,7 +269,6 @@ void ui_release(void) {
 //	}
 //}
 
-
 //static void clock_run_cb(lv_timer_t *timer) {
 //	lv_obj_t *lab_time = (lv_obj_t*) timer->user_data;
 //	time_t now;
@@ -353,21 +355,20 @@ void ui_release(void) {
 
 static void ui_after_boot(void)
 {
-    sys_param_t *param = settings_get_parameter();
-    // Fill in the parametesrs in the header
-    // - IP address of the event handler
-    // - Node name
-    // Set the wifi symbol if connected
+	sys_param_t *param = settings_get_parameter();
+	// Fill in the parametesrs in the header
+	// - IP address of the event handler
+	// - Node name
+	// Set the wifi symbol if connected
 //	lv_disp_load_scr(ui_Screen1);
 
 }
-
+// 115200
 esp_err_t ui_main_start(void)
 {
-    ui_acquire();
+	ui_acquire();
 
-
-    lv_indev_t *indev = lv_indev_get_next(NULL);
+	lv_indev_t *indev = lv_indev_get_next(NULL);
 
 //    if (lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD) {
 //        ESP_LOGI(TAG, "Input device type is keypad");
@@ -378,14 +379,14 @@ esp_err_t ui_main_start(void)
 //    } else if (lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER) {
 //        ESP_LOGI(TAG, "Input device type have pointer");
 //    }
-    ui_init();
+	ui_init();
 
 //    boot_animate_start(ui_after_boot);
 //    ui_after_boot();
 
-    ui_release();
-    init_test_vals();
+	ui_release();
+	init_test_vals();
 
-    return ESP_OK;
+	return ESP_OK;
 }
 

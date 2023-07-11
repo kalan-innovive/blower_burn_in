@@ -56,33 +56,39 @@ static int QC_v[4];
  *  ___Proto Type definitions ______
  */
 static void init_burn_in(void);
-static void update_ui_blower_vals(burn_in_test_value_t *brn_val);
+static void update_ui_blower_vals(burn_in_ui_value_t *brn_val);
 
 static int update_rack_blower_list(void);
-static void setup_blower_(burn_in_test_value_t *brn_val);
-static void update_blower_ui_val(burn_in_test_value_t *brn_val);
+static void setup_blower_(burn_in_ui_value_t *brn_val);
+//static void update_blower_ui_val(burn_in_test_value_t *brn_val);
 static int check_rack_power_changed(void);
 static int set_rack_status(bool status);
-static void init_blower_test(burn_in_test_value_t *brn_val);
+static void init_blower_test(burn_in_ui_value_t *brn_val);
 static int log_calibration_values();
 //static int request_ppb_values();
 static esp_err_t register_burnin_eh_calback(void);
 static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		int32_t id, void *event_data);
 static int get_ppb_values();
+static int check_power_on();
+static void on_settings_update(void *handler_arg, esp_event_base_t base,
+		int32_t id, void *event_data);
 
 /**
  *  ___Static Function  definitions ______
  */
 
 static void init_burn_in() {
+	ESP_LOGI(TAG,
+			"%s, Initializing burn in reseting cur_offset cas_v and qc_val  setting power, rack on to default",
+			__FUNCTION__);
 	for (int i = 0; i < 4; i++) {
 		testing[i] = 0;
 		cur_offset[i] = DEF_OFFSET_VAL;
 		vas_v[i] = DEF_OFFSET_VAL;
 		QC_v[i] = DEF_OFFSET_VAL;
 	}
-	rack_power_changed = false;
+	check_rack_power_changed();
 	rack_on = false;
 
 }
@@ -91,15 +97,26 @@ static void init_burn_in() {
  * returns if the rack_power_changed status
  */
 static int set_rack_status(bool status) {
-	rack_power_changed = (status != rack_on) ? true : false;
-	rack_on = status;
-	if (rack_power_changed) {
-		ESP_LOGI(TAG, "Rack power changed:%d, rack_on:%d", rack_power_changed,
-				rack_on);
+	if (status != rack_on) {
+		ESP_LOGD(TAG,
+				"%s, set new rack status:%d , rack_power_changed:%d, rack_on:%d",
+				__FUNCTION__, status, rack_power_changed, rack_on);
+		rack_on = status;
+		rack_power_changed = true;
 	}
-	return (int) rack_power_changed;
+	return rack_power_changed;
 
 }
+//static int set_rack_status(bool status) {
+//	rack_power_changed = (status != rack_on) ? true : false;
+//	rack_on = status;
+//	if (rack_power_changed) {
+//		ESP_LOGI(TAG, "%s, set status:%d , rack_power_changed:%d, rack_on:%d", status, rack_power_changed,
+//					rack_on);
+//	}
+//	return rack_power_changed;
+//
+//}
 
 /**
  * Checks if the rack_on status has changed
@@ -108,15 +125,23 @@ static int set_rack_status(bool status) {
  */
 static int check_rack_power_changed() {
 	if (rack_power_changed) {
+		ESP_LOGD(TAG, "%s, Rack Power changed checked returning 1",
+				__FUNCTION__);
 		rack_power_changed = false;
 		return 1;
 	}
+	ESP_LOGD(TAG, "%s, Rack Power changed checked returning 0", __FUNCTION__);
+
 	return 0;
 }
+
 /**
  * Checks for connected blowers
- * Logs the callibration value to the server if available
- * Updates the rack on off status
+ * Logs the calibration value to the server if available
+ * Updates chipid_list, and
+ * @return: number of updated devices.
+ * Note: only use after rack
+ *
  */
 static int update_rack_blower_list() {
 	int suc;
@@ -127,45 +152,69 @@ static int update_rack_blower_list() {
 	int num_avail = 0;
 
 	for (int i = 0; i < 4; i++) {
-		ESP_LOGD(TAG, "Checking for Device:%d", devIDs[i]);
+		ESP_LOGV(TAG, "Checking for Device:%d", devIDs[i]);
 		chipid = 0;
 		offset = DEF_OFFSET_VAL;
 
 		// Send a message and check for response
 		suc = get_raw_pressure(devIDs[i], &offset);
 
-		ESP_LOGD(TAG, "Checking for Device:%d, Available: %d, Offset:%d",
+		ESP_LOGV(TAG, "Checking for Device:%d, Available: %d, Offset:%d",
 				devIDs[i], suc, offset);
 		// If we can get the offset check if the chip id is readable
 		if (suc == 1) {
 			suc = get_chipid(devIDs[i], &chipid);
+			if (suc == 1) {
+
+				// Set the current offset value for the chip id
+				cur_offset[i] = offset;
+			}
 
 			if (suc == 1) {
-				ESP_LOGD(TAG, "%d. Blower %d; Chip ID: %u Offset: %d", i,
+				ESP_LOGV(TAG, "%d. Blower %d; Chip ID: %u Offset: %d", i,
 						devIDs[i], chipid, offset);
-				chipid_list[i] = chipid;
+				chipid_list[i] = (chipid);
 
+				// Update the testing list
 				testing[i] = 1;
 				num_avail += 1;
+
 			}
-			cur_offset[i] = offset;
-			// Log the calibration value
-			set_calibration_val(chipid_list[i], cur_offset[i]);
-
-		} else {
-			testing[i] = 0;
-			chipid_list[i] = 0;
 		}
-
 	}
-	if (num_avail > 0) {
-		int r = set_rack_status(true);
-		if (r)
-			ESP_LOGI(TAG, "Rack Turned ON");
-	} else {
-		int r = set_rack_status(false);
-		if (r)
-			ESP_LOGI(TAG, "Rack Turned OFF");
+
+	return num_avail;
+}
+
+/**
+ * Checks for connected blowers in the system
+ * Updates the rack on off status
+ * @return: number of available devices.
+ */
+static int check_power_on() {
+	int suc;
+	int devIDs[4] = { DEV_SUPA, DEV_EXHA, DEV_SUPB, DEV_EXB };
+	int num_avail = 0;
+
+	for (int i = 0; i < 4; i++) {
+		ESP_LOGI(TAG, "Checking for Device:%d", devIDs[i]);
+
+		// Send a message and check for response
+		suc = check_dev_id(devIDs[i]);
+
+		// If we receive a response we update the power on and return
+		if (suc == 1) {
+			num_avail++;
+		}
+		if (num_avail > 0) {
+			int r = set_rack_status(true);
+			if (r)
+				ESP_LOGI(TAG, "Rack Turned ON");
+		} else {
+			int r = set_rack_status(false);
+			if (r)
+				ESP_LOGI(TAG, "Rack Turned OFF");
+		}
 	}
 	return num_avail;
 }
@@ -175,10 +224,10 @@ static int update_rack_blower_list() {
  * Initializes the current testing list ui components name and chipid
  * @param burn_in_test_value_t *brn_val
  */
-static void setup_blower_(burn_in_test_value_t *brn_val) {
+static void setup_blower_(burn_in_ui_value_t *brn_val) {
 	brn_val->values_changed = true;
 
-	// Get values from blowers and update values on ui
+// Get values from blowers and update values on ui
 	for (int i = 0; i < 4; i++) {
 		blower_test_value_t *blower = &brn_val->blowers[i];
 
@@ -196,21 +245,23 @@ static void setup_blower_(burn_in_test_value_t *brn_val) {
 			unsigned c_id = chipid_list[i];
 			sprintf(chipid_str, "%u", c_id);
 			strcpy(blower->chip_id, chipid_str);
+			blower->offset = cur_offset[i];
 
 			// Set the state
 			blower->state = STARTING_BLOWER_TEST;
 
 		} else {
-			ESP_LOGD(TAG, "Initializing Empty Blower:%s, ChipID:%s, offset:%d",
+			ESP_LOGD(TAG,
+					"Initializing Empty Blower:%s, ChipID:%s, offset:%d",
 					blower->name, brn_val->blowers[i].chip_id,
 					brn_val->blowers[i].offset);
 
 			strcpy(brn_val->blowers[i].chip_id, "");
+			blower->offset = DEF_OFFSET_VAL;
 
 			blower->state = UNINIT_BLOWER_TEST;
 		}
 		// Clear out previous values
-		blower->offset = DEF_OFFSET_VAL;
 		blower->range = DEF_OFFSET_VAL;
 		blower->vas_offset = DEF_OFFSET_VAL;
 		blower->qc_offset = DEF_OFFSET_VAL;
@@ -234,18 +285,20 @@ static void setup_blower_(burn_in_test_value_t *brn_val) {
  * Requires that the blower values have already been initialized and burn in array is updated with
  * latest offset
  */
-static void update_ui_blower_vals(burn_in_test_value_t *brn_val) {
+static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 	brn_val->values_changed = true;
 
-	// Get values from blowers and update values on ui
+// Get values from blowers and update values on ui
 	for (int i = 0; i < 4; i++) {
-		// If the blower is in the list update the values
+// If the blower is in the list update the values
 		blower_test_value_t *blower = &brn_val->blowers[i];
 
 		if (blower->is_testing) {
 			blower_test_value_t *blower = &brn_val->blowers[i];
 
-			ESP_LOGD(TAG, "Updating blower Blower:%s, ChipID:%s, offset:%d",
+			ESP_LOGD(TAG,
+					"[%s,%d]	Updating blower Blower:%s, ChipID:%s, offset:%d",
+					__FUNCTION__, __LINE__,
 					blower->name, blower->chip_id, blower->offset);
 
 			blower->values_changed = true;
@@ -258,7 +311,7 @@ static void update_ui_blower_vals(burn_in_test_value_t *brn_val) {
 			if (cd != NULL) {
 				// Add the new offset to the list
 				// Set the current, vas and qc offsets
-				blower->offset = getCurrOffset(cd);
+				blower->offset = cur_offset[i];
 				blower->vas_offset = cd->vas_offset;
 				blower->qc_offset = cd->qc_offset;
 
@@ -272,18 +325,21 @@ static void update_ui_blower_vals(burn_in_test_value_t *brn_val) {
 						blower->burn_in_offset, NUM_OF_TEST);
 				blower->num_point = num_burn_val;
 
-				ESP_LOGI(TAG,
-						"Copied %d items to the array\n Current test array count %d________________",
-						num_burn_val, cd->offset_array.count);
+				ESP_LOGD(TAG,
+						"[%s,%d]    Copied %d items to the array\t Current test array count %d________________",
+						__FUNCTION__, __LINE__, num_burn_val,
+						cd->offset_array.count);
 
 				ESP_LOGD(TAG,
-						"Updated Blower:%s, ChipID:%s, offset:%d, num_points: %d",
+						"[%s,%d]	Updated Blower:%s, ChipID:%s, offset:%d, num_points: %d",
+						__FUNCTION__, __LINE__,
 						blower->name, blower->chip_id, blower->offset,
 						blower->num_point);
 
 			} else {
 				ESP_LOGE(TAG,
-						"Failed update on Blower:%s, ChipID:%s, offset:%d",
+						"[%s,%d]	Failed update on Blower:%s, ChipID:%s, offset:%d chip data returned NULL",
+						__FUNCTION__, __LINE__,
 						blower->name, blower->chip_id, blower->offset);
 				return;
 			}
@@ -295,7 +351,8 @@ static void update_ui_blower_vals(burn_in_test_value_t *brn_val) {
 			if (passing) {
 				blower->state =
 						(blower->num_point >= REQ_POINTS_PASS) ?
-								SUCCESS_BLOWER_TEST : RUNNING_BLOWER_TEST;
+								SUCCESS_BLOWER_TEST :
+								RUNNING_BLOWER_TEST;
 			} else {
 				blower->state = FAILED_BLOWER_TEST;
 			}
@@ -304,13 +361,13 @@ static void update_ui_blower_vals(burn_in_test_value_t *brn_val) {
 	}
 }
 
-static void init_blower_test(burn_in_test_value_t *brn_val) {
+static void init_blower_test(burn_in_ui_value_t *brn_val) {
 	brn_val->values_changed = true;
 
-	// Get values from blowers and update values on ui
+// Get values from blowers and update values on ui
 	for (int i = 0; i < 4; i++) {
 		blower_test_value_t *blower = &brn_val->blowers[i];
-		// If the blower is in the list update the values
+// If the blower is in the list update the values
 		testing[i] = 0;
 
 		blower->is_testing = 0;
@@ -338,7 +395,12 @@ static int log_calibration_values() {
 	for (int i = 0; i < 4; i++) {
 		if (testing[i]) {
 			// send the request to log the calibration value
-			esp_err_t err = set_calibration_val(chipid_list[i], cur_offset[i]);
+			esp_err_t err = set_calibration_val(chipid_list[i],
+					cur_offset[i]);
+			ESP_LOGD(TAG,
+					"%s, %dLogging calibration value to database. chip_id=%u, value=%d",
+					__FUNCTION__, i, chipid_list[i], cur_offset[i]);
+
 			if (err != ESP_OK) {
 				ESP_LOGE(TAG,
 						"[%s, %d]Error logging calibration value to database",
@@ -367,6 +429,7 @@ static int get_ppb_values() {
 						"[%s, %d]Error sending request for ppb values to database",
 						__FUNCTION__, __LINE__);
 				ret--;
+				vTaskDelay(200 / portTICK_PERIOD_MS);
 			}
 		}
 	}
@@ -377,14 +440,18 @@ static int get_ppb_values() {
  * Initializes the needed server event handler callbacks
  */
 static esp_err_t register_burnin_eh_calback(void) {
-	// Register event with DB_GET_PRE_POST_BURNIN
+// Register event with DB_GET_PRE_POST_BURNIN
 
 	esp_event_base_t base = get_event_handler_base();
 	esp_event_loop_handle_t loop = get_event_handler_loop();
+	ESP_LOGD(TAG, "[%s, %d] Setting up burnin callback",
+			__FUNCTION__, __LINE__);
 
 	ESP_ERROR_CHECK(
 			esp_event_handler_instance_register_with(loop, base, DB_GET_PRE_POST_BURNIN, on_ppb_response, &loop, NULL));
-
+	// Used when a settings value is updated
+//	ESP_ERROR_CHECK(
+//			esp_event_handler_instance_register_with(loop, base, SETTINGS_REQUEST, on_settings_update, &loop, NULL));
 	return ESP_OK;
 }
 
@@ -395,65 +462,159 @@ static esp_err_t register_burnin_eh_calback(void) {
 static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		int32_t id, void *event_data) {
 
-	ESP_LOGI(TAG, "%s, Received from loop id: %ld", __FUNCTION__, id);
+	ESP_LOGI(TAG,
+			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
+			__FUNCTION__, __LINE__, id, (void* )event_data);
 
-	// Cast handler_arg to eh_event_t
+// Cast handler_arg to eh_event_t
 	eh_event_t *event = (eh_event_t*) event_data;
 
 	if (event == NULL) {
-		ESP_LOGE(TAG, "%s, Error: event_data==NULL", __FUNCTION__);
-		return;
+		ESP_LOGE(TAG, "%s, Error: event_data==NULL at:%p,",
+				__FUNCTION__,
+				(void* ) event);
+//		return;
 	}
 
-	// Check that the event is valid
+// Check that the event is valid
 	/* TODO: Check that this is thread sage*/
-	if (event->valid && event->type == DB_RESP_UNPACKED) {
+	else if (event->valid && event->type == DB_RESP_UNPACKED) {
 
-		ESP_LOGD(TAG, "%s, Event valid=%d, msg_id=%d, type=%d",
-				__FUNCTION__, event->valid, event->msg_id, event->type);
+		ESP_LOGD(TAG, "[%s,%d]\t Event valid=%d, msg_id=%d, type=%d",
+				__FUNCTION__, __LINE__, event->valid, event->msg_id,
+				event->type);
 
-		// Cast msg_struct into a db_resp_pre_post_burnin_t
+// Cast msg_struct into a db_resp_pre_post_burnin_t
 		db_resp_pre_post_burnin_t *data =
 				(db_resp_pre_post_burnin_t*) event->msg_struct;
 
-		//Error Checking that we have the correct struct
-		if (data != NULL) {
-			ESP_LOGE(TAG, "%s, data is null",
-					__FUNCTION__);
+//Error Checking that we have the correct struct
+		if (data == NULL) {
+			ESP_LOGE(TAG, "%s, msg_struct == null at:%p",
+					__FUNCTION__, (void* )data);
 			return;
 		}
+		ESP_LOGD(TAG, "[%s,%d]/t, msg_struct == :%p",
+				__FUNCTION__, __LINE__, (void* )data);
 
-		// Now you can access the members of the db_resp_pre_post_burnin_t struct
-		// TODO: use the print function
+// Now you can access the members of the db_resp_pre_post_burnin_t struct
+// TODO: use the print function
 		ESP_LOGD(TAG, "chipID: %u", data->chipID);
 		ESP_LOGD(TAG, "burnin_len: %u", data->burnin_len);
 		ESP_LOGD(TAG, "vas_cal_val: %d", data->vas_cal_val);
 		ESP_LOGD(TAG, "qc_cal_val: %d", data->qc_cal_val);
 		ESP_LOGD(TAG, "num_burnin: %d", data->num_burnin);
 		for (int i = 0; i < data->num_burnin; i++) {
-			ESP_LOGD(TAG, "burnin_val[%d]: %d", i, data->burnin_val[i]);
+			ESP_LOGD(TAG, "    burnin_val[%d]: %d", i,
+					data->burnin_val[i]);
 		}
 
-		// Check for the internal chip data
-		// Not sure if this is neccessary
+// Check for the internal chip data
+// Not sure if this is neccessary
 		unsigned c_id = data->chipID;
 		ChipData c_data;
 		int r = chip_data_index(c_id);
+		ESP_LOGD(TAG, "Updating index: %d", r);
+		c_data.chipID = c_id;
+		c_data.qc_offset = data->qc_cal_val;
+		c_data.vas_offset = data->vas_cal_val;
 
-		// If in the list update from array otherwise use values from vas_v
-		if (r == 0) {
-			c_data.chipID = c_id;
-			c_data.qc_offset = data->qc_cal_val;
-			c_data.vas_offset = data->vas_cal_val;
-			r = addChipData(data->burnin_val);
-			if (r < 0) {
-				ESP_LOGE(TAG, "%s, Error copying the burn in array for %u",
-						__FUNCTION__, c_id);
-			}
+// Update the data array
+		r = insert_array(&c_data.offset_array, data->burnin_val,
+				data->num_burnin);
+		if (r < 0) {
+			ESP_LOGE(TAG,
+					"[%s,%d]/t Error copying the burn in array at: %p",
+					__FUNCTION__, __LINE__, (void* ) data->burnin_val);
+		}
+		r = addChipData(&c_data);
+		if (r < 0) {
+			ESP_LOGE(TAG,
+					"[%s,%d]/t Error adding chip datafor %u",
+					__FUNCTION__, __LINE__, c_id);
+		}
 
-		} else {
-			ESP_LOGE(TAG, "%s, Error: Event valid=%d, msg_id=%d, type=%d",
-					__FUNCTION__, event->valid, event->msg_id, event->type);
+	} else {
+		ESP_LOGE(TAG,
+				"[%s,%d]/t Error: Event valid=%d, msg_id=%d, type=%d",
+				__FUNCTION__, __LINE__, event->valid, event->msg_id,
+				event->type);
+	}
+}
+
+/**
+ * @brief event handler function for Burn in ppb event available
+ *  - Called by event handler when a DB_GET_PRE_POST_BURNIN is posted
+ */
+static void on_settings_update(void *handler_arg, esp_event_base_t base,
+		int32_t id, void *event_data) {
+
+	ESP_LOGI(TAG,
+			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
+			__FUNCTION__, __LINE__, id, (void* )event_data);
+
+// Cast handler_arg to eh_event_t
+	eh_event_t *event = (eh_event_t*) event_data;
+
+	if (event == NULL) {
+		ESP_LOGE(TAG, "%s, Error: event_data==NULL at:%p,",
+				__FUNCTION__,
+				(void* ) event);
+//		return;
+	}
+
+// Check that the event is valid
+	/* TODO: Check that this is thread sage*/
+	else if (event->valid && event->type == SETTINGS_REQUEST) {
+
+		ESP_LOGD(TAG, "[%s,%d]\t Event valid=%d, msg_id=%d, type=%d",
+				__FUNCTION__, __LINE__, event->valid, event->msg_id,
+				event->type);
+
+// Cast msg_struct into a db_resp_pre_post_burnin_t
+		settings_req_t *setting =
+				(settings_req_t*) event->msg_struct;
+
+//Error Checking that we have the correct struct
+		if (setting == NULL) {
+			ESP_LOGE(TAG, "%s, msg_struct == null at:%p",
+					__FUNCTION__, (void* )setting);
+			return;
+		}
+		ESP_LOGD(TAG, "[%s,%d]/t, Settings request type == :%d",
+				__FUNCTION__, __LINE__, setting->type);
+
+		switch (setting->type) {
+			case IP_ADDR:
+				handle_ip_addr((char*) setting->data);
+				break;
+			case SSID_STR:
+				//				handle_ssid_str((char*) setting->data);
+				break;
+			case WIFI_PASSWD:
+				//				handle_wifi_passwd((char*) setting->data);
+				break;
+			case MQTT_CONF:
+				//				handle_mqtt_conf((mqtt_conf_str*) setting->data);
+				break;
+			case MQTT_STATUS:
+				handle_mqtt_status(*(bool*) setting->data);
+				break;
+			case MODBUS_POWER:
+				handle_modbus_power(*(bool*) setting->data);
+				break;
+			case NODE_NAME:
+				handle_node_name((char*) setting->data);
+				break;
+			case SERIAL_STATUS:
+				handle_serial_status(*(bool*) setting->data);
+				break;
+			case BLT_STATUS:
+				handle_blt_status(*(bool*) setting->data);
+				break;
+			default:
+				// unknown type should break here and hang durring debug
+				break;
 		}
 	}
 }
@@ -481,39 +642,53 @@ void burn_in_task(void *pvParameter) {
 	init_chipArrray();
 
 	vTaskDelay(APP_START_DELAY_MS / portTICK_PERIOD_MS);
+	register_burnin_eh_calback();
 
 	ESP_LOGI(TAG, "Starting loop ");
 
 	while (true) {
-		// Check for blowers and keep a local copy of values for when the ui is changed
-		num_available = update_rack_blower_list();
-		burn_in_test_state_t state = get_test_state();
+// Check for blowers and keep a local copy of values for when the ui is changed
+		num_available = check_power_on();
+		burn_in_testing_state_t state = get_burn_in_state();
 		if (state == -1) {
-			ESP_LOGW(TAG, "Current state is in error needs to be handled ");
-			vTaskDelay(30000 / portTICK_PERIOD_MS);
+			ESP_LOGW(TAG,
+					"Current state is in error needs to be handled ");
+			vTaskDelay(1000 / portTICK_PERIOD_MS);
 			continue;
 		}
 
-		//Periodically print out state
-		if (count % 10 == 0) {
-			ESP_LOGI(TAG,
-					"Num Blowers: %d, Current State: %d Rack Powered On:%d Value changed:%d",
-					num_available, state, rack_on, rack_power_changed);
+//Periodically print out state
+		if (count % 10 == 0 || rack_power_changed) {
+			ESP_LOGD(TAG,
+					"[APP] Num Blowers: %d, Current State: %s Rack Powered On:%d Value changed:%d",
+					num_available, burnin_state_to_str(state), rack_on,
+					rack_power_changed);
 			mem_prev = mem_cur;
 			mem_cur = esp_get_free_heap_size();
 			int mem_change = (mem_cur - mem_prev);
-			ESP_LOGI(TAG,
+			ESP_LOGD(TAG,
 					"[APP] Original heap:%lu, Free memory: %lu bytes, Heap change:%d",
 					mem_original, mem_cur, mem_change);
 		}
 
-		// Starting Burn in state requires the rack to be powered on and the start button to be pressed
-		// The default state is the cancel state and all test will continue to run until the cancel test is set
+		/**
+		 * Loop Runs on the current state
+		 */
+
 		if (state == STARTING_BURNIN_TEST && rack_on) {
+			// Starting Burn in state requires the rack to be powered on and the start button to be pressed
+			// The default state is the cancel state and all test will continue to run until the cancel test is set
 			// Reset the test cycles if cancel event was initiated
 			test_cycle = (test_cycle >= 0) ? test_cycle : 1;
+			ESP_LOGD(TAG, "[%d] State:Starting Burn in cycles: %d", __LINE__,
+					test_cycle);
+			vTaskDelay(10 / portTICK_PERIOD_MS);
+
 			// Get the current values if available from the server
-			get_ppb_values();
+			int ppb_sec = get_ppb_values();
+			ESP_LOGD(TAG, "[%d] State:Starting Burn in ppb_success: %d",
+					__LINE__, ppb_sec);
+			vTaskDelay(10 / portTICK_PERIOD_MS);
 
 			// Need to delay for 1000 msec to gaurauntee that all samples have been collected
 			vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -521,18 +696,21 @@ void burn_in_task(void *pvParameter) {
 
 			// This state is changed when the user presses start or a a cycle is finished and the rack is turned on
 			ESP_LOGI(TAG, "Starting Burn in test conditions checking");
+
+			// Why is this being called and not checked?????
 			check_rack_power_changed();
+
 			/** FIXME: use the event handler to update the values */
 			if (test_vals_acquire(10)) {
 				ESP_LOGI(TAG, "Starting Burn in test Acquiring UI");
 
 				//Acquired ui update the values
-				burn_in_test_value_t *b_val;
-				b_val = get_test_vals();
+				burn_in_ui_value_t *b_val;
 
-				// Update with current values
+				b_val = get_test_vals();
 				setup_blower_(b_val);
-				update_ui_blower_vals(b_val);
+				// Update with current values
+//				update_ui_blower_vals(b_val);
 				test_vals_release();
 				update_test_values();
 
@@ -550,42 +728,63 @@ void burn_in_task(void *pvParameter) {
 
 			}
 
-		} else if (state == RUNNING_BURNIN_TEST) {
-			if (count % UPDATE_UI_COUNT == 0)
+		}
+		else if (state == RUNNING_BURNIN_TEST) {
+//			if (count % UPDATE_UI_COUNT == 0)
+			if (count % 10 == 0)
+
 				// Update every
 				if (test_vals_acquire(10)) {
-					ESP_LOGI(TAG, "Starting Burn in test Acquiring UI");
+					ESP_LOGI(TAG,
+							"RUNNING_BURNIN_TEST Burn in test Acquiring UI");
 
 					//Acquired ui update the values
-					burn_in_test_value_t *b_val;
+					burn_in_ui_value_t *b_val;
 					b_val = get_test_vals();
-
+					log_calibration_values();
 					// Update with current values
 					update_ui_blower_vals(b_val);
 					test_vals_release();
 					update_test_values();
 
-					ESP_LOGI(TAG, "Rack Powered On: Updated test values");
+					ESP_LOGI(TAG,
+							"Rack Powered On: Updated test values");
 
 					if (start_burnin() == ESP_OK) {
 						ESP_LOGI(TAG, "Started burn in test");
 					}
 				}
 
-		} else if (state == FINISHED_BURNIN_TEST && !rack_on) {
+		}
+		else if (state == FINISHED_BURNIN_TEST && !rack_on) {
 			// State transition if rack is turned off
-			if (check_rack_power_changed()) {
-				esp_err_t ret = start_cooldown();
-				if (ret == ESP_OK) {
-					ESP_LOGI(TAG, "Rack turned off transition state");
-				}
+//			if (check_rack_power_changed()) {
+			check_rack_power_changed();
+			ESP_LOGI(TAG,
+					"FINISHED_BURNIN_TEST- submitting value for cycle");
+			esp_err_t ret = start_cooldown();
+			if (ret == ESP_OK) {
+				ESP_LOGD(TAG, "%s, Rack turned off transition state",
+						__FUNCTION__);
 			}
+//			}
 		} else if (state == RUNNING_COOLDOWN_TEST) {
 			// Do something
 			// Check that the rack is still off to continue the timer
 
 		} else if (state == FINISHED_BURNIN_CYCLE && rack_on) {
+			// Submit the Cycle Burn in value so that we know cooldown has been complete
+			ESP_LOGI(TAG,
+					"____________FINISHED_BURNIN_CYCLE- submitting valueu for cycle");
 
+			for (int i = 0; i < 4; i++) {
+
+				if (testing[i]) {
+					set_cal_burnin_val(chipid_list[i], cur_offset[i]);
+					ESP_LOGD(TAG, "Logging successful test, %u, val=%d",
+							chipid_list[i], cur_offset[i]);
+				}
+			}
 			// Check rack on event
 //			if (check_rack_power_changed()){
 			// Only update if we successfully updated the state
@@ -599,19 +798,21 @@ void burn_in_task(void *pvParameter) {
 
 		}
 		// Default state and test restart state
-		// Resset all test values
+// Resset all test values
 		else if (state == CANCEL_BURNIN_TEST && test_cycle != -1) {
 
 			if (test_vals_acquire(10)) {
 				// TODO: Reset the test
-				burn_in_test_value_t *b_val;
+				init_burn_in();
+				burn_in_ui_value_t *b_val;
 				b_val = get_test_vals();
 				//				setup_blower_(b_val);
+				/* TODO: Remove the coments */
 				init_blower_test(b_val);
 				test_vals_release();
 				//				update_test_state(STARTING_BURNIN_TEST);
 
-				// Set test cycles to neg so we are not consistantly checking this
+				// Set test cycles to neg so we are not consistently checking this
 				test_cycle = -1;
 
 			}
@@ -621,7 +822,7 @@ void burn_in_task(void *pvParameter) {
 
 		vTaskDelay(APP_LOOP_RATE_MS / portTICK_PERIOD_MS);
 		count++;
-		update_test_values();
+		ESP_ERROR_CHECK(update_test_values());
 
 	}
 	ESP_LOGE(TAG, "Burn In task canceled");

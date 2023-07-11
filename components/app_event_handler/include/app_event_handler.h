@@ -43,28 +43,28 @@ extern const char *chip_id_str;
 extern const char *cmd_str;
 extern const char *node_name_str;
 
-/**
- * @brief NMEA Parser Handle
- *
- */
-typedef void *nmea_parser_handle_t;
-
-/**
- * @brief Configuration of NMEA Parser
- *
- */
-typedef struct {
-	struct {
-		uint32_t event_queue_size; /*!< UART event queue size */
-	} uart; /*!< UART specific configuration */
-} nmea_parser_config_t;
-/**
- * @brief GPS object
- *
- */
-typedef struct {
-	int valid;
-} gps_t;
+///**
+// * @brief NMEA Parser Handle
+// *
+// */
+//typedef void *nmea_parser_handle_t;
+//
+///**
+// * @brief Configuration of NMEA Parser
+// *
+// */
+//typedef struct {
+//	struct {
+//		uint32_t event_queue_size; /*!< UART event queue size */
+//	} uart; /*!< UART specific configuration */
+//} nmea_parser_config_t;
+///**
+// * @brief GPS object
+// *
+// */
+//typedef struct {
+//	int valid;
+//} gps_t;
 
 /*
  * Object to hold message values for resp from database
@@ -79,6 +79,30 @@ typedef struct {
 	int num_burnin;
 	int burnin_val[MAX_CALIBRATION_VALUE_LEN];
 } db_resp_pre_post_burnin_t;
+
+typedef enum {
+	IP_ADDR, 		// Data=char*
+	SSID_STR,		// Data = char*
+	WIFI_PASSWD,	// Data=char*
+	MQTT_CONF,  	// Data=mqtt_conf_str*
+	MQTT_STATUS,	// Data=bool
+	MODBUS_POWER,	// Data=bool
+	NODE_NAME,		// Data=char*
+	SERIAL_STATUS,	// Data=bool
+	BLT_STATUS		// Data=bool
+} setting_descriptor_t;
+
+/*
+ * Object to hold Settings values
+ *
+ */
+typedef struct {
+	setting_descriptor_t type;
+	void *data;
+	void *config_struct;
+	bool valid;
+
+} settings_req_t;
 
 const char* get_eh_event_id_string(eh_event_id_t event_id);
 
@@ -117,6 +141,7 @@ eh_event_t* server_eh_process_resp(eh_event_t *event);
 esp_err_t db_pre_post_parser(cJSON *root, db_resp_pre_post_burnin_t **db_ppb);
 void print_ppb(db_resp_pre_post_burnin_t *ppb);
 void delete_event(eh_event_t *event);
+int to_valuint(const cJSON *json);
 
 #ifdef __cplusplus
 }
