@@ -178,8 +178,10 @@ int get(CircularArray *ca, int index) {
 	return ca->data[(ca->head + SIZE_OFFSET - ca->count + index) % SIZE_OFFSET];
 }
 
-int get_min_last_n(CircularArray *ca, int last_n) {
-	int min = INT_MIN;
+int get_min_last_n(ChipData *cd, int last_n) {
+	int min = INT_MAX;
+	CircularArray *ca = &cd->offset_array;
+
 	int start_i = (last_n >= ca->count) ? 0 : ca->count - last_n;
 	for (int i = start_i; i < ca->count; i++) {
 		int value = get(ca, i);
@@ -187,18 +189,44 @@ int get_min_last_n(CircularArray *ca, int last_n) {
 			min = value;
 		}
 	}
+	int min_tmp = min;
+
+	if (cd->vas_offset != DEF_OFFSET_VAL) {
+		min = (cd->vas_offset > min) ? min : cd->vas_offset;
+	}
+
+	ESP_LOGW(TAG,
+			"[%s,%d] last N: %d, Min circular array :%d, Min ChipData %d",
+			__FUNCTION__,
+			__LINE__, last_n, min_tmp, min);
+
 	return min;
+
 }
 
-int get_max_last_n(CircularArray *ca, int last_n) {
-	int max = INT_MAX;
+int get_max_last_n(ChipData *cd, int last_n) {
+	int max = INT_MIN;
+	CircularArray *ca = &cd->offset_array;
+
 	int start_i = (last_n >= ca->count) ? 0 : ca->count - last_n;
+
 	for (int i = start_i; i < ca->count; i++) {
 		int value = get(ca, i);
-		if (value < max) {
+		if (value > max) {
 			max = value;
 		}
 	}
+	int max_tmp = max;
+
+	if (cd->vas_offset != DEF_OFFSET_VAL) {
+		max = (cd->vas_offset < max) ? max : cd->vas_offset;
+
+	}
+
+	ESP_LOGW(TAG,
+			"[%s,%d] last N: %d, Max circular array :%d, Max ChipData: %d",
+			__FUNCTION__,
+			__LINE__, last_n, max_tmp, max);
 	return max;
 }
 

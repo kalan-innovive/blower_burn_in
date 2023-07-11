@@ -833,7 +833,30 @@ void create_chart_with_data(lv_obj_t *chart, blower_test_value_t *b_vals) {
 	int16_t max_value =
 			(b_vals->max_val == DEF_OFFSET_VAL) ? 5 : b_vals->max_val;
 
-	int16_t range = (b_vals->range == DEF_OFFSET_VAL) ? 10 : b_vals->range;
+//	int min_t = INT_MAX;
+//	int max_t = INT_MIN;
+
+	// Added to keep historic values in view
+	for (size_t i = 0; i < b_vals->num_point; i++) {
+		min_value =
+				(b_vals->min_val > data_points[i]) ?
+														data_points[i] :
+														b_vals->min_val;
+		max_value =
+				(b_vals->max_val < data_points[i]) ?
+														data_points[i] :
+														b_vals->max_val;
+
+	}
+
+	int16_t range =
+			(b_vals->range == DEF_OFFSET_VAL) ? 10 : max_value - min_value;
+
+	range =
+			(range < 10) ? 10 : range;
+
+	ESP_LOGW(tag, " Chart Scale: Min:%d Max:%d Range:%d", min_value, max_value,
+			range);
 
 	//Calculate the number of ticks needed
 	//  - Want at least 5 ticks but if range is very large use a larger range

@@ -11,6 +11,10 @@
 #define SIZE_OFFSET 10
 #define LEN_CHIPDATA_ARRAY 10
 
+#ifndef DEF_OFFSET_VAL
+#define DEF_OFFSET_VAL 0xFFFE
+#endif
+
 // define the CircularArray struct
 typedef struct {
 	int data[SIZE_OFFSET];
@@ -43,8 +47,8 @@ int chip_data_index(unsigned int chipID);
 int addOffset(unsigned int chipID, int offset);
 int copy_array(CircularArray *ca, int *new_array, int n);
 int insert_array(CircularArray *ca, int *new_array, int n);
-int get_max_last_n(CircularArray *ca, int last_n);
-int get_min_last_n(CircularArray *ca, int last_n);
+int get_max_last_n(ChipData *cd, int last_n);
+int get_min_last_n(ChipData *cd, int last_n);
 int offset_range(ChipData *cd);
 int offset_min_last_n(ChipData *cd, int last_n);
 int offset_max_last_n(ChipData *cd, int last_n);

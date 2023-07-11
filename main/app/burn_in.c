@@ -315,8 +315,8 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				blower->qc_offset = cd->qc_offset;
 
 				// Set the min max and range values
-				blower->min_val = offset_min(cd);
-				blower->max_val = offset_max(cd);
+				blower->min_val = get_min_last_n(cd, 6);
+				blower->max_val = get_max_last_n(cd, 6);
 				blower->range = blower->max_val - blower->min_val;
 
 				// set the burn in array

@@ -13,6 +13,10 @@
 /** Patch version number (x.x.X) */
 #define BOX_DEMO_VERSION_PATCH 0
 
+#ifndef DEF_OFFSET_VAL
+#define DEF_OFFSET_VAL 0xFFFE
+#endif
+
 /**
  * Macro to convert version number into an integer
  *

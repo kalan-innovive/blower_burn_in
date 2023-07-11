@@ -9,7 +9,10 @@
 extern "C" {
 #endif
 
-#define DEF_OFFSET_VAL 0xEFFF
+#ifndef DEF_OFFSET_VAL
+#define DEF_OFFSET_VAL 0xFFFE
+#endif
+
 #define NUM_OF_TEST 10
 #define REQ_POINTS_PASS 4
 #define TICK_MIN 5
