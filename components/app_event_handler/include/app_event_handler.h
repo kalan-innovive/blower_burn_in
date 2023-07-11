@@ -33,7 +33,7 @@ typedef enum {
 	SET_CAL,
 	CAL_30_MIN,
 } server_event_t;
-#define MAX_CALIBRATION_VALUE_LEN (6)
+#define MAX_CALIBRATION_VALUE_LEN (10)
 
 extern const char *cal_pre_post_burn_str;
 extern const char *cal_30_min_str;

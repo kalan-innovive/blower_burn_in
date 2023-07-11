@@ -137,7 +137,6 @@ static int check_rack_power_changed() {
 
 /**
  * Checks for connected blowers
- * Logs the calibration value to the server if available
  * Updates chipid_list, and
  * @return: number of updated devices.
  * Note: only use after rack
@@ -171,7 +170,7 @@ static int update_rack_blower_list() {
 			}
 
 			if (suc == 1) {
-				ESP_LOGV(TAG, "%d. Blower %d; Chip ID: %u Offset: %d", i,
+				ESP_LOGD(TAG, "%d. Blower %d; Chip ID: %u Offset: %d", i,
 						devIDs[i], chipid, offset);
 				chipid_list[i] = (chipid);
 
@@ -197,7 +196,7 @@ static int check_power_on() {
 	int num_avail = 0;
 
 	for (int i = 0; i < 4; i++) {
-		ESP_LOGI(TAG, "Checking for Device:%d", devIDs[i]);
+		ESP_LOGV(TAG, "Checking for Device:%d", devIDs[i]);
 
 		// Send a message and check for response
 		suc = check_dev_id(devIDs[i]);
@@ -684,21 +683,12 @@ void burn_in_task(void *pvParameter) {
 					test_cycle);
 			vTaskDelay(10 / portTICK_PERIOD_MS);
 
-			// Get the current values if available from the server
-			int ppb_sec = get_ppb_values();
-			ESP_LOGD(TAG, "[%d] State:Starting Burn in ppb_success: %d",
-					__LINE__, ppb_sec);
-			vTaskDelay(10 / portTICK_PERIOD_MS);
-
-			// Need to delay for 1000 msec to gaurauntee that all samples have been collected
-			vTaskDelay(1000 / portTICK_PERIOD_MS);
-			num_available = update_rack_blower_list();
-
 			// This state is changed when the user presses start or a a cycle is finished and the rack is turned on
 			ESP_LOGI(TAG, "Starting Burn in test conditions checking");
 
 			// Why is this being called and not checked?????
-			check_rack_power_changed();
+//			check_rack_power_changed();
+			num_available = update_rack_blower_list();
 
 			/** FIXME: use the event handler to update the values */
 			if (test_vals_acquire(10)) {
@@ -708,18 +698,35 @@ void burn_in_task(void *pvParameter) {
 				burn_in_ui_value_t *b_val;
 
 				b_val = get_test_vals();
+				// Initializes Offset range and chipID values to UI
 				setup_blower_(b_val);
+
 				// Update with current values
 //				update_ui_blower_vals(b_val);
 				test_vals_release();
 				update_test_values();
 
+				// Need to delay for 1000 msec to gaurauntee that all samples have been collected
+				vTaskDelay(1000 / portTICK_PERIOD_MS);
+				num_available = update_rack_blower_list();
+
+				// Get the current values if available from the server allow a .5 sec delay
+				int ppb_sec = get_ppb_values();
+				ESP_LOGD(TAG, "[%d] State:Starting Burn in ppb_success: %d",
+						__LINE__, ppb_sec);
+				vTaskDelay(500 / portTICK_PERIOD_MS);
+
 				ESP_LOGI(TAG, "Rack Powered On: Updated test values");
 
-				if (start_burnin() == ESP_OK) {
-					ESP_LOGI(TAG, "Started burn in test");
-					// Set the count to -1 so that the ui will update on the next loop
-					count = -1;
+				if (check_rack_power_changed()) {
+					// Should be called once during burn in test
+					if (start_burnin() == ESP_OK) {
+						count = -1;
+						ESP_LOGI(TAG,
+								"[%d], Finished Setting up burn in test setting count t0 :%d",
+								__LINE__, count);
+
+					}
 				}
 			} else {
 				// Reset the flag since we did not update
@@ -731,7 +738,8 @@ void burn_in_task(void *pvParameter) {
 		}
 		else if (state == RUNNING_BURNIN_TEST) {
 //			if (count % UPDATE_UI_COUNT == 0)
-			if (count % 10 == 0)
+//			if (count % 10 == 0)
+			if (count % 3 == 0)
 
 				// Update every
 				if (test_vals_acquire(10)) {
@@ -744,15 +752,20 @@ void burn_in_task(void *pvParameter) {
 					log_calibration_values();
 					// Update with current values
 					update_ui_blower_vals(b_val);
+
 					test_vals_release();
 					update_test_values();
 
 					ESP_LOGI(TAG,
 							"Rack Powered On: Updated test values");
-
-					if (start_burnin() == ESP_OK) {
-						ESP_LOGI(TAG, "Started burn in test");
-					}
+					// Why is this being done in the Running thread should be part of startup???
+//					if (check_rack_power_changed()) {
+//
+//						// Should be called once during burn in test
+//						if (start_burnin() == ESP_OK) {
+//							ESP_LOGI(TAG, "Running burn in test");
+//						}
+//					}
 				}
 
 		}

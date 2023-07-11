@@ -275,7 +275,7 @@ void app_main(void) {
 	esp_log_level_set("efuse", ESP_LOG_WARN);
 	esp_log_level_set("GC_task", ESP_LOG_DEBUG);
 	esp_log_level_set("user_event_loop", ESP_LOG_DEBUG);
-	esp_log_level_set("offset_data", ESP_LOG_DEBUG);
+	esp_log_level_set("offset_data", ESP_LOG_WARN);
 
 	bsp_display_backlight_on();
 
