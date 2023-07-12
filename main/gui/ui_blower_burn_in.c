@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "lvgl.h"
-//#include "lvgl/lvgl.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -98,8 +97,6 @@ esp_err_t init_test_vals(void) {
 
 	esp_err_t res = ESP_OK;
 	semaphore_burnin_display_values = xSemaphoreCreateBinary();
-
-//	res = test_vals_acquire(0);
 
 	if (semaphore_burnin_display_values == NULL) {
 		ESP_LOGE(tag, "Could not create Semaphore.");
@@ -452,15 +449,15 @@ esp_err_t update_detail_values(int dev_id) {
 		ESP_LOGD(tag, " Populating chart");
 
 		create_chart_with_data(b_map->chart, b_vals);
-		/* TODO: set the VAS VALE and THe QC value on detail screen
-		 ret = ESP_OK;
-		 test_vals_release();
-		 }
-		 ESP_LOGI(tag, " Finished updating detail page: %d", ret);
-		 return ret;
-		 }
+		/* TODO: set the VAS VALE and THe QC value on detail screen */
+		ret = ESP_OK;
+		test_vals_release();
+	}
+	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
+	return ret;
+}
 
-		 #else
+#else
 
 		 esp_err_t update_detail_values(int dev_id) {
 		 esp_err_t ret = ESP_FAIL;
@@ -511,483 +508,472 @@ esp_err_t update_detail_values(int dev_id) {
 
 		 #endif  // TESTING_CHART
 
-		 /** ______ Private Functions _____ */
+/** ______ Private Functions _____ */
 
-		/**
-		 *Sets array to default values that are considered to be not set
-		 */
-		static void set_array_to_default(int *arr, int length) {
-			for (int i = 0; i < length; i++) {
-				arr[i] = DEF_OFFSET_VAL;
-			}
-		}
+/**
+ *Sets array to default values that are considered to be not set
+ */
+static void set_array_to_default(int *arr, int length) {
+	for (int i = 0; i < length; i++) {
+		arr[i] = DEF_OFFSET_VAL;
+	}
+}
 
-		static void setup_burnin_test_struct(void) {
-			ESP_LOGI(tag, " Setting up burnin blower structs to default");
-			brn_val.brn_state = CANCEL_BURNIN_TEST;
-			brn_val.values_changed = true;
-			for (int i = 0; i < 4; i++) {
-				brn_val.blowers[i].is_testing = false;
-				brn_val.blowers[i].values_changed = true;
+static void setup_burnin_test_struct(void) {
+	ESP_LOGI(tag, " Setting up burnin blower structs to default");
+	brn_val.brn_state = CANCEL_BURNIN_TEST;
+	brn_val.values_changed = true;
+	for (int i = 0; i < 4; i++) {
+		brn_val.blowers[i].is_testing = false;
+		brn_val.blowers[i].values_changed = true;
 
-				strcpy(brn_val.blowers[i].name, test_blower_device_names[i]);
-				strcpy(brn_val.blowers[i].chip_id, default_chip_id);
+		strcpy(brn_val.blowers[i].name, test_blower_device_names[i]);
+		strcpy(brn_val.blowers[i].chip_id, default_chip_id);
 
-				brn_val.blowers[i].offset = DEF_OFFSET_VAL;
-				brn_val.blowers[i].range = DEF_OFFSET_VAL;
-				brn_val.blowers[i].vas_offset = DEF_OFFSET_VAL;
-				brn_val.blowers[i].qc_offset = DEF_OFFSET_VAL;
-				set_array_to_default(brn_val.blowers[i].burn_in_offset,
-						NUM_OF_TEST);
-				brn_val.blowers[i].min_val = DEF_OFFSET_VAL;
-				brn_val.blowers[i].max_val = DEF_OFFSET_VAL;
-				brn_val.blowers[i].num_point = 0;
-				brn_val.blowers[i].state = UNINIT_BLOWER_TEST;
+		brn_val.blowers[i].offset = DEF_OFFSET_VAL;
+		brn_val.blowers[i].range = DEF_OFFSET_VAL;
+		brn_val.blowers[i].vas_offset = DEF_OFFSET_VAL;
+		brn_val.blowers[i].qc_offset = DEF_OFFSET_VAL;
+		set_array_to_default(brn_val.blowers[i].burn_in_offset,
+		NUM_OF_TEST);
+		brn_val.blowers[i].min_val = DEF_OFFSET_VAL;
+		brn_val.blowers[i].max_val = DEF_OFFSET_VAL;
+		brn_val.blowers[i].num_point = 0;
+		brn_val.blowers[i].state = UNINIT_BLOWER_TEST;
 
-			}
-			brn_val.cur_screen = START_SCR;
-			brn_val.power_state = false;
-			brn_val.app_con = NA_APP_STATUS;
+	}
+	brn_val.cur_screen = START_SCR;
+	brn_val.power_state = false;
+	brn_val.app_con = NA_APP_STATUS;
 
-			// set default ui_connection info
-			brn_val.conect_info.wifi_connected = false;
-			brn_val.conect_info.ip_v4 = ip_v4;
-			brn_val.conect_info.usb_connected = false;
-			brn_val.conect_info.mqtt_connected = false;
-			brn_val.conect_info.node_name = node_name;
-			brn_val.conect_info.modbus_connected = false;
-			brn_val.conect_info.blt_connected = false;
-			brn_val.app_connect_changed = false;
-			// Set up Detail screen
-			brn_val.detail_scrn.device_index = NA_INDEX;
-			brn_val.detail_scrn.vas_val = 0;
-			brn_val.detail_scrn.qc_val = 0;
-			brn_val.detail_scrn.cur_val = 0;
-			brn_val.detail_scrn.len = 0;
+	// set default ui_connection info
+	brn_val.conect_info.wifi_connected = false;
+	brn_val.conect_info.ip_v4 = ip_v4;
+	brn_val.conect_info.usb_connected = false;
+	brn_val.conect_info.mqtt_connected = false;
+	brn_val.conect_info.node_name = node_name;
+	brn_val.conect_info.modbus_connected = false;
+	brn_val.conect_info.blt_connected = false;
+	brn_val.app_connect_changed = false;
+	// Set up Detail screen
+	brn_val.detail_scrn.device_index = NA_INDEX;
+	brn_val.detail_scrn.vas_val = 0;
+	brn_val.detail_scrn.qc_val = 0;
+	brn_val.detail_scrn.cur_val = 0;
+	brn_val.detail_scrn.len = 0;
 
-			brn_val.ui_timer = -1;
+	brn_val.ui_timer = -1;
 
-		}
+}
 
-		static void setup_burnin_ui_structs(void) {
-			// Detailed label pointer mapping
-			ESP_LOGD(tag, "%s, Initiated ui struct", __FUNCTION__);
+static void setup_burnin_ui_structs(void) {
+	// Detailed label pointer mapping
+	ESP_LOGD(tag, "%s, Initiated ui struct", __FUNCTION__);
 
-			brn_ui_map.detail_lv.name_label = ui_BlowerHeaderLabel;
-			brn_ui_map.detail_lv.chart = ui_Blower_Val_Chart;
-			brn_ui_map.detail_lv.pre_offset = NULL;
-			brn_ui_map.detail_lv.post_offset = NULL;
-			brn_ui_map.detail_lv.min_offset_label = NULL;
-			brn_ui_map.detail_lv.max_offset_label = NULL;
+	brn_ui_map.detail_lv.name_label = ui_BlowerHeaderLabel;
+	brn_ui_map.detail_lv.chart = ui_Blower_Val_Chart;
+	brn_ui_map.detail_lv.pre_offset = NULL;
+	brn_ui_map.detail_lv.post_offset = NULL;
+	brn_ui_map.detail_lv.min_offset_label = NULL;
+	brn_ui_map.detail_lv.max_offset_label = NULL;
 
-			// Supply A pointer Mapping
-			brn_ui_map.blower_lv[0].panel = ui_BloweSAPanel;
-			brn_ui_map.blower_lv[0].name_label = ui_BlowerLabel3;
-			brn_ui_map.blower_lv[0].chip_id_label = ui_ChipIDValLabel3;
-			brn_ui_map.blower_lv[0].offset_label = ui_OffsetValLabel3;
-			brn_ui_map.blower_lv[0].range_label = ui_RangeValLabel3;
-			brn_ui_map.blower_lv[0].status_label = ui_PassedLabel3;
+	// Supply A pointer Mapping
+	brn_ui_map.blower_lv[0].panel = ui_BloweSAPanel;
+	brn_ui_map.blower_lv[0].name_label = ui_BlowerLabel3;
+	brn_ui_map.blower_lv[0].chip_id_label = ui_ChipIDValLabel3;
+	brn_ui_map.blower_lv[0].offset_label = ui_OffsetValLabel3;
+	brn_ui_map.blower_lv[0].range_label = ui_RangeValLabel3;
+	brn_ui_map.blower_lv[0].status_label = ui_PassedLabel3;
 
-			// Exhaust A pointer Mapping
-			brn_ui_map.blower_lv[1].panel = ui_BlowerEAPanel;
-			brn_ui_map.blower_lv[1].name_label = ui_BlowerLabel1;
-			brn_ui_map.blower_lv[1].chip_id_label = ui_ChipIDValLabel1;
-			brn_ui_map.blower_lv[1].offset_label = ui_OffsetValLabel1;
-			brn_ui_map.blower_lv[1].range_label = ui_RangeValLabel1;
-			brn_ui_map.blower_lv[1].status_label = ui_PassedLabel1;
+	// Exhaust A pointer Mapping
+	brn_ui_map.blower_lv[1].panel = ui_BlowerEAPanel;
+	brn_ui_map.blower_lv[1].name_label = ui_BlowerLabel1;
+	brn_ui_map.blower_lv[1].chip_id_label = ui_ChipIDValLabel1;
+	brn_ui_map.blower_lv[1].offset_label = ui_OffsetValLabel1;
+	brn_ui_map.blower_lv[1].range_label = ui_RangeValLabel1;
+	brn_ui_map.blower_lv[1].status_label = ui_PassedLabel1;
 
-			// Supply B pointer Mapping
-			brn_ui_map.blower_lv[2].panel = ui_BlowerSAPanel2;
-			brn_ui_map.blower_lv[2].name_label = ui_BlowerLabel4;
-			brn_ui_map.blower_lv[2].chip_id_label = ui_ChipIDValLabel4;
-			brn_ui_map.blower_lv[2].offset_label = ui_OffsetValLabel4;
-			brn_ui_map.blower_lv[2].range_label = ui_RangeValLabel4;
-			brn_ui_map.blower_lv[2].status_label = ui_PassedLabel4;
+	// Supply B pointer Mapping
+	brn_ui_map.blower_lv[2].panel = ui_BlowerSAPanel2;
+	brn_ui_map.blower_lv[2].name_label = ui_BlowerLabel4;
+	brn_ui_map.blower_lv[2].chip_id_label = ui_ChipIDValLabel4;
+	brn_ui_map.blower_lv[2].offset_label = ui_OffsetValLabel4;
+	brn_ui_map.blower_lv[2].range_label = ui_RangeValLabel4;
+	brn_ui_map.blower_lv[2].status_label = ui_PassedLabel4;
 
-			// Exhaust B pointer Mapping
-			brn_ui_map.blower_lv[3].panel = ui_BlowerSAPanel;
-			brn_ui_map.blower_lv[3].name_label = ui_BlowerLabel2;
-			brn_ui_map.blower_lv[3].chip_id_label = ui_ChipIDValLabel2;
-			brn_ui_map.blower_lv[3].offset_label = ui_OffsetValLabel2;
-			brn_ui_map.blower_lv[3].range_label = ui_RangeValLabel2;
-			brn_ui_map.blower_lv[3].status_label = ui_PassedLabel2;
+	// Exhaust B pointer Mapping
+	brn_ui_map.blower_lv[3].panel = ui_BlowerSAPanel;
+	brn_ui_map.blower_lv[3].name_label = ui_BlowerLabel2;
+	brn_ui_map.blower_lv[3].chip_id_label = ui_ChipIDValLabel2;
+	brn_ui_map.blower_lv[3].offset_label = ui_OffsetValLabel2;
+	brn_ui_map.blower_lv[3].range_label = ui_RangeValLabel2;
+	brn_ui_map.blower_lv[3].status_label = ui_PassedLabel2;
 
-		}
+}
 
-		static void update_label_with_int(lv_obj_t *label, int value) {
-			char str[16];
-			sprintf(str, "%d", value);
-			lv_label_set_text(label, str);
-		}
+static void update_label_with_int(lv_obj_t *label, int value) {
+	char str[16];
+	sprintf(str, "%d", value);
+	lv_label_set_text(label, str);
+}
 
-		static void update_blower_test_val_ui(blower_test_label_map_t *b_lv,
-				blower_test_value_t *b_vals) {
-			int tmp = (b_vals->offset == DEF_OFFSET_VAL) ? 0 : b_vals->offset;
-			update_label_with_int(b_lv->offset_label, tmp);
-			update_label_with_int(b_lv->range_label, b_vals->range);
-		}
+static void update_blower_test_val_ui(blower_test_label_map_t *b_lv,
+		blower_test_value_t *b_vals) {
+	int tmp = (b_vals->offset == DEF_OFFSET_VAL) ? 0 : b_vals->offset;
+	update_label_with_int(b_lv->offset_label, tmp);
+	update_label_with_int(b_lv->range_label, b_vals->range);
+}
 
-		static void default_blower_test_val_ui(blower_test_label_map_t *b_lv,
-				blower_test_value_t *b_vals) {
+static void default_blower_test_val_ui(blower_test_label_map_t *b_lv,
+		blower_test_value_t *b_vals) {
 
-			lv_label_set_text(b_lv->name_label, b_vals->name);
-			lv_label_set_text(b_lv->offset_label, " ");
-			lv_label_set_text(b_lv->range_label, " ");
-			lv_label_set_text(b_lv->chip_id_label, " ");
-		}
+	lv_label_set_text(b_lv->name_label, b_vals->name);
+	lv_label_set_text(b_lv->offset_label, " ");
+	lv_label_set_text(b_lv->range_label, " ");
+	lv_label_set_text(b_lv->chip_id_label, " ");
+}
 
-		void update_blower_id_ui(blower_test_label_map_t *b_lv,
-				blower_test_value_t *b_vals) {
+void update_blower_id_ui(blower_test_label_map_t *b_lv,
+		blower_test_value_t *b_vals) {
 
-			lv_label_set_text(b_lv->name_label, b_vals->name);
-			lv_label_set_text(b_lv->chip_id_label, b_vals->chip_id);
-		}
+	lv_label_set_text(b_lv->name_label, b_vals->name);
+	lv_label_set_text(b_lv->chip_id_label, b_vals->chip_id);
+}
 
-		/** _____RH HANDLER Functions______*/
+/** _____RH HANDLER Functions______*/
 
-		esp_err_t handle_ip_addr(char *ip_v4) {
-			// Copy into config for setting to be updated next time update is called
-			esp_err_t ret = ESP_FAIL;
-			ESP_LOGI(tag, " Updating Settings IP to %s ",
-					ip_v4);
-			if (test_vals_acquire(10)) {
-				// set the values for the selected blower
-				strcpy(brn_val.conect_info.ip_v4, ip_v4);
-				// Set the update marker
-				brn_val.app_connect_changed = true;
-				ret = ESP_OK;
-				test_vals_release();
-			}
-			ESP_LOGI(tag, " Finished updating detail page: %d", ret);
-			return ret;
-		}
+esp_err_t handle_ip_addr(char *ip_v4) {
+	// Copy into config for setting to be updated next time update is called
+	esp_err_t ret = ESP_FAIL;
+	ESP_LOGI(tag, " Updating Settings IP to %s ",
+			ip_v4);
+	if (test_vals_acquire(10)) {
+		// set the values for the selected blower
+		strcpy(brn_val.conect_info.ip_v4, ip_v4);
+		// Set the update marker
+		brn_val.app_connect_changed = true;
+		ret = ESP_OK;
+		test_vals_release();
+	}
+	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
+	return ret;
+}
 
-		esp_err_t handle_mqtt_status(bool mqtt_connected) {
-			// Copy into config for setting to be updated next time update is called
-			esp_err_t ret = ESP_FAIL;
-			ESP_LOGI(tag, " Updating MQTT Connected to %d ",
-					mqtt_connected);
-			if (test_vals_acquire(10)) {
-				// set the values for the selected blower
-				brn_val.conect_info.mqtt_connected = mqtt_connected;
-				// Set the update marker
-				brn_val.app_connect_changed = true;
-				ret = ESP_OK;
-				test_vals_release();
-			}
-			ESP_LOGI(tag, " Finished updating detail page: %d", ret);
-			return ret;
-		}
+esp_err_t handle_mqtt_status(bool mqtt_connected) {
+	// Copy into config for setting to be updated next time update is called
+	esp_err_t ret = ESP_FAIL;
+	ESP_LOGI(tag, " Updating MQTT Connected to %d ",
+			mqtt_connected);
+	if (test_vals_acquire(10)) {
+		// set the values for the selected blower
+		brn_val.conect_info.mqtt_connected = mqtt_connected;
+		// Set the update marker
+		brn_val.app_connect_changed = true;
+		ret = ESP_OK;
+		test_vals_release();
+	}
+	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
+	return ret;
+}
 
-		esp_err_t handle_modbus_power(bool modbus_connected) {
-			// Copy into config for setting to be updated next time update is called
-			esp_err_t ret = ESP_FAIL;
-			ESP_LOGI(tag, " Updating Modbus Connected to %d ",
-					modbus_connected);
-			if (test_vals_acquire(10)) {
-				// set the values for the selected blower
-				brn_val.conect_info.modbus_connected = modbus_connected;
-				// Set the update marker
-				brn_val.app_connect_changed = true;
-				ret = ESP_OK;
-				test_vals_release();
-			}
-			ESP_LOGI(tag, " Finished updating detail page: %d", ret);
-			return ret;
-		}
+esp_err_t handle_modbus_power(bool modbus_connected) {
+	// Copy into config for setting to be updated next time update is called
+	esp_err_t ret = ESP_FAIL;
+	ESP_LOGI(tag, " Updating Modbus Connected to %d ",
+			modbus_connected);
+	if (test_vals_acquire(10)) {
+		// set the values for the selected blower
+		brn_val.conect_info.modbus_connected = modbus_connected;
+		// Set the update marker
+		brn_val.app_connect_changed = true;
+		ret = ESP_OK;
+		test_vals_release();
+	}
+	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
+	return ret;
+}
 
-		esp_err_t handle_node_name(char *node_name) {
-			// Copy into config for setting to be updated next time update is called
-			esp_err_t ret = ESP_FAIL;
-			ESP_LOGI(tag, " Updating Node Name to %s ",
-					node_name);
-			if (test_vals_acquire(10)) {
-				// set the values for the selected blower
-				strcpy(brn_val.conect_info.node_name, node_name);
-				// Set the update marker
-				brn_val.app_connect_changed = true;
-				ret = ESP_OK;
-				test_vals_release();
-			}
-			ESP_LOGI(tag, " Finished updating detail page: %d", ret);
-			return ret;
-		}
+esp_err_t handle_node_name(char *node_name) {
+	// Copy into config for setting to be updated next time update is called
+	esp_err_t ret = ESP_FAIL;
+	ESP_LOGI(tag, " Updating Node Name to %s ",
+			node_name);
+	if (test_vals_acquire(10)) {
+		// set the values for the selected blower
+		strcpy(brn_val.conect_info.node_name, node_name);
+		// Set the update marker
+		brn_val.app_connect_changed = true;
+		ret = ESP_OK;
+		test_vals_release();
+	}
+	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
+	return ret;
+}
 
-		esp_err_t handle_serial_status(bool usb_connected) {
-			// Copy into config for setting to be updated next time update is called
-			esp_err_t ret = ESP_FAIL;
-			ESP_LOGI(tag, " Updating USB Connected to %d ",
-					usb_connected);
-			if (test_vals_acquire(10)) {
-				// set the values for the selected blower
-				brn_val.conect_info.usb_connected = usb_connected;
-				// Set the update marker
-				brn_val.app_connect_changed = true;
-				ret = ESP_OK;
-				test_vals_release();
-			}
-			ESP_LOGI(tag, " Finished updating detail page: %d", ret);
-			return ret;
-		}
+esp_err_t handle_serial_status(bool usb_connected) {
+	// Copy into config for setting to be updated next time update is called
+	esp_err_t ret = ESP_FAIL;
+	ESP_LOGI(tag, " Updating USB Connected to %d ",
+			usb_connected);
+	if (test_vals_acquire(10)) {
+		// set the values for the selected blower
+		brn_val.conect_info.usb_connected = usb_connected;
+		// Set the update marker
+		brn_val.app_connect_changed = true;
+		ret = ESP_OK;
+		test_vals_release();
+	}
+	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
+	return ret;
+}
 
-		esp_err_t handle_blt_status(bool blt_connected) {
-			// Copy into config for setting to be updated next time update is called
-			esp_err_t ret = ESP_FAIL;
-			ESP_LOGI(tag, " Updating Blue Tooth Connected to %d ",
-					blt_connected);
-			if (test_vals_acquire(10)) {
-				// set the values for the selected blower
-				brn_val.conect_info.blt_connected = blt_connected;
-				// Set the update marker
-				brn_val.app_connect_changed = true;
-				ret = ESP_OK;
-				test_vals_release();
-			}
-			ESP_LOGI(tag, " Finished updating detail page: %d", ret);
-			return ret;
-		}
+esp_err_t handle_blt_status(bool blt_connected) {
+	// Copy into config for setting to be updated next time update is called
+	esp_err_t ret = ESP_FAIL;
+	ESP_LOGI(tag, " Updating Blue Tooth Connected to %d ",
+			blt_connected);
+	if (test_vals_acquire(10)) {
+		// set the values for the selected blower
+		brn_val.conect_info.blt_connected = blt_connected;
+		// Set the update marker
+		brn_val.app_connect_changed = true;
+		ret = ESP_OK;
+		test_vals_release();
+	}
+	ESP_LOGI(tag, " Finished updating detail page: %d", ret);
+	return ret;
+}
 
-		static void init_colors(void) {
-			lv_default = lv_color_hex(0x000000);
-			lv_red = lv_color_hex(0xeb0404);
-			lv_green = lv_color_hex(0x00db24);
-			lv_dark = lv_color_hex(0x000024);
-			lv_light = lv_color_hex(0xe0e0e0);
-			lv_blue = lv_color_hex(0x002189);
-		}
+static void init_colors(void) {
+	lv_default = lv_color_hex(0x000000);
+	lv_red = lv_color_hex(0xeb0404);
+	lv_green = lv_color_hex(0x00db24);
+	lv_dark = lv_color_hex(0x000024);
+	lv_light = lv_color_hex(0xe0e0e0);
+	lv_blue = lv_color_hex(0x002189);
+}
 
-		void update_blower_status_ui(lv_obj_t *lv_label,
-				blower_testing_state_t state) {
-			const char *state_str;
-			lv_color_t text_color;
-			lv_color_t bg_color;
+void update_blower_status_ui(lv_obj_t *lv_label,
+		blower_testing_state_t state) {
+	const char *state_str;
+	lv_color_t text_color;
+	lv_color_t bg_color;
 
-			switch (state) {
-				case UNINIT_BLOWER_TEST:
-					state_str = "No Blower";
-					text_color = lv_dark;
-					bg_color = lv_light;
-					break;
-				case STARTING_BLOWER_TEST:
-					state_str = "Starting";
-					text_color = lv_blue;
-					bg_color = lv_light;
-					break;
-				case RUNNING_BLOWER_TEST:
-					state_str = "Running";
-					text_color = lv_default;
-					bg_color = lv_light;
-					break;
-				case SUCCESS_BLOWER_TEST:
-					state_str = "Passed";
-					text_color = lv_green;
-					bg_color = lv_light;
-					break;
-				case FAILED_BLOWER_TEST:
-					state_str = "Failed";
-					text_color = lv_red;
-					bg_color = lv_light;
-					break;
-				default:
-					state_str = "";
-					text_color = lv_default;
-					bg_color = lv_dark;
-					break;
-			}
-			lv_label_set_text(lv_label, state_str);
+	switch (state) {
+		case UNINIT_BLOWER_TEST:
+			state_str = "No Blower";
+			text_color = lv_dark;
+			bg_color = lv_light;
+			break;
+		case STARTING_BLOWER_TEST:
+			state_str = "Starting";
+			text_color = lv_blue;
+			bg_color = lv_light;
+			break;
+		case RUNNING_BLOWER_TEST:
+			state_str = "Running";
+			text_color = lv_default;
+			bg_color = lv_light;
+			break;
+		case SUCCESS_BLOWER_TEST:
+			state_str = "Passed";
+			text_color = lv_green;
+			bg_color = lv_light;
+			break;
+		case FAILED_BLOWER_TEST:
+			state_str = "Failed";
+			text_color = lv_red;
+			bg_color = lv_light;
+			break;
+		default:
+			state_str = "";
+			text_color = lv_default;
+			bg_color = lv_dark;
+			break;
+	}
+	lv_label_set_text(lv_label, state_str);
 
 //		lv_obj_set_style_bg_color(lv_label, bg_color,
 //				LV_PART_MAIN | LV_STATE_DEFAULT);
-			lv_obj_set_style_text_color(lv_label, text_color,
-					LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(lv_label, text_color,
+			LV_PART_MAIN | LV_STATE_DEFAULT);
 //	    lv_style_set_text_color(&style, text_color);
 //	    lv_style_set_bg_color(&style, bg_color);
 //	    lv_obj_set_style(lv_label, &style);
+}
+
+void create_chart_with_data(lv_obj_t *chart,
+		blower_test_value_t *b_vals) {
+
+	size_t data_points_count = b_vals->num_point;
+	int *data_points = b_vals->burn_in_offset;
+
+	if (!data_points || data_points_count == 0) {
+		ESP_LOGV(tag,
+				"[%s, %d] Populating chart failed burn in address=%p, num_vals=%d",
+				__FUNCTION__, __LINE__, (void* )data_points,
+				data_points_count);
+	}
+	ESP_LOGI(tag, " Populating chart values");
+	ESP_LOGD(tag, " value 0 = %d", data_points[0]);
+
+	// Clear out chart data DEF_OFFSET_VAL are not displayed
+	memset(chart_data_burnin, DEF_OFFSET_VAL,
+			sizeof(chart_data_burnin));
+	memset(chart_data_prev_val, DEF_OFFSET_VAL,
+			sizeof(chart_data_prev_val));
+
+	// Setting the previous calibration values in the array
+	chart_data_prev_val[0] = b_vals->vas_offset;
+	chart_data_prev_val[1] = b_vals->qc_offset;
+
+	lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+	lv_chart_set_update_mode(chart, LV_CHART_UPDATE_MODE_CIRCULAR);
+
+	int16_t min_value =
+			(b_vals->min_val == DEF_OFFSET_VAL) ? -5 : b_vals->min_val;
+
+	int16_t max_value =
+			(b_vals->max_val == DEF_OFFSET_VAL) ? 5 : b_vals->max_val;
+
+	// Added to keep historic values in view
+	for (size_t i = 0; i < b_vals->num_point; i++) {
+		min_value =
+				(min_value < data_points[i]) ? min_value :
+												data_points[i];
+		max_value =
+				(max_value > data_points[i]) ? max_value :
+												data_points[i];
+
+		ESP_LOGV(tag,
+				"%d     Chart Scale(%d): Min:%d Max:%d data_point:%d",
+				i,
+				b_vals->num_point, min_value, max_value,
+				data_points[i]);
+
+	}
+
+	int16_t range =
+			(b_vals->range == DEF_OFFSET_VAL) ?
+												10 :
+												max_value - min_value;
+
+	range =
+			(range < 10) ? 10 : range;
+
+	ESP_LOGI(tag, " Chart Scale: Min:%d Max:%d Range:%d", min_value,
+			max_value,
+			range);
+
+	//Calculate the number of ticks needed
+	//  - Want at least 5 ticks but if range is very large use a larger range
+	int16_t tick_step =
+			(range / TICK_MIN < TICK_MIN) ? TICK_MIN : range / TICK_MIN;
+
+	int16_t y_min = (min_value / tick_step) * tick_step;
+	int16_t y_max = ((max_value + tick_step - 1) / tick_step)
+			* tick_step;
+
+	lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
+	lv_chart_set_range(chart, LV_CHART_AXIS_SECONDARY_Y, y_min, y_max);
+
+	uint16_t num_ticks_y = (y_max - y_min) / tick_step + 1;
+
+	lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 5, 1,
+			num_ticks_y, 1,
+			true, 30);
+
+	for (size_t i = 0; i < 10; i++) {
+		if (i < 2) {
+			ESP_LOGD(tag, "[%s, %d] 1 adding ser1, ser2= (%d, %d)",
+					__FUNCTION__,
+					__LINE__, (int16_t )chart_data_prev_val[i],
+					LV_CHART_POINT_NONE);
+
+			lv_chart_set_next_value(chart, ser1,
+					(int16_t) chart_data_prev_val[i]);
+			lv_chart_set_next_value(chart, ser2, LV_CHART_POINT_NONE);
+
 		}
+		else if (i < data_points_count + 2) {
+			ESP_LOGD(tag, "[%s, %d] 2 adding ser1, ser2= (%d, %d)",
+					__FUNCTION__,
+					__LINE__, LV_CHART_POINT_NONE,
+					(int16_t )data_points[i - 2]);
 
-		void create_chart_with_data(lv_obj_t *chart,
-				blower_test_value_t *b_vals) {
+			lv_chart_set_next_value(chart, ser1,
+					(int16_t) LV_CHART_POINT_NONE);
+			lv_chart_set_next_value(chart, ser2,
+					(int16_t) data_points[i - 2]);
+		}
+		else {
+			ESP_LOGD(tag, "[%s, %d] 3 adding ser1, ser2= (%d, %d)",
+					__FUNCTION__,
+					__LINE__, LV_CHART_POINT_NONE, LV_CHART_POINT_NONE);
 
-			size_t data_points_count = b_vals->num_point;
-			int *data_points = b_vals->burn_in_offset;
-
-			if (!data_points || data_points_count == 0) {
-				ESP_LOGW(tag,
-						"[%s, %d] Populating chart failed burn in address=%p, num_vals=%d",
-						__FUNCTION__, __LINE__, (void* )data_points,
-						data_points_count);
-			}
-			ESP_LOGD(tag, " Populating chart values");
-			ESP_LOGD(tag, " value 0 = %d", data_points[0]);
-
-			// Clear out chart data DEF_OFFSET_VAL are not displayed
-			memset(chart_data_burnin, DEF_OFFSET_VAL,
-					sizeof(chart_data_burnin));
-			memset(chart_data_prev_val, DEF_OFFSET_VAL,
-					sizeof(chart_data_prev_val));
-
-			// Setting the previous calibration values in the array
-			chart_data_prev_val[0] = b_vals->vas_offset;
-			chart_data_prev_val[1] = b_vals->qc_offset;
-
-			lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
-			lv_chart_set_update_mode(chart, LV_CHART_UPDATE_MODE_CIRCULAR);
-
-			int16_t min_value =
-					(b_vals->min_val == DEF_OFFSET_VAL) ? -5 : b_vals->min_val;
-
-			int16_t max_value =
-					(b_vals->max_val == DEF_OFFSET_VAL) ? 5 : b_vals->max_val;
-
-//	int min_t = INT_MAX;
-//	int max_t = INT_MIN;
-
-			// Added to keep historic values in view
-			for (size_t i = 0; i < b_vals->num_point; i++) {
-				min_value =
-						(min_value < data_points[i]) ? min_value :
-														data_points[i];
-				max_value =
-						(max_value > data_points[i]) ? max_value :
-														data_points[i];
-
-				ESP_LOGW(tag,
-						"%d     Chart Scale(%d): Min:%d Max:%d data_point:%d",
-						i,
-						b_vals->num_point, min_value, max_value,
-						data_points[i]);
-
-			}
-
-			int16_t range =
-					(b_vals->range == DEF_OFFSET_VAL) ?
-							10 : max_value - min_value;
-
-			range =
-					(range < 10) ? 10 : range;
-
-			ESP_LOGW(tag, " Chart Scale: Min:%d Max:%d Range:%d", min_value,
-					max_value,
-					range);
-
-			//Calculate the number of ticks needed
-			//  - Want at least 5 ticks but if range is very large use a larger range
-			int16_t tick_step =
-					(range / TICK_MIN < TICK_MIN) ? TICK_MIN : range / TICK_MIN;
-
-			int16_t y_min = (min_value / tick_step) * tick_step;
-			int16_t y_max = ((max_value + tick_step - 1) / tick_step)
-					* tick_step;
-//	lv_chart_set_point_count(chart, data_points_count);
-
-			lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
-			lv_chart_set_range(chart, LV_CHART_AXIS_SECONDARY_Y, y_min, y_max);
-
-			uint16_t num_ticks_y = (y_max - y_min) / tick_step + 1;
-//	uint16_t num_ticks_x = (data_points_count < 6) ? 6 : data_points_count;
-
-//	lv_coord_t maj = 0;
-			lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 5, 1,
-					num_ticks_y, 1,
-					true, 30);
-//	lv_chart_set_axis_tick(chart, LV_CHART_AXIS_SECONDARY_Y, 5, 1, num_ticks_y,
-//			1,
-//			false, 30);
-//    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_x, 5, 1, num_ticks_y, 1, true, 30);
-
-//	lv_coord_t *y_ser = lv_chart_get_y_array(chart, series);
-
-			for (size_t i = 0; i < 10; i++) {
-				if (i < 2) {
-					ESP_LOGD(tag, "[%s, %d] 1 adding ser1, ser2= (%d, %d)",
-							__FUNCTION__,
-							__LINE__, (int16_t )chart_data_prev_val[i],
-							LV_CHART_POINT_NONE);
-
-					lv_chart_set_next_value(chart, ser1,
-							(int16_t) chart_data_prev_val[i]);
-					lv_chart_set_next_value(chart, ser2, LV_CHART_POINT_NONE);
-
-				}
-				else if (i < data_points_count + 2) {
-					ESP_LOGD(tag, "[%s, %d] 2 adding ser1, ser2= (%d, %d)",
-							__FUNCTION__,
-							__LINE__, LV_CHART_POINT_NONE,
-							(int16_t )data_points[i - 2]);
-
-					lv_chart_set_next_value(chart, ser1,
-							(int16_t) LV_CHART_POINT_NONE);
-					lv_chart_set_next_value(chart, ser2,
-							(int16_t) data_points[i - 2]);
-				}
-				else {
-					ESP_LOGD(tag, "[%s, %d] 3 adding ser1, ser2= (%d, %d)",
-							__FUNCTION__,
-							__LINE__, LV_CHART_POINT_NONE, LV_CHART_POINT_NONE);
-
-					lv_chart_set_next_value(chart, ser1, LV_CHART_POINT_NONE);
-					lv_chart_set_next_value(chart, ser2, LV_CHART_POINT_NONE);
-
-				}
-
-				ESP_LOGD(tag, "[%s, %d] loop %d)", __FUNCTION__, i);
-
-			}
-			ESP_LOGD(tag, "[%s, %d]Finished adding points", __FUNCTION__,
-					__LINE__);
-
-			lv_chart_refresh(chart); /*Required after direct set*/
+			lv_chart_set_next_value(chart, ser1, LV_CHART_POINT_NONE);
+			lv_chart_set_next_value(chart, ser2, LV_CHART_POINT_NONE);
 
 		}
 
-		static void detail_view_chart_init(lv_obj_t *chart) {
-			ESP_LOGD(tag, "%s, Initiated ui Chart", __FUNCTION__);
+		ESP_LOGD(tag, "[%s, %d] loop %d)", __FUNCTION__, i);
 
-			ser1 = lv_chart_add_series(chart, lv_color_make(0xff, 0x66, 0x66),
-					LV_CHART_AXIS_PRIMARY_Y);
-			lv_chart_set_x_start_point(chart, ser1, 0);
-			ser2 = lv_chart_add_series(chart, lv_color_make(0x33, 0x33, 0xff),
-					LV_CHART_AXIS_SECONDARY_Y);
-			lv_chart_set_x_start_point(chart, ser2, 0);
-			lv_chart_set_point_count(chart, 10);
-			return;
-		}
+	}
+	ESP_LOGD(tag, "[%s, %d]Finished adding points", __FUNCTION__,
+			__LINE__);
 
-		/** ______TESTING FUNCTIONS____*/
+	lv_chart_refresh(chart); /*Required after direct set*/
+
+}
+
+static void detail_view_chart_init(lv_obj_t *chart) {
+	ESP_LOGD(tag, "%s, Initiated ui Chart", __FUNCTION__);
+
+	ser1 = lv_chart_add_series(chart, lv_color_make(0xff, 0x66, 0x66),
+			LV_CHART_AXIS_PRIMARY_Y);
+	lv_chart_set_x_start_point(chart, ser1, 0);
+	ser2 = lv_chart_add_series(chart, lv_color_make(0x33, 0x33, 0xff),
+			LV_CHART_AXIS_SECONDARY_Y);
+	lv_chart_set_x_start_point(chart, ser2, 0);
+	lv_chart_set_point_count(chart, 10);
+	return;
+}
+
+/** ______TESTING FUNCTIONS____*/
 
 // For testing
-		void setup_blower_random_struct(blower_test_value_t *b_vals) {
-			brn_val.brn_state = STARTING_BURNIN_TEST;
-			brn_val.values_changed = true;
+void setup_blower_random_struct(blower_test_value_t *b_vals) {
+	brn_val.brn_state = STARTING_BURNIN_TEST;
+	brn_val.values_changed = true;
 //	srand(time(NULL));   // Initialization, should only be called once.
 
-			for (int i = 0; i < 4; i++) {
-				brn_val.blowers[i].is_testing = true;
-				brn_val.blowers[i].values_changed = true;
+	for (int i = 0; i < 4; i++) {
+		brn_val.blowers[i].is_testing = true;
+		brn_val.blowers[i].values_changed = true;
 
-				strcpy(brn_val.blowers[i].name, test_blower_device_names[i]);
-				strcpy(brn_val.blowers[i].chip_id, default_chip_id);
-				int min_v = 100;
-				int max_v = -100;
+		strcpy(brn_val.blowers[i].name, test_blower_device_names[i]);
+		strcpy(brn_val.blowers[i].chip_id, default_chip_id);
+		int min_v = 100;
+		int max_v = -100;
 
 //		set_array_to_default(brn_val.blowers[i].burn_in_offset, NUM_OF_TEST);
-				for (int ii = 0; ii < NUM_OF_TEST; ii++) {
-					int tmp = ((rand() % 10) - 5);
-					min_v = (min_v < tmp) ? min_v : tmp;
-					max_v = (max_v > tmp) ? max_v : tmp;
+		for (int ii = 0; ii < NUM_OF_TEST; ii++) {
+			int tmp = ((rand() % 10) - 5);
+			min_v = (min_v < tmp) ? min_v : tmp;
+			max_v = (max_v > tmp) ? max_v : tmp;
 
-					brn_val.blowers[i].burn_in_offset[ii] = tmp;
-				}
-				brn_val.blowers[i].offset =
-						brn_val.blowers[i].burn_in_offset[9];
-				brn_val.blowers[i].range = max_v - min_v;
-				brn_val.blowers[i].vas_offset =
-						brn_val.blowers[i].burn_in_offset[0];
-				brn_val.blowers[i].qc_offset =
-						brn_val.blowers[i].burn_in_offset[1];
-				brn_val.blowers[i].min_val = min_v;
-				brn_val.blowers[i].max_val = max_v;
-				brn_val.blowers[i].num_point = 3;
-
-			}
+			brn_val.blowers[i].burn_in_offset[ii] = tmp;
 		}
+		brn_val.blowers[i].offset =
+				brn_val.blowers[i].burn_in_offset[9];
+		brn_val.blowers[i].range = max_v - min_v;
+		brn_val.blowers[i].vas_offset =
+				brn_val.blowers[i].burn_in_offset[0];
+		brn_val.blowers[i].qc_offset =
+				brn_val.blowers[i].burn_in_offset[1];
+		brn_val.blowers[i].min_val = min_v;
+		brn_val.blowers[i].max_val = max_v;
+		brn_val.blowers[i].num_point = 3;
+
+	}
+}
