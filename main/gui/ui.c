@@ -77,6 +77,13 @@ lv_obj_t *ui_ChipIDValLabel4;
 lv_obj_t *ui_OffsetValLabel4;
 lv_obj_t *ui_PassedLabel4;
 lv_obj_t *ui_Screen4;
+// Added for detail screen
+lv_obj_t *ui_DetailPanel;
+lv_obj_t *ui_VasValue;
+lv_obj_t *ui_QC_Value;
+lv_obj_t *ui_ErrorLable;
+//lv_obj_t *ui____initial_actions0;
+
 lv_obj_t *ui_Header_Panel_Blower_Information;
 void ui_event_Screen4_Back_Button(lv_event_t *e);
 lv_obj_t *ui_Screen4_Back_Button;
@@ -924,6 +931,8 @@ void ui_Screen2_screen_init(void) {
 	lv_obj_set_height(ui_NotificationLabel, lv_pct(60));
 	lv_obj_set_align(ui_NotificationLabel, LV_ALIGN_TOP_MID);
 	lv_obj_set_style_text_align(ui_NotificationLabel, LV_TEXT_ALIGN_CENTER, 0);
+	lv_label_set_recolor(ui_NotificationLabel, true); /*Enable re-coloring by commands in the text*/
+
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_ready);
 	lv_obj_set_style_text_font(ui_NotificationLabel, &lv_font_montserrat_16,
 			LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -1097,6 +1106,59 @@ void ui_Screen4_screen_init(void) {
 	lv_obj_set_height(ui_BlowerHeaderLabel, LV_SIZE_CONTENT);    /// 1
 	lv_obj_set_align(ui_BlowerHeaderLabel, LV_ALIGN_CENTER);
 	lv_label_set_text(ui_BlowerHeaderLabel, "Blower Dev");
+
+	// Detail panel
+
+	ui_DetailPanel = lv_obj_create(ui_Screen4);
+	lv_obj_set_width(ui_DetailPanel, lv_pct(95));
+	lv_obj_set_height(ui_DetailPanel, lv_pct(27));
+	lv_obj_set_x(ui_DetailPanel, 0);
+	lv_obj_set_y(ui_DetailPanel, lv_pct(12));
+	lv_obj_set_align(ui_DetailPanel, LV_ALIGN_TOP_MID);
+	lv_obj_clear_flag(ui_DetailPanel, LV_OBJ_FLAG_SCROLLABLE);    /// Flags
+	lv_obj_set_style_bg_color(ui_DetailPanel, lv_color_hex(0xFFFFFF),
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui_DetailPanel, 50,
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	ui_VasValue = lv_label_create(ui_DetailPanel);
+	lv_obj_set_width(ui_VasValue, LV_SIZE_CONTENT);  /// 50
+	lv_obj_set_height(ui_VasValue, LV_SIZE_CONTENT);   /// 1
+	lv_label_set_text(ui_VasValue, "VAS Value: -56\n");
+
+	ui_QC_Value = lv_label_create(ui_DetailPanel);
+	lv_obj_set_width(ui_QC_Value, LV_SIZE_CONTENT);  /// 1
+	lv_obj_set_height(ui_QC_Value, LV_SIZE_CONTENT);   /// 1
+	lv_obj_set_align(ui_QC_Value, LV_ALIGN_BOTTOM_LEFT);
+	lv_label_set_text(ui_QC_Value, "QC Value:  -55");
+
+	ui_ErrorLable = lv_label_create(ui_DetailPanel);
+	lv_obj_set_width(ui_ErrorLable, lv_pct(50));
+	lv_obj_set_height(ui_ErrorLable, LV_SIZE_CONTENT);   /// 1
+	lv_obj_set_x(ui_ErrorLable, 0);
+	lv_obj_set_y(ui_ErrorLable, -10);
+	lv_obj_set_align(ui_ErrorLable, LV_ALIGN_TOP_RIGHT);
+	lv_label_set_text(ui_ErrorLable,
+			"Error: \nOver Range Limit; \nOver TEB Limit");
+	lv_obj_set_style_text_color(ui_ErrorLable, lv_color_hex(0xFF0000),
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui_ErrorLable, 255,
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui_ErrorLable, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui_ErrorLable, lv_color_hex(0xEBE7E7),
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui_ErrorLable, 255,
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_color(ui_ErrorLable, lv_color_hex(0x5E5E5E),
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_opa(ui_ErrorLable, 255,
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(ui_ErrorLable, 1,
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_side(ui_ErrorLable, LV_BORDER_SIDE_FULL,
+			LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	/////Chart setup////
 
 	ui_Blower_Val_Chart = lv_chart_create(ui_Screen4);
 	lv_obj_set_width(ui_Blower_Val_Chart, 240);

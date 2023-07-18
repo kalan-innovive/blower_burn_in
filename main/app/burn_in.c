@@ -647,6 +647,7 @@ void burn_in_task(void *pvParameter) {
 
 	while (true) {
 // Check for blowers and keep a local copy of values for when the ui is changed
+		//TODO: check power on in correct loop
 		num_available = check_power_on();
 		burn_in_testing_state_t state = get_burn_in_state();
 		if (state == -1) {

@@ -20,9 +20,10 @@ const char *tag = "UI_EVENT";
 static const char *tag_timer = "UI_Timer";
 //static const char *tag_det = "UI_Detail";
 const char *notify_burnin_on =
-		"Calibration Cycle Complete.\n Press \"OK\"\n Record values then\nTurn Power Supply Off";
+		"#0000ff Calibration Cycle Complete#\n Press \"OK\"\n Record values then\nTurn Power Supply Off";
 const char *notify_burnin_off = "Off Cycle Complete\n Turn Power Supply On";
-const char *notify_burnin_ready = "Burn In Ready\n Turn Power Supply On";
+const char *notify_burnin_ready =
+		"#0000ff Burn In Ready#\n Turn Power Supply On";
 
 void clock_run_cb(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;

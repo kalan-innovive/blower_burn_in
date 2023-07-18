@@ -12,10 +12,9 @@ extern "C" {
 
 #include "lvgl.h"
 
-extern  const char *notify_burnin_on;
-extern  const char *notify_burnin_off;
+extern const char *notify_burnin_on;
+extern const char *notify_burnin_off;
 extern const char *notify_burnin_ready;
-
 
 extern lv_obj_t *ui_Screen1;
 extern lv_obj_t *ui_Header_Main_Panel;
@@ -71,6 +70,9 @@ extern lv_obj_t *ui_BlowerLabel3;
 extern lv_obj_t *ui_ChipIDLabel3;
 extern lv_obj_t *ui_OffsetLabel3;
 extern lv_obj_t *ui_RangeValLabel3;
+extern lv_obj_t *ui_BlowerVASLabel;
+extern lv_obj_t *ui_BlowerQCLabel;
+
 extern lv_obj_t *ui_Range3;
 extern lv_obj_t *ui_ChipIDValLabel3;
 extern lv_obj_t *ui_OffsetValLabel3;
@@ -90,7 +92,16 @@ void ui_event_Screen4_Back_Button(lv_event_t *e);
 extern lv_obj_t *ui_Screen4_Back_Button;
 extern lv_obj_t *ui_Back4_Label;
 extern lv_obj_t *ui_BlowerHeaderLabel;
+
 extern lv_obj_t *ui_Blower_Val_Chart;
+// Added for detail screen
+
+extern lv_obj_t *ui_DetailPanel;
+extern lv_obj_t *ui_VasValue;
+extern lv_obj_t *ui_QC_Value;
+extern lv_obj_t *ui_ErrorLable;
+//extern lv_obj_t *ui____initial_actions0;
+
 extern lv_obj_t *ui_Screen0;
 extern lv_obj_t *ui_Header_Panel_Settings;
 void ui_event_Screen2_Button3(lv_event_t *e);
@@ -126,7 +137,6 @@ void set_sb_pressed(lv_event_t *e);
 void set_ea_pressed(lv_event_t *e);
 void set_eb_pressed(lv_event_t *e);
 
-
 void stop_data_requests(lv_event_t *e);
 void update_time_counter(lv_event_t *e);
 void clock_run_cb(lv_timer_t *timer);
@@ -138,16 +148,15 @@ void start_pressed(void);
 // Notification panel
 extern lv_obj_t *ui_NotaficationPanel;
 extern lv_obj_t *ui_NotificationLabel;
-void ui_event_OKButton( lv_event_t * e);
+void ui_event_OKButton(lv_event_t *e);
 extern lv_obj_t *ui_OKButton;
 extern lv_obj_t *ui_OKLabel;
 //extern lv_obj_t *ui____initial_actions0;
 
 extern lv_obj_t *ui_TimerNotificationPanel;
-void ui_event_TimerButton( lv_event_t * e);
+void ui_event_TimerButton(lv_event_t *e);
 extern lv_obj_t *ui_TimerButton;
 extern lv_obj_t *ui_TimerNotificationLabel;
-
 
 typedef struct _t_gui_timer {
 	int time;
