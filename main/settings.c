@@ -1,7 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
+
  */
 
 #include <string.h>
@@ -37,12 +35,45 @@ static const mqtt_credentials_t g_default_mqtt_param = {
 		.node_name = "esp233",
 };
 
+static const net_settings_t g_default_net_param = {
+		.ipv4 = "255.255.255.255",
+		.password = "",
+		.mac_addr = "00-00-00-00-00-00",
+};
+
+static const server_settings_t g_default_eh_param = {
+		.eh_server = "eh.innovive.com",
+		.eh_encr = "",
+};
+
+static const app_burn_in g_default_burn_in_param = {
+		.TEB = 80,
+		.range = 11,
+		.num_cycles = 4,
+		.num_cycle_shown = 10,
+		.on_time = 10,
+		.off_time = 30,
+};
+
+static const node_com_ports g_default_comm_param = {
+    .mqtt_connected = 1,
+    .console_connected = 1,
+    .eh_server_connected = 1,
+    .bluetooth_connected = 1,
+    .wifi_connected = 1,
+};
+
 static const sys_param_t g_default_sys_param = {
     .need_hint = 1,
     .wifi = g_default_wifi_param,
     .mqtt = g_default_mqtt_param,
+	.net = g_default_net_param,
 	.app_type = BLOWER_BURN_IN,
+	.eh = g_default_eh_param,
+	.burn_in = g_default_burn_in_param,
+	.comm_ports = g_default_comm_param,
 };
+
 
 
 // Save the WiFi credentials to NVS storage

@@ -137,6 +137,10 @@ void set_sb_pressed(lv_event_t *e);
 void set_ea_pressed(lv_event_t *e);
 void set_eb_pressed(lv_event_t *e);
 
+// Setter functions for name identification
+void set_ui_esp_name(const char *esp_name);
+void set_ui_ip(const char *ip_str);
+
 void stop_data_requests(lv_event_t *e);
 void update_time_counter(lv_event_t *e);
 void clock_run_cb(lv_timer_t *timer);

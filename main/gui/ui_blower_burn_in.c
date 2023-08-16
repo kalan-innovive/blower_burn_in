@@ -129,8 +129,9 @@ esp_err_t update_test_values(void) {
 //		if(brn_val.brn_state < CANCEL_BURNIN_TEST && brn_val.values_changed){
 		if (brn_val.values_changed) {
 
-			ESP_LOGD(tag, "Burn in state: %d, values changed %d",
-					brn_val.brn_state, brn_val.values_changed);
+			ESP_LOGD(tag, "Burn in state: %s, values changed %d",
+					burnin_state_to_str(brn_val.brn_state),
+					brn_val.values_changed);
 
 			for (int i = 0; i < 4; i++) {
 				blower_test_label_map_t *b_map = &brn_ui_map.blower_lv[i];
@@ -161,12 +162,16 @@ esp_err_t update_test_values(void) {
 		test_vals_release();
 		return ESP_OK;
 
+	} else {
+		ESP_LOGW(tag, "[%s, %d] Failed to acquire test values", __FUNCTION__,
+				__LINE__);
 	}
 	return ESP_FAIL;
 }
 
 /*
  * Call function when updating the ui
+ * Semaphore must be available
  */
 esp_err_t update_test_state(burn_in_testing_state_t state) {
 	burn_in_testing_state_t cur_state = ERROR_VAL;
@@ -176,6 +181,13 @@ esp_err_t update_test_state(burn_in_testing_state_t state) {
 		ret = ESP_OK;
 		cur_state = brn_val.brn_state;
 		brn_val.brn_state = state;
+
+		if (state == CANCEL_BURNIN_TEST) {
+			// end the timer and clear the detail view
+			brn_val.ui_timer = 0;
+			update_timer_counter(ui_timer, 0);
+
+		}
 		test_vals_release();
 
 		if (cur_state != state) {
@@ -183,11 +195,13 @@ esp_err_t update_test_state(burn_in_testing_state_t state) {
 					"%s, Updating testing state|Current: %s|Updated: %s|___________",
 					__FUNCTION__,
 					burnin_state_to_str(cur_state), burnin_state_to_str(state));
+
 		}
 
 	} else {
 		ESP_LOGE(tag,
-				"Updating testing state| Could not acquire semaphore to update test state");
+				"%s, Updating testing state| Could not acquire semaphore to update test state",
+				__FUNCTION__);
 
 	}
 	return ret;
@@ -244,31 +258,47 @@ esp_err_t start_burnin() {
 
 	if (cur_state == ERROR_VAL) {
 		ret = ESP_FAIL;
-		ESP_LOGW(tag, "Could not Start burn in");
+		ESP_LOGW(tag, "%s, Could not Start burn in; In Error State",
+				__FUNCTION__);
 
 	} else if (cur_state == STARTING_BURNIN_TEST) {
-// Aquire the ui semaphore to update timer
+		// Aquire the ui semaphore to update timer
+
+		if (update_test_state(RUNNING_BURNIN_TEST) == ESP_OK) {
+			ret = ESP_OK;
+			ESP_LOGI(tag, "%s, Running burn in", __FUNCTION__);
+
+		}
 		if (ui_acquire() == ESP_OK) {
-			if (update_test_state(RUNNING_BURNIN_TEST) == ESP_OK) {
-				ret = ESP_OK;
-				ESP_LOGI(tag, "Running burn in");
-				burn_in_test_start(ui_timer);
-			}
+			burn_in_test_start(ui_timer);
+
 			ui_release();
 			// Update the state
 
 		} else {
-			ESP_LOGI(tag, "start_burnin failed to get ui Semaphore");
+			ESP_LOGI(tag, "%s, Start_burnin failed to get ui Semaphore",
+					__FUNCTION__);
 
 		}
 
 	} else if (cur_state == RUNNING_BURNIN_TEST) {
-// Already in state
-// TODO: check the timer to verify that it is running
-		ESP_LOGW(tag, "Already running burnin Test");
+		// Already in state
+		// TODO: check the timer to verify that it is running
+		ESP_LOGW(tag, "%s, Already running burnin Test", __FUNCTION__);
+
+	} else if (cur_state == CANCEL_BURNIN_TEST) {
+		if (update_test_state(STARTING_BURNIN_TEST) == ESP_OK) {
+			ret = ESP_OK;
+			ESP_LOGI(tag, "%s, Running burn in", __FUNCTION__);
+
+		} else {
+
+			ESP_LOGE(tag, "%s, Failed to change state", __FUNCTION__);
+		}
 
 	} else {
-		ESP_LOGW(tag, "Calling Start_Cooldown from incorrect state");
+		ESP_LOGW(tag, "%s, Calling Start_Cooldown from incorrect state",
+				__FUNCTION__);
 
 	}
 	return ret;
@@ -431,13 +461,40 @@ esp_err_t update_detail_values(int dev_id) {
 			test_blower_device_names[dev_id], dev_id);
 	if (test_vals_acquire(10)) {
 
-// set the values for the selected blower
+		// set the values for the selected blower
 		blower_details_lv_obj_map_t *b_map = &brn_ui_map.detail_lv;
 		blower_test_value_t *b_vals = &brn_val.blowers[dev_id];
 		print_blower_vals(b_vals);
-//
 
-// Update the title
+		//TODO: Check if there was an error
+		int error_id = 0;
+		// error_msg == 1 failed for range
+		char *f_range = "Error:\n Over Range Limit";
+		// error_msg == 2 failed for TEB
+		char *f_TEB = "Error:\n Over TEB Limit";
+
+		// error_msg == 3 failed for both range and TEB
+		char *f_both = "Error:\n Over Range Limit\nOver TEB Limit";
+		char *failed_msg[4] = { "  ", f_range, f_TEB, f_both };
+
+		if (b_vals->state == FAILED_BLOWER_TEST) {
+			if (b_vals->range > 11) {
+				error_id += 1;
+			}
+			if (b_vals->max_val > 80 || b_vals->min_val < -80) {
+				error_id += 2;
+			}
+			lv_label_set_text(ui_ErrorLable, failed_msg[error_id]);
+			lv_obj_clear_flag(ui_ErrorLable, LV_OBJ_FLAG_HIDDEN);
+
+		} else {
+			lv_obj_add_flag(ui_ErrorLable, LV_OBJ_FLAG_HIDDEN);
+		}
+		lv_label_set_text_fmt(ui_QC_Value, "QC Value:  %d", b_vals->qc_offset);
+		lv_label_set_text_fmt(ui_VasValue, "VAS Value:  %d",
+				b_vals->vas_offset);
+
+		// Update the title
 		const char *name = b_vals->name;
 		lv_label_set_text(b_map->name_label, name);
 		ESP_LOGD(tag, " Updating chart Title %s", name);

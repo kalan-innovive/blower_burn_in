@@ -8,13 +8,13 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "ui_blower_burn_in.h"
-#define UI_BURN 0
+#define UI_BURN 1
 #if UI_BURN
 #define BURN_IN_TIME 10 *60
 #define BURN_IN_COOLDOWN_TIME 30 *60
 #else
-#define BURN_IN_TIME 10 *1
-#define BURN_IN_COOLDOWN_TIME  1*20
+#define BURN_IN_TIME 1 *20
+#define BURN_IN_COOLDOWN_TIME  1*30
 #endif
 const char *tag = "UI_EVENT";
 static const char *tag_timer = "UI_Timer";
@@ -29,7 +29,7 @@ void clock_run_cb(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;
 	lv_obj_t *lab_time = gt->lab_time;
 	gt->time--;
-	ESP_LOGD(tag_timer, "%s, Timer: %d\n", __FUNCTION__, gt->time);
+	ESP_LOGD(tag_timer, "%s, Timer: %d", __FUNCTION__, gt->time);
 	if (gt->time <= 0) {
 		lv_timer_pause(timer);
 
@@ -38,14 +38,16 @@ void clock_run_cb(lv_timer_t *timer) {
 		// only pause timer after successfully changing the state
 		if (ret == ESP_OK) {
 			lv_timer_pause(timer);
-			ESP_LOGI(tag_timer, "Pausing Timer: %d\n", gt->time);
+			ESP_LOGI(tag_timer, "%s, Pausing Timer: %d", __FUNCTION__,
+					gt->time);
 			lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 
 			lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
 		} else {
 			// Could not update the state let loop go around again
-			ESP_LOGW(tag_timer, "Pausing Timer: %d\n", gt->time);
+			ESP_LOGW(tag_timer, "%s, Pausing Timer: %d", __FUNCTION__,
+					gt->time);
 		}
 		gt->time = 0;
 	}
@@ -59,7 +61,7 @@ void clock_run_cb(lv_timer_t *timer) {
 }
 
 void burn_in_test_start(lv_timer_t *timer) {
-	ESP_LOGI(tag, "Start Pressed");
+	ESP_LOGI(tag, "%s Start Pressed", __FUNCTION__);
 //	update_test_state(RUNNING_BURNIN_TEST);
 	// Check if the rack is initialised
 	burn_in_testing_state_t state = get_burn_in_state();
@@ -79,7 +81,8 @@ void burn_in_test_start(lv_timer_t *timer) {
 
 		lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-		ESP_LOGW(tag, "Start pressed timer not reset current state: %d\n",
+		ESP_LOGW(tag, "%s, Start pressed timer not reset current state: %d",
+				__FUNCTION__,
 				state);
 
 	}
@@ -94,7 +97,7 @@ void start_pressed(void) {
 
 void burn_in_cooldown_start(lv_timer_t *timer) {
 //	t_gui_timer *gt = timer->user_data;
-	ESP_LOGI(tag, "Cool Down Start Timer Event");
+	ESP_LOGI(tag, "%s, Cool Down Start Timer Event", __FUNCTION__);
 	update_timer_counter(timer, BURN_IN_COOLDOWN_TIME);
 	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_off);
@@ -105,21 +108,20 @@ void burn_in_cooldown_start(lv_timer_t *timer) {
 }
 
 void burn_in_cancel(lv_timer_t *timer) {
-	t_gui_timer *gt = timer->user_data;
-	gt->time = 0;
-	lv_timer_pause(timer);
-	ESP_LOGI(tag, "Cancel Event");
+//	t_gui_timer *gt = timer->user_data;
+//	gt->time = 0;
+//	lv_timer_pause(timer);
+	update_test_state(CANCEL_BURNIN_TEST);
+
+	ESP_LOGW(tag, "%s, Cancel Pressed", __FUNCTION__);
 	lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_ready);
-
 	lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
-
-	update_test_state(CANCEL_BURNIN_TEST);
 
 }
 
 void update_timer_counter(lv_timer_t *timer, int t) {
-	ESP_LOGI(tag, "update the timer %d\n", (int ) t);
+	ESP_LOGI(tag, "%s update the timer %d", __FUNCTION__, t);
 	t_gui_timer *gt = timer->user_data;
 	gt->time = t;
 	lv_timer_resume(timer);
@@ -155,6 +157,14 @@ void set_ea_pressed(lv_event_t *e) {
 
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
+}
+
+void set_ui_ip(const char *ip_str) {
+	lv_label_set_text(ui_ESPadressLabel, ip_str);
+}
+
+void set_ui_esp_name(const char *esp_name) {
+	lv_label_set_text(ui_ESPNameLabel, esp_name);
 }
 
 void set_eb_pressed(lv_event_t *e) {

@@ -364,6 +364,7 @@ static void ui_after_boot(void)
 
 }
 // 115200
+
 esp_err_t ui_main_start(void)
 {
 	ui_acquire();

@@ -52,7 +52,7 @@ void uart_rx_task(void *pvParameters) {
 			// Should we reset the position?
 			uart_pos = 0;
 			msg_pos = 0;
-			vTaskDelay(100000 / portTICK_PERIOD_MS);
+//			vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 			continue;
 		}
@@ -120,7 +120,7 @@ void uart_rx_task(void *pvParameters) {
 						byte, byte + 1);
 				// escape character
 				msg_buffer[msg_pos - 1] = byte ^ 0x20;
-				vTaskDelay(100000 / portTICK_PERIOD_MS);
+//				vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 			} else {
 				// regular byte

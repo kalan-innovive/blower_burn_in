@@ -13,7 +13,7 @@ idf_component_register(
     INCLUDE_DIRS    ${include_dirs} 												# optional, add here public include directories
 
     PRIV_INCLUDE_DIRS   															# optional, add here private include directories
-    REQUIRES            app_event_handler esp-box serial_inno lvgl	mqtt_handler protocol_examples_common	# optional, list the public requirements (component names)
+    REQUIRES            app_event_handler esp-box serial_inno lvgl mqtt_handler inno_connect	# optional, list the public requirements (component names)
     PRIV_REQUIRES       bsp es7210 nvs_flash 										# optional, list the private requirements
 )
 #

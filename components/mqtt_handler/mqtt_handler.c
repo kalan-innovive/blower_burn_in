@@ -10,7 +10,6 @@
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_mac.h"
-//#include "protocol_examples_common.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

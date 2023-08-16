@@ -11,14 +11,14 @@
 #define UPDATE_UI()
 
 // If defined the app has a shorter cycle time and monitors the heap
-#define TESTING_APP_BURNIN 0
+#define TESTING_APP_BURNIN 1
 
 #ifdef TESTING_APP_BURNIN
 
 #define APP_LOOP_RATE_MS 1000
 
 // Start delay to give communication time to sync
-#define APP_START_DELAY_MS 5000
+#define APP_START_DELAY_MS 3000
 
 // The amount the ui is updated. must be a factor of loop rate to gicve an integer value
 #define APP_CAL_UPDATE_TIME_MS 5000

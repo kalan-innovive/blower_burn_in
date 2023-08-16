@@ -177,7 +177,6 @@ void ui_event_StartButton(lv_event_t *e) {
 	if (event_code == LV_EVENT_PRESSED) {
 		start_pressed();
 		burn_in_test_start(ui_timer);
-//		burn_in_test_start(ui_timer);
 		_ui_screen_change(ui_Screen2, LV_SCR_LOAD_ANIM_OVER_LEFT, 500, 50);
 	}
 }
@@ -185,6 +184,7 @@ void ui_event_Screen2_Button2(lv_event_t *e) {
 	lv_event_code_t event_code = lv_event_get_code(e);
 	lv_obj_t *target = lv_event_get_target(e);
 	if (event_code == LV_EVENT_PRESSED) {
+		burn_in_cancel(ui_timer);
 		_ui_screen_change(ui_Screen1, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 500, 0);
 
 	}
@@ -193,8 +193,8 @@ void ui_event_Screen2_Button3(lv_event_t *e) {
 	lv_event_code_t event_code = lv_event_get_code(e);
 	lv_obj_t *target = lv_event_get_target(e);
 	if (event_code == LV_EVENT_PRESSED) {
-		ESP_LOGI("SCR2_BTN3", "Event_Pressed");
-		burn_in_cancel(ui_timer);
+		ESP_LOGW("SCR2_BTN3", "Event_Pressed");
+
 		_ui_screen_change(ui_Screen1, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 500, 0);
 
 	}
@@ -1033,7 +1033,7 @@ void ui_Screen2_screen_init(void) {
 
 	/* Set up callback events*/
 
-//	lv_obj_add_event_cb(ui_Back, ui_event_Cancel_Label, LV_EVENT_,
+//	lv_obj_add_event_cb(ui_Back, ui_event_Cancel_Label, LV_EVENT_ALL,
 //			ui_timer);
 	lv_obj_add_event_cb(ui_StartButton, ui_event_Timer_Label, LV_EVENT_ALL,
 			ui_timer);
@@ -1133,6 +1133,8 @@ void ui_Screen4_screen_init(void) {
 	lv_label_set_text(ui_QC_Value, "QC Value:  -55");
 
 	ui_ErrorLable = lv_label_create(ui_DetailPanel);
+	lv_obj_add_flag(ui_ErrorLable, LV_OBJ_FLAG_HIDDEN);
+
 	lv_obj_set_width(ui_ErrorLable, lv_pct(50));
 	lv_obj_set_height(ui_ErrorLable, LV_SIZE_CONTENT);   /// 1
 	lv_obj_set_x(ui_ErrorLable, 0);

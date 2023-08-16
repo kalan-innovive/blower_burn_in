@@ -24,13 +24,14 @@
 #include "bsp_board.h"
 #include "bsp/esp-bsp.h"
 
-#include "protocol_examples_common.h"
+#include "inno_connect.h"
 
 #include "ui_blower_burn_in.h"
 #include "serial_inno.h"
 #include "rack_device.h"
 
 #include "burn_in.h"
+#include "ui.h"
 #include "mqtt_handler.h"
 
 //#define TESTING_INNO_COMPONENTS 0
@@ -206,6 +207,8 @@ static esp_err_t run_blower_burn_in_app(void) {
 	app_cfg.eh_handler = get_event_handler_loop();
 
 	ESP_ERROR_CHECK(setup_mqtt_default(&app_cfg));
+	set_ui_ip(get_ip());
+	set_ui_esp_name(app_cfg.node_name);
 
 	ESP_LOGI(TAG, "Setup MQTT handler Completed ");
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -219,9 +222,12 @@ void app_main(void) {
 //	const char* tes = NULL;
 
 	srand(time(NULL));   // Initialization, should only be called once.
-	esp_log_level_set("example_common", ESP_LOG_WARN);
-	esp_log_level_set("example_connect", ESP_LOG_WARN);
+	esp_log_level_set("inno_common", ESP_LOG_WARN);
+	esp_log_level_set("inno_connect", ESP_LOG_DEBUG);
+	esp_log_level_set("inno_wifi_connect", ESP_LOG_DEBUG);
+
 	esp_log_level_set("wifi", ESP_LOG_WARN);
+	esp_log_level_set("mqtt_handler", ESP_LOG_WARN);
 
 	ESP_LOGI(TAG, "Compile time: %s %s", __DATE__, __TIME__);
 	/* Initialize NVS. */
@@ -260,9 +266,6 @@ void app_main(void) {
 	//	    ESP_LOG_INFO,       /*!< Information messages which describe normal flow of events */
 	//	    ESP_LOG_DEBUG,      /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
 	//	    ESP_LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
-	ESP_ERROR_CHECK(esp_netif_init());
-	ESP_ERROR_CHECK(esp_event_loop_create_default());
-	ESP_ERROR_CHECK(example_connect());
 
 	esp_log_level_set("msg16", ESP_LOG_WARN);
 	esp_log_level_set("serial_inno", ESP_LOG_ERROR);
@@ -273,13 +276,17 @@ void app_main(void) {
 	esp_log_level_set("UI_Detail", ESP_LOG_INFO);
 	esp_log_level_set("spi_master", ESP_LOG_WARN);
 	esp_log_level_set("efuse", ESP_LOG_WARN);
-	esp_log_level_set("GC_task", ESP_LOG_DEBUG);
-	esp_log_level_set("user_event_loop", ESP_LOG_DEBUG);
+	esp_log_level_set("GC_task", ESP_LOG_WARN);
+	esp_log_level_set("user_event_loop", ESP_LOG_WARN);
 	esp_log_level_set("offset_data", ESP_LOG_WARN);
+	ESP_ERROR_CHECK(esp_netif_init());
+	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	bsp_display_backlight_on();
 
 	ESP_ERROR_CHECK(ui_main_start());
+	ESP_ERROR_CHECK(inno_connect());
+
 	ESP_ERROR_CHECK(run_blower_burn_in_app());
 #endif
 
