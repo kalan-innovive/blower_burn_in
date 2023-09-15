@@ -123,7 +123,7 @@ static void msg16_request_handler(app_request_t *request) {
 			request->respons_cb((void*) request);
 			return;
 		}
-		msg.msg_val[i] = (uint16_t) atoi(token);
+		msg.payload[i] = (uint16_t) atoi(token);
 	}
 
 	// do something with the msg16 struct

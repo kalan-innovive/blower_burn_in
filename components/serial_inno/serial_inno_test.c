@@ -136,7 +136,7 @@ static esp_err_t unit_test_blower_read_pack(void){
 		.dev_id = DEV_SUPA,
 		.addr = REG_MODBUS_ADDR,
 		.len = 1,
-		.msg_val[0] = 0,
+		.payload[0] = 0,
 	};
 
 	// Create buffer for message pack
@@ -193,7 +193,7 @@ static esp_err_t unit_test_blower_read_unpack(void){
 		.dev_id = DEV_UNDEF,
 		.addr = REG_STATUS,
 		.len = 1,
-		.msg_val[0] = 0x00,
+		.payload[0] = 0x00,
 	};
 	//TEST:
 	//Try unpacking the message
@@ -274,7 +274,7 @@ static esp_err_t insys_test_transact(void){
 		.dev_id = DEV_SUPA,
 		.addr = REG_RAW_PRESS,
 		.len = 1,
-		.msg_val[0] = 52,
+		.payload[0] = 52,
 	};
 	msg16_t msg_res;
 
@@ -311,7 +311,7 @@ static esp_err_t insys_test_unit_urt_get_offset_(void){
 		.dev_id = DEV_SUPA,
 		.addr = REG_RAW_PRESS,
 		.len = 1,
-		.msg_val[0] = v,
+		.payload[0] = v,
 	};
 	uint8_t rec_data[24];
 	size_t msg_len;
@@ -363,7 +363,7 @@ static esp_err_t insys_test_urt_write_offset_(void){
 		.dev_id = DEV_SUPA,
 		.addr = REG_TARG_PRESS,
 		.len = 1,
-		.msg_val[0] = v,
+		.payload[0] = v,
 	};
 	uint8_t rec_data[24];
 	size_t msg_len;
@@ -409,7 +409,7 @@ static esp_err_t unit_test_rack_task_(void){
 		.dev_id = DEV_RACK,
 		.addr = INFO_SIDES,
 		.len = 1,
-		.msg_val[0] = 0x00,
+		.payload[0] = 0x00,
 	};
 	msg16_t* msg_resp = malloc(sizeof(msg16_t));
 
@@ -420,9 +420,9 @@ static esp_err_t unit_test_rack_task_(void){
 		ret = ESP_FAIL;
 		ESP_LOGW(tag, "Could not handle request received default len:%d", msg_resp->len);
 	}
-	if (msg_resp->msg_val[0] != 2){
+	if (msg_resp->payload[0] != 2){
 		ret = ESP_FAIL;
-		ESP_LOGW(tag, "Msg response should default to 2 actual:%d", msg_resp->msg_val[0]);
+		ESP_LOGW(tag, "Msg response should default to 2 actual:%d", msg_resp->payload[0]);
 	}
 
 	free(msg_resp);
@@ -626,7 +626,7 @@ static void print_msg16(const msg16_t* msg){
 	ESP_LOGI(tag, "MSG Type :%02x | ", msg->type);
 	ESP_LOGI(tag, "MSG len  :%d |",  msg->len);
 	for (int i = 0; i<(msg->len%10);i++){
-		ESP_LOGI(tag, "%d   Val :%d |", i, (int16_t)msg->msg_val[i]);
+		ESP_LOGI(tag, "%d   Val :%d |", i, (int16_t)msg->payload[i]);
 	}
 }
 
@@ -636,7 +636,7 @@ static void print_msg16_transact(const msg16_t* msg_req, const msg16_t* msg_resp
 	ESP_LOGI(tag, "MSG len  :%d | %d", msg_req->len, msg_resp->len);
 
 	for (int i = 0; i<msg_resp->len%14;i++){
-		ESP_LOGI(tag, "%d   Val :%d | %d", i, msg_req->msg_val[i], msg_resp->msg_val[i]);
+		ESP_LOGI(tag, "%d   Val :%d | %d", i, msg_req->payload[i], msg_resp->payload[i]);
 	}
 
 }
@@ -662,9 +662,9 @@ static esp_err_t comp_msg16(const msg16_t *msg_exp, const msg16_t *msg){
 		ret =  ESP_FAIL;
 		ESP_LOGW(tag, "Expected len: %d does not equal returned len: %d", msg_exp->len , msg->len);
 	}
-	if (msg_exp->msg_val[0] != msg->msg_val[0]){
+	if (msg_exp->payload[0] != msg->payload[0]){
 		ret =  ESP_FAIL;
-		ESP_LOGW(tag, "Expected val: %d does not equal returned val: %d", msg_exp->msg_val[0] , msg->msg_val[0]);
+		ESP_LOGW(tag, "Expected val: %d does not equal returned val: %d", msg_exp->payload[0] , msg->payload[0]);
 	}
 	return ret;
 }

@@ -1,0 +1,9 @@
+key,type,encoding,value
+default_key,namespace,,
+wifi,namespace,,
+ssid,data,string,innowf
+password,data,string,Inn0wifi!
+mqtt,namespace,,
+host,data,string,mqtt.innovive.com
+password,data,string,innovive
+version,data,string,3.3

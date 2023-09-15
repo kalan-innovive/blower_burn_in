@@ -19,6 +19,15 @@
 #define NUM_NV_STORE 16
 #define RECORD_VERSION 3
 
+#define FLAG 0x07e
+#define ESC 0x07d
+#define CHK_LEN 2
+#define READ_PAYLOAD_LEN 3
+#define READ_RESP_PAYLOAD_LEN 2
+#define READ_WRITE_LEN 3
+#define GET_PAYLOAD_LEN(frame_len) (frame_len-5)
+#define GET_FRAME_LEN(payload_len) (payload_len+5)
+
 #ifdef MAIN
 
 #define global(var,val) var = val
@@ -33,6 +42,8 @@
 #define SW_VERSION 8
 #define HW_VERSION 107  // FIXME - should have a board rev included here
 
+
+
 typedef enum {
 	DEV_SUPA = 0x01,
 	DEV_EXHA = 0x03,
@@ -41,6 +52,7 @@ typedef enum {
 	DEV_UNDEF = 0xff,
 	DEV_RACK = 0x11,
 } dev_id;
+
 
 //typedef enum{
 //	READ_REQ = 0x01,
@@ -99,11 +111,21 @@ typedef enum {
 } rack_reg_addr;
 
 typedef struct {
+	/* Type:READ_REQ, READ_RESP, WRITE_REQ, WRITE_REP*/
 	uint16_t type;
+	/* Type: one of dev_id values*/
 	uint16_t dev_id;
+	/* Address of register considered the base address for multi read and write*/
 	uint16_t addr;
-	uint16_t len; // Set the length of the message to 0 if it is not valid
-	uint16_t msg_val[15];
+	/* Length:
+	 * READ_REQ= Number of consecutive registers requested stored in payload
+	 * READ_RESP: Number of registers in response starting at base address
+	 * WRITE_REQ : Number consecutive registers to write stored in payload
+	 * WRITE_RESP: Number of consecutive registers in payload
+	 */
+	uint16_t len;
+	/* Array holder of values set to Null if not using */
+	uint16_t payload[128];
 } __attribute__((packed)) msg16_t;
 
 size_t pack_msg16(const msg16_t *msg16, uint8_t *packed_msg,

@@ -26,19 +26,18 @@
 #include "esp_heap_caps.h"
 #include <cJSON.h>
 
-// Assuming we have an event base defined as:
-//ESP_EVENT_DEFINE_BASE(MY_CUSTOM_EVENT_BASE);
-
-//// And an event with the id
-//typedef enum {
-//    DB_REQUEST,
-//    // more events here
-//} my_custom_event_id_t;
 
 static const char *topic_notify = "esp/up";
 static const char *topic_last_will = "esp/down";
 static const char *topic_db_set = "eh/set";
+
+static const char *prog_name1 = "burn-in";
+
 static char espname[15] = "esp000";
+static const char *topics[] = { "", "info", "update", "ping", "config" };
+const char *uri = "mqtt://innovive:innovive@mqtt.innovive.com";
+
+
 
 static int is_mqtt_connected = 0;
 
@@ -166,8 +165,9 @@ const char* node_up_message(const mqtt_handler_config_t *config) {
 	}
 
 	cJSON_AddStringToObject(root, "node_name", config->node_name);
-	cJSON_AddStringToObject(root, "prog", config->prog_name);
+	cJSON_AddStringToObject(root, "prog", prog_name1);
 	cJSON_AddStringToObject(root, "ver", config->ver);
+	cJSON_AddStringToObject(root, "mqtt_ver", config->mqtt_ver);
 	cJSON_AddStringToObject(root, "status", config->ver);
 
 	char *json_string = cJSON_PrintUnformatted(root);
@@ -176,6 +176,28 @@ const char* node_up_message(const mqtt_handler_config_t *config) {
 	return json_string;
 }
 
+
+const char* config_request_message(const mqtt_handler_config_t *config) {
+	if (config == NULL || config->node_name == NULL || config->ver == NULL) {
+		return NULL; // Unable to construct the message
+	}
+
+	cJSON *root = cJSON_CreateObject();
+	if (root == NULL) {
+		return NULL; // Unable to create the JSON object
+	}
+
+	cJSON_AddStringToObject(root, "node_name", config->node_name);
+	cJSON_AddStringToObject(root, "mac_addr", config->mac_addr_str);
+	cJSON_AddStringToObject(root, "ver", config->ver);
+	cJSON_AddStringToObject(root, "status", config->ver);
+	cJSON_AddStringToObject(root, "prog", config->prog_name);
+
+	char *json_string = cJSON_PrintUnformatted(root);
+	cJSON_Delete(root);
+
+	return json_string;
+}
 void print_mqtt_handler_config(const mqtt_handler_config_t *config) {
 	if (config == NULL) {
 		ESP_LOGI(TAG, "Config is NULL.");
@@ -191,17 +213,8 @@ void print_mqtt_handler_config(const mqtt_handler_config_t *config) {
 		ESP_LOGW(TAG, "Node Name: NULL");
 	}
 
-	if (config->up_topic != NULL) {
-		ESP_LOGI(TAG, "Up Topic: %s", config->up_topic);
-	} else {
-		ESP_LOGW(TAG, "Up Topic: NULL");
-	}
-
-	if (config->last_will_topic != NULL) {
-		ESP_LOGI(TAG, "Last Will Topic: %s", config->last_will_topic);
-	} else {
-		ESP_LOGW(TAG, "Last Will Topic: NULL");
-	}
+	ESP_LOGI(TAG, "Up Message: %s", topic_notify);
+	ESP_LOGI(TAG, "Last Will Topic: %s", topic_last_will);
 
 	if (config->eh_topic != NULL) {
 		ESP_LOGI(TAG, "Event Handler Topic: %s", config->eh_topic);
@@ -275,13 +288,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
 			// Publish on the notify topic to let subscribers know the device is up
 			const char *up_msg = node_up_message(app_conf);
-			app_conf->up_message = (char*) up_msg;
-			msg_id = esp_mqtt_client_publish(client, app_conf->up_topic, up_msg,
+			msg_id = esp_mqtt_client_publish(client, topic_notify, up_msg,
 					0,
 					1, 0);
 			ESP_LOGI(TAG,
 					"Sent up topic message,topic=%s, payload=%s msg_id=%d",
-					app_conf->up_topic, up_msg, msg_id);
+					topic_notify, up_msg, msg_id);
 
 			// Create the publish list of topics in the app_handler config
 			for (int i = 0; i < app_conf->sub_topic_len; i++) {
@@ -302,9 +314,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
 		case MQTT_EVENT_SUBSCRIBED:
 			ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-//		msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0,
-//				0);
-//		ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+
 			break;
 
 		case MQTT_EVENT_UNSUBSCRIBED:
@@ -396,10 +406,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 //	heap_trace_start();
 	esp_err_t err = ESP_OK;
-//	esp_mqtt_client_config_t *m_cfg;
-//	esp_mqtt_client_config_t m_configure;
-//	char espname[15];
-//	char last_will_msg[30];
+
 
 	ESP_LOGI(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
 			esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
@@ -409,19 +416,19 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 		ESP_LOGI(TAG, "Setting up default mqt handler config");
 		// Set client id from mac
 		uint8_t mac[8];
-		ESP_ERROR_CHECK(esp_base_mac_addr_get(mac));
+		ESP_ERROR_CHECK(esp_base_mac_addr_get(app_cfg->mac_addr));
 		unsigned ssid = 0;
 		for (int i = 0; i < 5; i++) {
-			ssid += mac[i];
-			ESP_LOGI(TAG, "mac[%d]=%x ssid=%x", i, mac[i], ssid);
+			ssid += app_cfg->mac_addr[i];
+			ESP_LOGI(TAG, "mac[%d]=%x ssid=%x", i, app_cfg->mac_addr[i], ssid);
 			//* TODO: add configuration event for the ui handler
 
 		}
+		app_cfg->ssid = ssid;
+
 		//	char client_id[64];
-		unsigned int node_num = (ssid) & 0xff;
-		node_num += (node_num < 2) ? 2 : 0;
-//		uint8_t node_num = 1;
-		ESP_LOGI(TAG, "%s : SSID=%u", __FUNCTION__, node_num);
+		unsigned int node_num = (ssid) & 0xffff;
+		ESP_LOGI(TAG, "%s : Node_num=%u", __FUNCTION__, node_num);
 
 		sprintf(espname, "esp%d", node_num);
 		app_cfg->node_name = malloc(sizeof(char) * (strlen(espname) + 1));
@@ -429,14 +436,13 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 		ESP_LOGI(TAG, "%s : Node Name=[%s]", __FUNCTION__, app_cfg->node_name);
 
 		app_cfg->node_number = node_num;
-		app_cfg->up_topic = (char*) topic_notify;
-		app_cfg->last_will_topic = (char*) topic_last_will;
 		app_cfg->eh_topic = (char*) topic_db_set;
-		app_cfg->prog_name = "burn_in";
 		app_cfg->ver = "1.0.0";
+		app_cfg->mqtt_ver = "3.11";
+
+
 
 		// Create the sub topic list
-		const char *topics[] = { "", "info", "update", "ping", "config" };
 		size_t numTopics = sizeof(topics) / sizeof(topics[0]);
 		ESP_LOGI(TAG, "%s :numTopics=[%d]", __FUNCTION__, numTopics);
 
@@ -455,16 +461,16 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 		app_cfg->mqtt_config = (esp_mqtt_client_config_t*) malloc(
 				sizeof(esp_mqtt_client_config_t));
 	}
+	return ESP_OK;
+}
 
+esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg) {
 	// Configuration basic info
-	const char *username = "innovive";
 	const char *client_id = espname;
-	const char *password = "innovive";
-	const char *last_will_topic = app_cfg->last_will_topic;
 	const char *last_will_msg = espname;
-//	const char *uri = "mqtt://mqtt.innovive.com";
-	const char *uri = "mqtt://innovive:innovive@mqtt.innovive.com";
 	int last_will_msg_len = strlen(last_will_msg);
+	esp_err_t err = ESP_OK;
+	sprintf(espname, app_cfg->node_name);
 
 	// Client configuration step
 	esp_mqtt_client_config_t
@@ -483,7 +489,7 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 					},
 			.session = {
 					.last_will = {
-							.topic = last_will_topic,
+							.topic = topic_last_will,
 							.msg = last_will_msg,
 							.msg_len = last_will_msg_len,
 							.qos = 1,
@@ -624,7 +630,6 @@ const char** create_esp_subscriptions(unsigned int userNode,
 		char *nodeName = (char*) malloc(totalLength * sizeof(char));
 		if (nodeName == NULL) {
 			ESP_LOGE(TAG, "%s : Memory allocation failed", __FUNCTION__);
-//			fprintf(stderr, "Memory allocation failed\n");
 			return NULL;
 		}
 		if (topicLength == 0) {

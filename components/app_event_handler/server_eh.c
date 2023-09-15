@@ -51,6 +51,10 @@ static const char *TAG = "user_event_loop";
  */
 
 ESP_EVENT_DEFINE_BASE(APP_EH_EVENT);
+ESP_EVENT_DEFINE_BASE(SERIAL_EVENT);
+ESP_EVENT_DEFINE_BASE(SERVER_EH_EVENT);
+ESP_EVENT_DEFINE_BASE(SETTINGS_EVENT);
+
 
 esp_event_loop_handle_t eh_loop;
 
@@ -134,7 +138,6 @@ static server_event_t srv_cmd_str_to_enum(const char *cmd_str) {
 	}
 }
 
-//esp_err_t get_ip
 
 // The event handler
 // Receives incoming requests.
@@ -159,18 +162,18 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 
 	eh_event_t *new_event = NULL;
 	switch (id) {
-		case MSG16_REQUEST:
-			// Handle MSG16_REQUEST
-			ESP_LOGI(TAG, "%s, MSG16_REQUEST type:%s, msg_id=%d, valid=%s",
-					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
-					(e->valid) ? "True" : "False");
-			break;
-		case SETTINGS_REQUEST:
-			// Handle SETTINGS_REQUEST
-			ESP_LOGI(TAG, "%s, SETTINGS_REQUEST type:%s, msg_id=%d, valid=%s",
-					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
-					(e->valid) ? "True" : "False");
-			break;
+//		case MSG16_REQUEST:
+//			// Handle MSG16_REQUEST
+//			ESP_LOGI(TAG, "%s, MSG16_REQUEST type:%s, msg_id=%d, valid=%s",
+//					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
+//					(e->valid) ? "True" : "False");
+//			break;
+//		case SETTINGS_REQUEST:
+//			// Handle SETTINGS_REQUEST
+//			ESP_LOGI(TAG, "%s, SETTINGS_REQUEST type:%s, msg_id=%d, valid=%s",
+//					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
+//					(e->valid) ? "True" : "False");
+//			break;
 		case SERVER_EH_RESPONSE:
 			ESP_LOGD(TAG, "%s, SERVER_EH_RESPONSE type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
@@ -225,6 +228,21 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 			break;
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief Parses incoming json messages from the event handler server
  *
@@ -399,6 +417,8 @@ const char* get_eh_event_id_string(eh_event_id_t event_id) {
 	switch (event_id) {
 		case MSG16_REQUEST:
 			return "MSG16_REQUEST";
+		case MSG16_RESPONSE:
+			return "MSG16_RESPONSE";
 		case SETTINGS_REQUEST:
 			return "SETTINGS_REQUEST";
 		case SERVER_EH_RESPONSE:

@@ -7,8 +7,12 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+//#include "app_event_handler.h"
+#include "esp_event.h"
+
 #include "include/msg16.h"
 #include "serial_inno.h"
+
 
 #include <stdio.h>
 //#include "freertos/FreeRTOS.h"
@@ -17,8 +21,8 @@
 #include "driver/gpio.h"
 #include "sdkconfig.h"
 
-#define UART_BUFFER_SIZE 24
-#define UART_RX_QUEUE_SIZE 10
+#define UART_BUFFER_SIZE 256
+#define UART_RX_QUEUE_SIZE 15
 #define BUF_SIZE (1024)
 
 extern QueueHandle_t uart_rx_queue;
@@ -26,11 +30,111 @@ extern QueueHandle_t rack_queue;
 
 static const char *tag = "serial_inno";
 
+
+typedef struct {
+    uint8_t * buf;
+    int buf_sz;
+    int esc_next;
+    int len;
+} comm_frame_t;
+
+
+/*
+ * Receives MSG16_REQUEST events from EH
+ * Sends Request out waits for a response
+ * Post response to MSG16_RESPONSE
+ * typedef enum {
+	MSG16_EVENT_REQUEST,
+	MSG16_EVENT_RESPONSE,
+	MSG16_EVENT_TIMEOUT,
+	MSG16_EVENT_CONNECTED,
+	MSG16_EVENT_DISCONECTED,
+	MSG16_EVENT_QUEUE_FULL,
+} serial_event_id_t;
+ */
+static void serial_event_handler(void *handler_arg, esp_event_base_t base,
+		int32_t id, void *event_data) {
+
+
+
+}
+
+
+void uart_rx_task0(void *pvParameters) {
+
+	uint8_t uart_buffer[UART_BUFFER_SIZE] = { 0 };
+	char buf[UART_BUFFER_SIZE] = { '\0' };
+	uint8_t msg_buffer[128] = { 0 };
+	size_t uart_pos = 0;
+	size_t msg_pos = 0;
+	comm_frame_t com_frame;
+	com_frame.buf = msg_buffer;
+	com_frame.buf_sz = sizeof(msg_buffer);
+	com_frame.esc_next = 0;
+	com_frame.len = 0;
+
+	comm_frame_t *s = &com_frame;
+
+	uint8_t b;
+	// block while receiving data until a FLAG is received
+	while(true){
+		// Return 0 on timeout
+		uint8_t len = uart_read_bytes(UART_SERIAL_INNO, &b, 1, 10 / portTICK_PERIOD_MS);
+		if (len == 0) {
+			// Reset the buffer
+			s->len = 0;
+			continue;
+		}
+		if (b == FLAG && s->len == 0) {
+			s->esc_next = 0;
+			s->len = 0;
+			// if the length is 0 continue
+			continue;
+		}
+
+		// on flag, return length of frame if valid
+		// this can return a zero length frame
+		if (b == FLAG) {
+			s->esc_next = 0;
+			msg16_t msg;
+			size_t msg_len = unpack_msg16(msg_buffer, msg_pos, &msg);
+			if (msg_len == 0) {
+				ESP_LOGW(tag, "Discarding msg unable to unpack");
+				// TODO: send message decode error
+			} else {
+				// TODO: send event instead of using queue
+				xQueueSend(uart_rx_queue, msg, portMAX_DELAY);
+			}
+		}
+		// on escape, mark the next byte to be xor'd
+		else if (b == ESC) {
+			s->esc_next = 1;
+		}
+		// non-special character, add to buffer
+		else {
+			if (s->esc_next) {
+				b ^= 0x20;
+				s->esc_next = 0;
+			}
+			// only write to buffer if we have space
+			// else, set the error flag so we know we are missing data
+			if (s->len < s->buf_sz) {
+				s->buf[s->len] = b;
+				s->len++;
+			}
+		}
+	}
+
+}
+
+
+
 void uart_rx_task(void *pvParameters) {
 	uint8_t uart_buffer[UART_BUFFER_SIZE] = { 0 };
 	uint8_t msg_buffer[128] = { 0 };
 	size_t uart_pos = 0;
 	size_t msg_pos = 0;
+	int esc_next = 0;
 	int read_len = 0;
 	int pos = 0;
 	char buf[UART_BUFFER_SIZE] = { '\0' };
@@ -67,32 +171,31 @@ void uart_rx_task(void *pvParameters) {
 //        		pos += sprintf(&buf[pos], "%02x:",uart_buffer[i] );
 //		}
 
-//		ESP_LOGD(tag, "RESP BUF: 0X%s", buf);
+//		ESP_LOGD(tag, "RESP BUF: 0X%s", buf);UART_SERIAL_INNO
 
-// process buffer
+		// process buffer
 		for (size_t i = 0; i < read_len; i++) {
+			// get one byte at a time from the buffer
 			byte = uart_buffer[uart_pos + i];
-//    		ESP_LOGI(tag, "%d, Byte:%02x", i, byte);
+    		ESP_LOGD(tag, "%d, Byte:%02x", i, byte);
 
-			if (msg_pos == 0 && byte != 0x7e) {
+			if (msg_pos == 0 && byte != FLAG) {
 				// ignore bytes before start flag
 				ESP_LOGW(tag, "Ignoring Byte %d: 0x%x of read_len:%d", i, byte,
 						read_len);
 				continue;
 			}
-			if (msg_pos == 0 && byte == 0x7e) {
+			if (msg_pos == 0 && byte == FLAG) {
 				// Found start byte
 				ESP_LOGD(tag, "Start Flag");
 				msg_buffer[msg_pos++] = byte;
 				continue;
 			}
 
-			if (byte == 0x7e) {
-				ESP_LOGD(tag, "End Flag found, creating msg16_t, reseting ");
-
+			if (byte == FLAG) {
 				// end of message, decode and add to queue
-				msg_buffer[msg_pos] = 0x00;
-//                msg16_t* msg = (msg16_t*) malloc(sizeof(msg16_t));
+				ESP_LOGD(tag, "End Flag found, creating msg16_t, reseting ");
+				msg_buffer[msg_pos] = FLAG;
 				msg16_t msg_struct;
 				msg16_t *msg = &msg_struct;
 				if (msg != NULL) {
@@ -108,24 +211,34 @@ void uart_rx_task(void *pvParameters) {
 						} else {
 							xQueueSend(uart_rx_queue, msg, portMAX_DELAY);
 						}
-//						free(msg);
 					}
 				} else {
 					ESP_LOGW(tag, "Can not allocate memory");
 				}
 				msg_pos = 0;
-			} else if (byte == 0xef && msg_pos > 0
-					&& msg_buffer[msg_pos - 1] == 0xef) {
+			}
+			// If the byte is th ESCAPE sequence do not copy byte and xor the next byte
+			else if (byte == ESC && msg_pos > 0) {
+				// Set esc flag and increment position
+				esc_next = 1;
 				ESP_LOGE(tag, "Received escape Flag, Byte: 0X%02x | 0X%02x",
 						byte, byte + 1);
-				// escape character
-				msg_buffer[msg_pos - 1] = byte ^ 0x20;
-//				vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-			} else {
-				// regular byte
-				msg_buffer[msg_pos++] = byte;
 			}
+
+
+			else {
+				if (esc_next){
+								// escape character
+					byte = byte ^ 0x20;
+					//VTaskDelay(1000 / portTICK_PERIOD_MS);
+				}
+				 if (msg_pos < sizeof(msg_buffer)){
+					 msg_buffer[msg_pos++] = byte;
+				 }
+
+
+			}
+
 		}
 
 		// move remaining bytes to start of buffer
@@ -135,12 +248,7 @@ void uart_rx_task(void *pvParameters) {
 			// message ended at end of buffer, move remaining bytes to start of buffer
 			uart_pos = 0;
 			msg_pos = 0;
-		} else if (msg_pos > 0 && msg_buffer[msg_pos - 1] == 0xef) {
-			// escape character at end of buffer, move remaining bytes to start of buffer
-			uart_pos = 1;
-			msg_pos = 1;
-			msg_buffer[0] = 0xef;
-		} else {
+		}  else {
 			// message not complete, move remaining bytes to start of buffer
 			uart_pos = read_len;
 			memmove(uart_buffer, uart_buffer + uart_pos,
@@ -148,7 +256,6 @@ void uart_rx_task(void *pvParameters) {
 		}
 	}
 }
-
 int uart_tx_task(uint8_t *buf, size_t len) {
 	// send the buffer check that it was sent
 	int pos = 0;
@@ -187,7 +294,6 @@ void setup_driver() {
 #if CONFIG_UART_ISR_IN_IRAM
         intr_alloc_flags = ESP_INTR_FLAG_IRAM;
     #endif
-//	uart_driver_install(UART_SERIAL_INNO, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags);
 	uart_driver_install(UART_SERIAL_INNO, BUF_SIZE, 0, 0, NULL,
 			intr_alloc_flags);
 	uart_param_config(UART_SERIAL_INNO, &uart_config);
@@ -248,7 +354,7 @@ int transact_read(const msg16_t *request, msg16_t *response, TickType_t timeout)
 			response->addr = r_msg->addr;
 			response->len = r_msg->len;
 			for (int i = 0; i < response->len; i++) {
-				response->msg_val[i] = r_msg->msg_val[i];
+				response->payload[i] = r_msg->payload[i];
 			}
 			ret = 1;
 			break;
@@ -315,7 +421,7 @@ int transact_write(const msg16_t *request, msg16_t *response,
 			response->addr = r_msg->addr;
 			response->len = r_msg->len;
 			for (int i = 0; i < response->len; i++) {
-				response->msg_val[i] = r_msg->msg_val[i];
+				response->payload[i] = r_msg->payload[i];
 			}
 			ret = 1;
 			break;
@@ -350,7 +456,7 @@ int get_chipid(int devid, unsigned *chipid) {
 			.len = 1 };
 	msg16_t msg_resp;
 	msg_resp.len = 0;
-	msg_resp.msg_val[0] = 0;
+	msg_resp.payload[0] = 0;
 
 	unsigned tmp = 0;
 	clear_uart_rx_queue();
@@ -359,8 +465,8 @@ int get_chipid(int devid, unsigned *chipid) {
 //		ESP_LOGW(tag, "Transact Error: %d", ret);
 
 	}
-	tmp = (msg_resp.msg_val[0] & 0xffff) << 16;
-	ESP_LOGI(tag, "Returning ChipID High 0x%04x", msg_resp.msg_val[0]);
+	tmp = (msg_resp.payload[0] & 0xffff) << 16;
+	ESP_LOGI(tag, "Returning ChipID High 0x%04x", msg_resp.payload[0]);
 
 	clear_uart_rx_queue();
 
@@ -371,9 +477,9 @@ int get_chipid(int devid, unsigned *chipid) {
 		ESP_LOGW(tag, "Transact Error: %d", ret);
 
 	}
-	ESP_LOGI(tag, "Returning ChipID Low 0x%04x", msg_resp.msg_val[0]);
+	ESP_LOGI(tag, "Returning ChipID Low 0x%04x", msg_resp.payload[0]);
 
-	tmp += (msg_resp.msg_val[0]) & 0x0000ffff;
+	tmp += (msg_resp.payload[0]) & 0x0000ffff;
 	ESP_LOGI(tag, "Returning ChipID %d", tmp);
 	*chipid = tmp;
 
@@ -396,7 +502,7 @@ int get_raw_pressure(int devid, int *raw_pressure) {
 
 	msg16_t msg_resp;
 	msg_resp.len = 0;
-	msg_resp.msg_val[0] = 0xFFFF;
+	msg_resp.payload[0] = 0xFFFF;
 
 	unsigned tmp = 0;
 	int num_cleared = clear_uart_rx_queue();
@@ -410,8 +516,8 @@ int get_raw_pressure(int devid, int *raw_pressure) {
 		ESP_LOGW(tag, "Transact Error: %d", ret);
 
 	}
-	tmp = (int16_t) msg_resp.msg_val[0];
-	ESP_LOGI(tag, "Returning Raw Pressure  %d", (int16_t ) msg_resp.msg_val[0]);
+	tmp = (int16_t) msg_resp.payload[0];
+	ESP_LOGI(tag, "Returning Raw Pressure  %d", (int16_t ) msg_resp.payload[0]);
 
 	*raw_pressure = tmp;
 
@@ -435,7 +541,7 @@ int check_dev_id(int devid) {
 	// Set up the msg set the msg to default and msg_val to 0 as we expect response 0xffff
 	msg16_t msg_resp;
 	msg_resp.len = 0;
-	msg_resp.msg_val[0] = 0x00;
+	msg_resp.payload[0] = 0x00;
 
 	int num_cleared = clear_uart_rx_queue();
 
