@@ -59,5 +59,6 @@ static const char *TAG = "app_rack";
 esp_err_t app_rack_init(gpio_num_t u_tx, gpio_num_t u_rx) {
 	// TODO: Initialize serial inno comm
 	// TODO: start rack config check
+	ESP_LOGE(TAG, "APP_RACK functionality not available");
 	return ESP_OK;
 }

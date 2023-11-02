@@ -13,12 +13,23 @@
  */
 
 #include <string.h>
+#include "stdint.h"
 #include "inno_connect.h"
 #include "example_common_private.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
+//#include "esp_event_loop.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_netif.h"
+#include "freertos/semphr.h"
+
+static esp_err_t connect_to_known_network(wifi_config_t wifi_config);
 
 #if CONFIG_INNO_CONNECT_WIFI
+
 
 static const char *TAG = "inno_wifi_connect";
 static esp_netif_t *s_example_sta_netif = NULL;
@@ -60,6 +71,94 @@ static SemaphoreHandle_t s_semph_get_ip6_addrs = NULL;
 #endif
 
 static int s_retry_num = 0;
+
+wifi_net_login known_networks[] = {
+    {"innowf", "Inn0wifi!"},
+    {"Wytec-Office", "Innovive"},
+};
+
+//
+//static void event_handler(void* arg, esp_event_base_t event_base,
+//                                int32_t event_id, void* event_data)
+//{
+//    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+//        esp_wifi_connect();
+//    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+//        if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY) {
+//            esp_wifi_connect();
+//            s_retry_num++;
+//            ESP_LOGI(TAG, "retry to connect to the AP");
+//        } else {
+//            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+//        }
+//        ESP_LOGI(TAG,"connect to the AP fail");
+//    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+//        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+//        ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+//        s_retry_num = 0;
+//        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+//    }
+//}
+
+
+static esp_err_t connect_to_known_network(wifi_config_t wifi_config) {
+    // Initialize the TCP/IP stack
+//    tcpip_adapter_init();
+
+    // Initialize the event loop
+//    ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+
+//    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+//    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+//
+//    // Set the mode to STA
+//    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+//    ESP_ERROR_CHECK(esp_wifi_start());
+
+    // Start the scan
+    wifi_scan_config_t scan_config = {
+        .show_hidden = false
+    };
+    ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
+
+    // Get the number of networks found
+    uint16_t ap_count = 0;
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+
+    wifi_ap_record_t *ap_records = (wifi_ap_record_t *)malloc(sizeof(wifi_ap_record_t) * ap_count);
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_count, ap_records));
+
+    for (int i = 0; i < ap_count; i++) {
+        wifi_ap_record_t *ap = &ap_records[i];
+        for (int j = 0; j < sizeof(known_networks) / sizeof(wifi_net_login); j++) {
+            if (strcmp((char*)ap->ssid, known_networks[j].ssid) == 0) {
+                ESP_LOGI(TAG, "Known network found: %s", ap->ssid);
+
+                wifi_config_t wifi_config;
+                memset(&wifi_config, 0, sizeof(wifi_config_t));
+                strcpy((char*)wifi_config.sta.ssid, known_networks[j].ssid);
+                strcpy((char*)wifi_config.sta.password, known_networks[j].pass);
+
+                ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
+                ESP_ERROR_CHECK(esp_wifi_connect());
+
+                free(ap_records);
+                return ESP_OK;
+            }
+        }
+    }
+
+    ESP_LOGI(TAG, "No known networks found");
+    free(ap_records);
+    return ESP_FAIL;
+}
+
+
+
+//bool is_wifi_connected_getter() {
+//    return is_wifi_connected;
+//}
+
 
 static void inno_handler_on_wifi_disconnect(void *arg,
 		esp_event_base_t event_base,
@@ -199,10 +298,16 @@ esp_err_t inno_wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
 #if CONFIG_EXAMPLE_CONNECT_IPV6
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_GOT_IP6, &example_handler_on_sta_got_ipv6, NULL));
 #endif
+#if CONN_KNOWN_WIFI_NETWORKS
+    esp_err_t ret = connect_to_known_network(wifi_config);
+#else
 
 	ESP_LOGI(TAG, "Connecting to %s...", wifi_config.sta.ssid);
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-	esp_err_t ret = esp_wifi_connect();
+
+	// Set the wifi password from the credentials
+//	esp_err_t ret = esp_wifi_connect();
+#endif
 	if (ret != ESP_OK) {
 		ESP_LOGE(TAG, "WiFi connect failed! ret:%x", ret);
 		return ret;
@@ -256,20 +361,20 @@ void connect_wifi_shutdown(void)
 	example_wifi_sta_do_disconnect();
 	connect_wifi_stop();
 }
-
-static char wifi_ssid_set[32];
-static char wifi_passwd_set[64];
-
-int set_wifi_cradentail(char *ssid, char *passwd) {
-	if (strlen(ssid) > 23 || strlen(passwd) > 63) {
-		return 0;
-	}
-	strcpy((char*) wifi_ssid_set, ssid);
-	strcpy((char*) wifi_passwd_set, ssid);
-	ESP_LOGI(TAG, "Setting wifi credentials %s, %s", ssid, passwd);
-	return 1;
-
-}
+//
+//static char wifi_ssid_set[32];
+//static char wifi_passwd_set[64];
+//
+//int set_wifi_cradentail(char *ssid, char *passwd) {
+//	if (strlen(ssid) > 23 || strlen(passwd) > 63) {
+//		return 0;
+//	}
+//	strcpy((char*) wifi_ssid_set, ssid);
+//	strcpy((char*) wifi_passwd_set, ssid);
+//	ESP_LOGI(TAG, "Setting wifi credentials %s, %s", ssid, passwd);
+//	return 1;
+//
+//}
 
 esp_err_t inno_wifi_connect(void)
 {

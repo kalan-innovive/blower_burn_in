@@ -115,7 +115,7 @@ int offset_range(ChipData *cd) {
 }
 
 int offset_min_last_n(ChipData *cd, int last_n) {
-	int min_tmp = get_min_last_n(&cd->offset_array, last_n);
+	int min_tmp = get_min_last_n(cd, last_n);
 	min_tmp = (min_tmp < cd->qc_offset) ? min_tmp : cd->qc_offset;
 	min_tmp = (min_tmp < cd->vas_offset) ? min_tmp : cd->vas_offset;
 	return min_tmp;
@@ -180,7 +180,7 @@ int get(CircularArray *ca, int index) {
 
 int get_min_last_n(ChipData *cd, int last_n) {
 	int min = INT_MAX;
-	CircularArray *ca = &cd->offset_array;
+	CircularArray *ca = &(cd->offset_array);
 
 	int start_i = (last_n >= ca->count) ? 0 : ca->count - last_n;
 	for (int i = start_i; i < ca->count; i++) {
@@ -191,7 +191,7 @@ int get_min_last_n(ChipData *cd, int last_n) {
 	}
 	int min_tmp = min;
 
-	if (cd->vas_offset != DEF_OFFSET_VAL) {
+	if (cd->vas_offset != 0xFFFE) {
 		min = (cd->vas_offset > min) ? min : cd->vas_offset;
 	}
 
@@ -218,7 +218,7 @@ int get_max_last_n(ChipData *cd, int last_n) {
 	}
 	int max_tmp = max;
 
-	if (cd->vas_offset != DEF_OFFSET_VAL) {
+	if (cd->vas_offset != 0xFFFE) {
 		max = (cd->vas_offset < max) ? max : cd->vas_offset;
 
 	}

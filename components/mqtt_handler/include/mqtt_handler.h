@@ -29,6 +29,7 @@ typedef enum {
 	INFO_TOPIC,
 	UPDATE_TOPIC,
 	PING_TOPIC,
+	MSG16_TOPIC,
 	CONFIG_TOPIC,
 } sub_topic_t;
 
@@ -44,9 +45,14 @@ typedef enum {
 // TODO: move to the settings header?
 typedef struct {
 	config_type_t config_type;   // Config type: either custom, default, or NVME
-	eh_handler_t eh_handler;                 // Pointer to an event handler
-	esp_mqtt_client_config_t *mqtt_config; // Pointer to an MQTT client configuration structure
-	esp_event_base_t event_base;             // Event base for ESP events
+	eh_handler_t eh_handler;                 	// Pointer to an event handler
+	esp_mqtt_client_config_t *mqtt_config; 		// Pointer to an MQTT client configuration structure
+	esp_event_base_t event_base;             	// Event base for ESP app events
+	esp_event_base_t event_base_serial;			// Event base for ESP Serial Console Events
+	esp_event_base_t event_base_settings; 		// Event base for ESP settings
+	esp_event_base_t event_base_msg16;   		// Event base for ESP Modbus SerialInno msgs
+
+
 	unsigned node_number;
 	char *node_name;	// Node identification name
 	char *eh_topic;		// Used to set the event handler node for the esp device

@@ -887,11 +887,24 @@ void create_chart_with_data(lv_obj_t *chart,
 	lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
 	lv_chart_set_update_mode(chart, LV_CHART_UPDATE_MODE_CIRCULAR);
 
+
+
+
 	int16_t min_value =
-			(b_vals->min_val == DEF_OFFSET_VAL) ? -5 : b_vals->min_val;
+			(b_vals->min_val > b_vals->vas_offset) ? b_vals->vas_offset : b_vals->min_val;
+	min_value =
+				(b_vals->min_val > b_vals->qc_offset) ? b_vals->qc_offset : b_vals->min_val;
+
+	 min_value =
+					(b_vals->min_val < -200 || b_vals->min_val > 200) ? -80 : b_vals->min_val;
+
 
 	int16_t max_value =
-			(b_vals->max_val == DEF_OFFSET_VAL) ? 5 : b_vals->max_val;
+				(b_vals->max_val < b_vals->qc_offset) ? b_vals->qc_offset : b_vals->max_val;
+	max_value =
+				(b_vals->max_val < b_vals->vas_offset) ? b_vals->vas_offset : b_vals->max_val;
+	max_value =
+				(b_vals->max_val > 200) ? 80 : b_vals->max_val;
 
 	// Added to keep historic values in view
 	for (size_t i = 0; i < b_vals->num_point; i++) {
@@ -902,7 +915,7 @@ void create_chart_with_data(lv_obj_t *chart,
 				(max_value > data_points[i]) ? max_value :
 												data_points[i];
 
-		ESP_LOGV(tag,
+		ESP_LOGD(tag,
 				"%d     Chart Scale(%d): Min:%d Max:%d data_point:%d",
 				i,
 				b_vals->num_point, min_value, max_value,
@@ -910,13 +923,16 @@ void create_chart_with_data(lv_obj_t *chart,
 
 	}
 
-	int16_t range =
-			(b_vals->range == DEF_OFFSET_VAL) ?
-												10 :
-												max_value - min_value;
+	int16_t range = max_value - min_value;
+
+//			(b_vals->range == DEF_OFFSET_VAL) ?
+//												20 :
+//												max_value - min_value + 10;
 
 	range =
-			(range < 10) ? 10 : range;
+			(range < 10) ? 10 : range+1;
+	range =
+			(range > 160) ? 160 : range-1;
 
 	ESP_LOGI(tag, " Chart Scale: Min:%d Max:%d Range:%d", min_value,
 			max_value,
@@ -927,14 +943,19 @@ void create_chart_with_data(lv_obj_t *chart,
 	int16_t tick_step =
 			(range / TICK_MIN < TICK_MIN) ? TICK_MIN : range / TICK_MIN;
 
-	int16_t y_min = (min_value / tick_step) * tick_step;
+	int16_t y_min = (((min_value - tick_step +1) / tick_step));
 	int16_t y_max = ((max_value + tick_step - 1) / tick_step)
 			* tick_step;
+
+
 
 	lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
 	lv_chart_set_range(chart, LV_CHART_AXIS_SECONDARY_Y, y_min, y_max);
 
 	uint16_t num_ticks_y = (y_max - y_min) / tick_step + 1;
+
+	ESP_LOGI(tag, " Chart tick: Steps:%d, Min:%d Max:%d num ticks:%d", tick_step, y_min,
+				y_max, num_ticks_y);
 
 	lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 5, 1,
 			num_ticks_y, 1,

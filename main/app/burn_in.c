@@ -71,8 +71,8 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		int32_t id, void *event_data);
 static int get_ppb_values();
 static int check_power_on();
-static void on_settings_update(void *handler_arg, esp_event_base_t base,
-		int32_t id, void *event_data);
+//static void on_settings_update(void *handler_arg, esp_event_base_t base,
+//		int32_t id, void *event_data);
 
 /**
  *  ___Static Function  definitions ______
@@ -312,10 +312,19 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				blower->vas_offset = cd->vas_offset;
 				blower->qc_offset = cd->qc_offset;
 
+				if (blower->vas_offset == DEF_OFFSET_VAL || blower->qc_offset == DEF_OFFSET_VAL){
+					// Send a request for the values
+					get_ppb_values();
+				}
+
 				// Set the min max and range values
 				blower->min_val = get_min_last_n(cd, 6);
 				blower->max_val = get_max_last_n(cd, 6);
 				blower->range = blower->max_val - blower->min_val;
+				ESP_LOGD(TAG,
+					"[%s,%d]    Blower Values: min %d; max %d, Range: %d____",
+					__FUNCTION__, __LINE__, blower->min_val,blower->max_val,blower->range
+					);
 
 				// set the burn in array
 				int num_burn_val = copy_array(&cd->offset_array,
@@ -419,14 +428,14 @@ static int get_ppb_values() {
 	int ret = 0;
 	for (int i = 0; i < 4; i++) {
 		if (testing[i]) {
-			// send the request to log the calibration value
+			// send the request to get the burnin values
 			esp_err_t err = request_ppb_vals(chipid_list[i]);
 			if (err != ESP_OK) {
 				ESP_LOGE(TAG,
 						"[%s, %d]Error sending request for ppb values to database",
 						__FUNCTION__, __LINE__);
 				ret--;
-				vTaskDelay(200 / portTICK_PERIOD_MS);
+				vTaskDelay(300 / portTICK_PERIOD_MS);
 			}
 		}
 	}
@@ -459,7 +468,7 @@ static esp_err_t register_burnin_eh_calback(void) {
 static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		int32_t id, void *event_data) {
 
-	ESP_LOGI(TAG,
+	ESP_LOGD(TAG,
 			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
 			__FUNCTION__, __LINE__, id, (void* )event_data);
 
@@ -491,7 +500,7 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 					__FUNCTION__, (void* )data);
 			return;
 		}
-		ESP_LOGD(TAG, "[%s,%d]/t, msg_struct == :%p",
+		ESP_LOGD(TAG, "[%s,%d], msg_struct == :%p",
 				__FUNCTION__, __LINE__, (void* )data);
 
 // Now you can access the members of the db_resp_pre_post_burnin_t struct
@@ -516,6 +525,7 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		c_data.qc_offset = data->qc_cal_val;
 		c_data.vas_offset = data->vas_cal_val;
 
+
 // Update the data array
 		r = insert_array(&c_data.offset_array, data->burnin_val,
 				data->num_burnin);
@@ -527,7 +537,7 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		r = addChipData(&c_data);
 		if (r < 0) {
 			ESP_LOGE(TAG,
-					"[%s,%d]/t Error adding chip datafor %u",
+					"[%s,%d]/t Error adding chip data for %u",
 					__FUNCTION__, __LINE__, c_id);
 		}
 
@@ -539,82 +549,82 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 	}
 }
 
-/**
- * @brief event handler function for Burn in ppb event available
- *  - Called by event handler when a DB_GET_PRE_POST_BURNIN is posted
- */
-static void on_settings_update(void *handler_arg, esp_event_base_t base,
-		int32_t id, void *event_data) {
-
-	ESP_LOGI(TAG,
-			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
-			__FUNCTION__, __LINE__, id, (void* )event_data);
-
-// Cast handler_arg to eh_event_t
-	eh_event_t *event = (eh_event_t*) event_data;
-
-	if (event == NULL) {
-		ESP_LOGE(TAG, "%s, Error: event_data==NULL at:%p,",
-				__FUNCTION__,
-				(void* ) event);
-//		return;
-	}
-
-// Check that the event is valid
-	/* TODO: Check that this is thread sage*/
-	else if (event->valid && event->type == SETTINGS_REQUEST) {
-
-		ESP_LOGD(TAG, "[%s,%d]\t Event valid=%d, msg_id=%d, type=%d",
-				__FUNCTION__, __LINE__, event->valid, event->msg_id,
-				event->type);
-
-// Cast msg_struct into a db_resp_pre_post_burnin_t
-		settings_req_t *setting =
-				(settings_req_t*) event->msg_struct;
-
-//Error Checking that we have the correct struct
-		if (setting == NULL) {
-			ESP_LOGE(TAG, "%s, msg_struct == null at:%p",
-					__FUNCTION__, (void* )setting);
-			return;
-		}
-		ESP_LOGD(TAG, "[%s,%d]/t, Settings request type == :%d",
-				__FUNCTION__, __LINE__, setting->type);
-
-		switch (setting->type) {
-			case IP_ADDR:
-				handle_ip_addr((char*) setting->data);
-				break;
-			case SSID_STR:
-				//				handle_ssid_str((char*) setting->data);
-				break;
-			case WIFI_PASSWD:
-				//				handle_wifi_passwd((char*) setting->data);
-				break;
-			case MQTT_CONF:
-				//				handle_mqtt_conf((mqtt_conf_str*) setting->data);
-				break;
-			case MQTT_STATUS:
-				handle_mqtt_status(*(bool*) setting->data);
-				break;
-			case MODBUS_POWER:
-				handle_modbus_power(*(bool*) setting->data);
-				break;
-			case NODE_NAME:
-				handle_node_name((char*) setting->data);
-				break;
-			case SERIAL_STATUS:
-				handle_serial_status(*(bool*) setting->data);
-				break;
-			case BLT_STATUS:
-				handle_blt_status(*(bool*) setting->data);
-				break;
-			default:
-				// unknown type should break here and hang durring debug
-				break;
-		}
-	}
-}
+///**
+// * @brief event handler function for Burn in ppb event available
+// *  - Called by event handler when a DB_GET_PRE_POST_BURNIN is posted
+// */
+//static void on_settings_update(void *handler_arg, esp_event_base_t base,
+//		int32_t id, void *event_data) {
+//
+//	ESP_LOGI(TAG,
+//			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
+//			__FUNCTION__, __LINE__, id, (void* )event_data);
+//
+//// Cast handler_arg to eh_event_t
+//	eh_event_t *event = (eh_event_t*) event_data;
+//
+//	if (event == NULL) {
+//		ESP_LOGE(TAG, "%s, Error: event_data==NULL at:%p,",
+//				__FUNCTION__,
+//				(void* ) event);
+////		return;
+//	}
+//
+//// Check that the event is valid
+//	/* TODO: Check that this is thread sage*/
+//	else if (event->valid && event->type == SETTINGS_REQUEST) {
+//
+//		ESP_LOGD(TAG, "[%s,%d]\t Event valid=%d, msg_id=%d, type=%d",
+//				__FUNCTION__, __LINE__, event->valid, event->msg_id,
+//				event->type);
+//
+//// Cast msg_struct into a db_resp_pre_post_burnin_t
+//		settings_req_t *setting =
+//				(settings_req_t*) event->msg_struct;
+//
+////Error Checking that we have the correct struct
+//		if (setting == NULL) {
+//			ESP_LOGE(TAG, "%s, msg_struct == null at:%p",
+//					__FUNCTION__, (void* )setting);
+//			return;
+//		}
+//		ESP_LOGD(TAG, "[%s,%d]/t, Settings request type == :%d",
+//				__FUNCTION__, __LINE__, setting->type);
+//
+//		switch (setting->type) {
+//			case IP_ADDR:
+//				handle_ip_addr((char*) setting->data);
+//				break;
+//			case SSID_STR:
+//				//				handle_ssid_str((char*) setting->data);
+//				break;
+//			case WIFI_PASSWD:
+//				//				handle_wifi_passwd((char*) setting->data);
+//				break;
+//			case MQTT_CONF:
+//				//				handle_mqtt_conf((mqtt_conf_str*) setting->data);
+//				break;
+//			case MQTT_STATUS:
+//				handle_mqtt_status(*(bool*) setting->data);
+//				break;
+//			case MODBUS_POWER:
+//				handle_modbus_power(*(bool*) setting->data);
+//				break;
+//			case NODE_NAME:
+//				handle_node_name((char*) setting->data);
+//				break;
+//			case SERIAL_STATUS:
+//				handle_serial_status(*(bool*) setting->data);
+//				break;
+//			case BLT_STATUS:
+//				handle_blt_status(*(bool*) setting->data);
+//				break;
+//			default:
+//				// unknown type should break here and hang durring debug
+//				break;
+//		}
+//	}
+//}
 
 /**
  *  ___ Public Function  definitions ______
@@ -742,6 +752,7 @@ void burn_in_task(void *pvParameter) {
 				burn_in_ui_value_t *b_val;
 
 				b_val = get_test_vals();
+//				if (b_val == null)
 				// Initializes Offset range and chipID values to UI
 				setup_blower_(b_val);
 
@@ -788,7 +799,7 @@ void burn_in_task(void *pvParameter) {
 			update_rack_blower_list();
 //			if (count % UPDATE_UI_COUNT == 0)
 //			if (count % 10 == 0)
-			if (count % 2 == 0)
+			if (count % 10 == 0) {
 
 				// Update every
 				if (test_vals_acquire(10)) {
@@ -816,6 +827,7 @@ void burn_in_task(void *pvParameter) {
 //						}
 //					}
 				}
+			}
 
 		}
 		else if (state == FINISHED_BURNIN_TEST && !rack_on) {
@@ -837,14 +849,20 @@ void burn_in_task(void *pvParameter) {
 				// Update the state to startting
 
 				// We do not want to log the value until the timer has run down
-				int err = update_test_state(CANCEL_BURNIN_TEST);
+				esp_err_t err = update_test_state(CANCEL_BURNIN_TEST);
+				if (err != ESP_OK) {
+					ESP_LOGE(TAG,
+										"Error Updating test state, %d", err);
+
+				}
+
 
 			}
 
 		} else if (state == FINISHED_BURNIN_CYCLE && rack_on) {
 			// Submit the Cycle Burn in value so that we know cooldown has been complete
 			ESP_LOGI(TAG,
-					"[APP] ____________FINISHED_BURNIN_CYCLE- submitting valueu for cycle");
+					"[APP] ____________FINISHED_BURNIN_CYCLE- submitting value for cycle");
 
 			for (int i = 0; i < 4; i++) {
 

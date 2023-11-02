@@ -90,11 +90,11 @@ const char* get_ip(void) {
 
 }
 
-static void set_ip(char *ip_str) {
-	strcpy(IP_addr, ip_str);
-	ESP_LOGI(TAG, "Setting IPv4 address: %s", IP_addr);
-
-}
+//static void set_ip(char *ip_str) {
+//	strcpy(IP_addr, ip_str);
+//	ESP_LOGI(TAG, "Setting IPv4 address: %s", IP_addr);
+//
+//}
 
 esp_err_t inno_connect(void)
 {

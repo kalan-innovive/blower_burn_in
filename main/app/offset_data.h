@@ -12,7 +12,9 @@
 #define LEN_CHIPDATA_ARRAY 10
 
 #ifndef DEF_OFFSET_VAL
-#define DEF_OFFSET_VAL 0xFFFE
+#define DEF_OFFSET 0xFFFE
+#else
+#define DEF_OFFSET DEF_OFFSET_VAL
 #endif
 
 // define the CircularArray struct

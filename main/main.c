@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "string.h"
+#include <string.h>
 #include <time.h>
 #include "stdlib.h"
 
@@ -51,8 +51,10 @@
 static const char *TAG = "main";
 static esp_err_t run_blower_burn_in_app(void);
 
+
 QueueHandle_t task_queue_handle;
 QueueHandle_t uart_rx_queue;
+QueueHandle_t uart_tx_queue;
 QueueHandle_t rack_queue;
 
 TaskHandle_t rack_task_handle;
@@ -60,6 +62,7 @@ TaskHandle_t uart_rx_handle;
 TaskHandle_t burn_in_handle;
 
 mqtt_handler_config_t app_cfg;
+int wifi_conn=0;
 
 #ifdef TESTING_EH_LOOP		// Testing Event Loop includes an variables
 
@@ -190,7 +193,7 @@ static esp_err_t run_blower_burn_in_app(void) {
 	ESP_LOGI(TAG, "Setting up Serial Inno and burn in task");
 	setup_driver();
 	// Start the task for receiving on InnoModbus
-	xTaskCreate(&uart_rx_task, "uart_rx_", 1024 * 2,
+	xTaskCreate(&uart_rx_task, "uart_rx_", 1024 * 3,
 	NULL, 12, &uart_rx_handle);
 
 	// Start the task for Blower Burn-in
@@ -206,10 +209,13 @@ static esp_err_t run_blower_burn_in_app(void) {
 	app_cfg.event_base = get_event_handler_base();
 	app_cfg.eh_handler = get_event_handler_loop();
 
-	ESP_ERROR_CHECK(setup_mqtt_default(&app_cfg));
-	ESP_ERROR_CHECK(setup_mqtt_setup(&app_cfg));
-	set_ui_ip(get_ip());
-	set_ui_esp_name(app_cfg.node_name);
+	if (wifi_conn) {
+
+		ESP_ERROR_CHECK(setup_mqtt_default(&app_cfg));
+		ESP_ERROR_CHECK(setup_mqtt_setup(&app_cfg));
+		set_ui_ip(get_ip());
+		set_ui_esp_name(app_cfg.node_name);
+	}
 
 	ESP_LOGI(TAG, "Setup MQTT handler Completed ");
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -268,25 +274,28 @@ void app_main(void) {
 	//	    ESP_LOG_DEBUG,      /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
 	//	    ESP_LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
 
-	esp_log_level_set("msg16", ESP_LOG_WARN);
+	esp_log_level_set("msg16", ESP_LOG_ERROR);
 	esp_log_level_set("serial_inno", ESP_LOG_ERROR);
 	esp_log_level_set("burn-in", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_blower-BI", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_Timer", ESP_LOG_WARN);
 	esp_log_level_set("UI_EVENT", ESP_LOG_DEBUG);
-	esp_log_level_set("UI_Detail", ESP_LOG_INFO);
+	esp_log_level_set("UI_Detail", ESP_LOG_DEBUG);
 	esp_log_level_set("spi_master", ESP_LOG_WARN);
 	esp_log_level_set("efuse", ESP_LOG_WARN);
 	esp_log_level_set("GC_task", ESP_LOG_WARN);
 	esp_log_level_set("user_event_loop", ESP_LOG_WARN);
-	esp_log_level_set("offset_data", ESP_LOG_WARN);
+	esp_log_level_set("offset_data", ESP_LOG_DEBUG);
 	ESP_ERROR_CHECK(esp_netif_init());
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	bsp_display_backlight_on();
 
 	ESP_ERROR_CHECK(ui_main_start());
-	ESP_ERROR_CHECK(inno_connect());
+	esp_err_t err_wifi = inno_connect();
+	if (err_wifi==ESP_OK) {
+		wifi_conn = 1;
+	}
 
 	ESP_ERROR_CHECK(run_blower_burn_in_app());
 #endif

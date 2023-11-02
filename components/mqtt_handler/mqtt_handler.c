@@ -41,10 +41,9 @@ const char *uri = "mqtt://innovive:innovive@mqtt.innovive.com";
 
 static int is_mqtt_connected = 0;
 
-//static char node_name[25];
 
 const char* createNodeNameTopic(const char *userNode, const char *topic);
-static void free_topic_arrays(const char **nodeNames, size_t len);
+//static void free_topic_arrays(const char **nodeNames, size_t len);
 
 static const char *TAG = "mqtt_handler";
 static esp_mqtt_client_handle_t client;
@@ -69,7 +68,7 @@ esp_err_t request_ppb_vals(unsigned chipID) {
 		msg_id = esp_mqtt_client_publish(client, topic, msg, 0, 1, 0);
 	}
 
-	ESP_LOGI(TAG, "Sent ppb request; topic=%s, msg=%s msg_id=%d",
+	ESP_LOGD(TAG, "Sent ppb request; topic=%s, msg=%s msg_id=%d",
 			topic, msg, msg_id);
 
 	return (len > ppb_jsn_len) ? ESP_OK : ESP_FAIL;
@@ -274,6 +273,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 	mqtt_handler_config_t *app_conf = handler_args;
 
 	esp_event_base_t event_base = app_conf->event_base;
+	esp_event_base_t event_base_msg16 = app_conf->event_base_msg16;
 	char *node_name = app_conf->node_name;
 	const char **sub_topics = app_conf->sub_topics;
 	eh_handler_t eh_handle = app_conf->eh_handler;
@@ -330,7 +330,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 			ESP_LOGI(TAG, "TOPIC=%.*s", event->topic_len, event->topic);
 			ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
 
-			// All communication responses that are json are on esp#
+			// All communication responses from the server are on esp#
+			// Use a seperate event handler to send to proper event
+
+			/* EH Server message */
 			if (strncmp(event->topic, app_conf->node_name, event->topic_len)
 					== 0) {
 
@@ -351,7 +354,33 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 				esp_event_post_to(eh_handle, event_base, SERVER_EH_RESPONSE,
 						&e, sizeof(e), portMAX_DELAY);
 
-			} else if (strncmp(event->topic, sub_topics[PING_TOPIC],
+			}
+			/* Msg16 request */
+			else if (strncmp(event->topic, sub_topics[MSG16_TOPIC], event->topic_len)
+					== 0) {
+
+				// Create new event
+				/*TODO: Make sure this is freed*/
+				int len = event->data_len;
+				char *json_msg = malloc(sizeof(char) * (len + 1));
+				memcpy(json_msg, event->data, len);
+				json_msg[(size_t) len] = '\0';
+				ESP_LOGI(TAG, "%s, [%d] msg=%s", __func__, __LINE__, json_msg);
+
+				// Request is in the form of {type(read, write, ) }
+				// exp: {"type": "read", "devid":3, "len":1, "base_addr":1000}
+
+
+				eh_event_t e = {
+						.type = MSG16_EVENT_REQUEST,
+						.msg_id = event->msg_id,
+						.msg_struct = (void*) json_msg,
+						.valid = 1,
+				};
+				esp_event_post_to(eh_handle, event_base_msg16, MSG16_EVENT_REQUEST,
+						&e, sizeof(e), portMAX_DELAY);
+
+			}else if (strncmp(event->topic, sub_topics[PING_TOPIC],
 					event->topic_len)
 					== 0) {
 				char pong_topic[25];
@@ -405,7 +434,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
  */
 esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 //	heap_trace_start();
-	esp_err_t err = ESP_OK;
+//	esp_err_t err = ESP_OK;
 
 
 	ESP_LOGI(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
@@ -415,7 +444,7 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 	if (app_cfg->config_type == CONFIG_TYPE_DEFAULT) {
 		ESP_LOGI(TAG, "Setting up default mqt handler config");
 		// Set client id from mac
-		uint8_t mac[8];
+//		uint8_t mac[8];
 		ESP_ERROR_CHECK(esp_base_mac_addr_get(app_cfg->mac_addr));
 		unsigned ssid = 0;
 		for (int i = 0; i < 5; i++) {
@@ -559,6 +588,7 @@ esp_err_t teardown_mqtt(esp_mqtt_client_handle_t client) {
 		return err;
 	}
 //	heap_trace_stop();
+//	free_topic_array(client)
 	return err;
 }
 
@@ -648,9 +678,9 @@ const char** create_esp_subscriptions(unsigned int userNode,
 	return nodeNames;
 }
 
-static void free_topic_arrays(const char **nodeNames, size_t len) {
-	for (size_t i = 0; i < len; i++) {
-		free((void*) nodeNames[i]);
-	}
-	free(nodeNames);
-}
+//static void free_topic_arrays(const char **nodeNames, size_t len) {
+//	for (size_t i = 0; i < len; i++) {
+//		free((void*) nodeNames[i]);
+//	}
+//	free(nodeNames);
+//}
