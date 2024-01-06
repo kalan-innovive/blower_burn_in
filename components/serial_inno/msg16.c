@@ -7,9 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
-//#include "stdlib.h"
 
-//#include <unistd.h>
 #include "esp_err.h"
 #include "msg16.h"
 #include "esp_log.h"
@@ -29,6 +27,8 @@ static unsigned valid_frame(uint8_t * buf, unsigned buf_len);
 unsigned calc_chk(uint8_t *mem, unsigned len) {
 	unsigned chk = 0;
 	uint8_t *p = mem;
+//	ESP_LOGD(tag, "memory location= %d, len=%d "mem, len, chk, *p);
+
 	while (len--) {
 		ESP_LOGD(tag, "Checksum len=%d, val=%#06X, adding val=%x  ", len, chk, *p);
 

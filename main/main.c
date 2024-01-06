@@ -34,13 +34,13 @@
 #include "ui.h"
 #include "mqtt_handler.h"
 
-//#define TESTING_INNO_COMPONENTS 0
+#define TESTING_INNO_COMPONENTS 0
 
 #ifdef TESTING_INNO_COMPONENTS
 
-//#define TESTING_SER_INNO 1
+#define TESTING_SER_INNO 1
 //#define TESTING_MQTT_HANDLER_INNO 1
-#define TESTING_EH_LOOP 1
+//#define TESTING_EH_LOOP 1
 
 #ifdef TESTING_MQTT_HANDLER_INNO
 #include "test_mqtt_handler.h"
@@ -110,16 +110,27 @@ static esp_err_t run_event_handler_tests() {
 
 #ifdef TESTING_SER_INNO
 #include "serial_inno_test.h"
+#define TESTING_BLOWER_COMM 100
+#define USING_CONTROL_LINE 100
+
 
 
 void run_ser_inno_tests(void *pvParameter){
+	esp_log_level_set("msg16", ESP_LOG_DEBUG);
+	esp_log_level_set("serial_inno", ESP_LOG_DEBUG);
 	setup_driver();
 	// Start the task for receiving
-	xTaskCreate(&uart_rx_task, "uart_rx_task", 2048,
-				NULL, configMAX_PRIORITIES, &uart_rx_handle);
-	xTaskCreate(&rack_task, "rack_task", 2048,
-					NULL, 6, &rack_task_handle);
-	vTaskDelay(1000000 / portTICK_PERIOD_MS);
+//	xTaskCreate(&uart_rx_task, "uart_rx_task", 2048,
+//				NULL, configMAX_PRIORITIES, &uart_rx_handle);
+//	xTaskCreate(&rack_task, "rack_task", 2048,
+//					NULL, 6, &rack_task_handle);
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
+#ifdef TESTING_BLOWER_COMM
+	if (serial_inno_blower_tests() == ESP_OK){
+		ESP_LOGI(TAG, "Blower comm test successful");
+
+	}
+#else
 
 //	if (serial_inno_unit_tests() == ESP_OK){
 //		ESP_LOGI(TAG, "Unit test successful");
@@ -139,6 +150,8 @@ void run_ser_inno_tests(void *pvParameter){
 //	else{
 //		ESP_LOGI(TAG, "In System test Failed");
 //	}
+#endif
+
 	vTaskDelay(100000 / portTICK_PERIOD_MS);
 
 }

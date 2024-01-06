@@ -28,6 +28,7 @@ static esp_err_t insys_test_urt_rx_tx_task(void);
 static esp_err_t insys_test_unit_urt_get_offset_(void);
 static esp_err_t insys_test_urt_write_offset_(void);
 static esp_err_t insys_test_transact(void);
+static esp_err_t serial_inno_blower_comm_test(void);
 
 static esp_err_t unit_test_rack_task_(void);
 static esp_err_t system_test_transact_(void);
@@ -103,6 +104,27 @@ esp_err_t serial_inno_in_system_tests(void){
 
 	ret = insys_test_unit_urt_get_offset_();
 	ret = insys_test_transact();
+//	ret = insys_test_urt_rx_tx_task();
+//	ret &= insys_test_unit_urt_get_offset_();
+//	ret &= insys_test_urt_write_offset_();
+//	vTaskDelete(rack_task_handle);
+//	vTaskDelete(uart_rx_handle);
+
+	return ret;
+}
+
+
+esp_err_t serial_inno_blower_tests(void){
+	esp_err_t ret;
+	setup_driver();
+	// Start the task for receiving
+	xTaskCreate(&uart_rx_task, "uart_rx_task", 2048*2,
+				NULL, 6, &uart_rx_handle);
+//	xTaskCreate(&rack_task, "rack_task", 2048,
+//					NULL, 6, &rack_task_handle);
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+	ret = serial_inno_blower_comm_test();
 //	ret = insys_test_urt_rx_tx_task();
 //	ret &= insys_test_unit_urt_get_offset_();
 //	ret &= insys_test_urt_write_offset_();
@@ -286,6 +308,60 @@ static esp_err_t insys_test_transact(void){
 	trans_result = transact_read(&msg_req, &msg_res, timeout);
 	ESP_LOGI(tag, "Result transact test: %d", trans_result);
 	return (trans_result == 1) ? ESP_OK: ESP_FAIL;
+
+}
+
+/*
+ * Testing blower communication Turnaround time
+ * Test requires Blower to be connected and runs requests of different length and tests the
+ * minimum time before transaction times out
+ * Creates an tx msg buffer  response and sends it as a request,
+ * The buffer is received and the total transact time is decreased until it fails
+ * Starts at 100 ms
+ * Passing: Transaction of up to 24 length and less than 5ms
+ *
+ */
+static esp_err_t serial_inno_blower_comm_test(void){
+	// Create the messages
+	msg16_t msg_req = {
+		.type = READ_REQ,
+		.dev_id = DEV_SUPA,
+		.addr = REG_STATUS,
+		.len = 1,
+		.payload[0] = 0,
+	};
+	msg16_t msg_res;
+	int trans_result = 0;
+	TickType_t timeout = 0;
+
+	for(int i =1; i<24; i++) {
+
+		trans_result = 1;
+		timeout = 50;
+
+		ESP_LOGI(tag, "Testing transact_read with length : %d", (int) i);
+		msg_req.len = i;
+
+		while (trans_result == 1){
+			trans_result = transact_read(&msg_req, &msg_res, timeout);
+			vTaskDelay(1 / portTICK_PERIOD_MS);
+			if (trans_result != 1) {
+				vTaskDelay(10000 / portTICK_PERIOD_MS);
+				ESP_LOGW(tag, "Transaction failed on length: %d, timeout=%d, result %d ", i, (int)timeout, trans_result);
+				break;
+			}
+			if (--timeout <=1) {
+				trans_result = -2;
+			}
+
+		}
+		vTaskDelay(10000 / portTICK_PERIOD_MS);
+		ESP_LOGI(tag, "Result transact test: Length=%d   : timeout=%d ms   : errrormsg=%d",i, (int)timeout, trans_result);
+
+	}
+
+	ESP_LOGI(tag, "Result transact test: %d", (int)timeout);
+	return (timeout <= 10000 ) ? ESP_OK: ESP_FAIL;
 
 }
 

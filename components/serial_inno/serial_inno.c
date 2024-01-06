@@ -15,11 +15,10 @@
 
 
 #include <stdio.h>
-//#include "freertos/FreeRTOS.h"
-//#include "freertos/task.h"
-//#include "driver/uart.h"
+
 #include "driver/gpio.h"
 #include "sdkconfig.h"
+
 
 #define UART_BUFFER_SIZE 256
 #define UART_RX_QUEUE_SIZE 15
@@ -29,6 +28,8 @@ extern QueueHandle_t uart_rx_queue;
 extern QueueHandle_t rack_queue;
 
 static const char *tag = "serial_inno";
+
+#define F_DE_RS485 (1ULL<<GPIO_NUM_9)
 
 
 typedef struct {
@@ -112,7 +113,7 @@ void uart_rx_task(void *pvParameters) {
 			ESP_LOGD(tag, "End Flag Found ");
 
 			ESP_LOGD(tag, "Received Frame: len:%d, ", s->len);
-			ESP_LOG_BUFFER_HEXDUMP(tag, s->buf, s->len+1, ESP_LOG_DEBUG);
+			ESP_LOG_BUFFER_HEXDUMP(tag, s->buf, s->len, ESP_LOG_DEBUG);
 
 
 			size_t msg_len = unpack_msg16(s->buf, s->len, &msg16);
@@ -164,6 +165,7 @@ void uart_rx_task(void *pvParameters) {
 		}
 		// Check for a notification without waiting
 		if (ulTaskNotifyTake(pdTRUE, 0) > 0){
+			ESP_LOGW(tag, "Closing tx_task ");
 			vTaskDelete(NULL);
 		}
 	}
@@ -173,152 +175,60 @@ void uart_rx_task(void *pvParameters) {
 
 
 
-void uart_rx_task0(void *pvParameters) {
-	uint8_t uart_buffer[UART_BUFFER_SIZE] = { 0 };
-	uint8_t msg_buffer[128] = { 0 };
-	size_t uart_pos = 0;
-	size_t msg_pos = 0;
-	int esc_next = 0;
-	int read_len = 0;
-	char buf[UART_BUFFER_SIZE] = { '\0' };
-	uint8_t byte;
-
-	while (true) {
-		// read from UART buffer
-//		vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-		read_len = uart_read_bytes(UART_SERIAL_INNO, uart_buffer + uart_pos,
-		UART_BUFFER_SIZE - uart_pos, 10 / portTICK_PERIOD_MS);
-		if (read_len <= 0) {
-
-			continue;
-		}
-		if (read_len > UART_BUFFER_SIZE) {
-			ESP_LOGE(tag, "Exceeded Read length: :%d", read_len);
-			ESP_LOGE(tag, "Uart_pos: :%d, msg_pos:%d", uart_pos, msg_pos);
-			// Should we reset the position?
-			uart_pos = 0;
-			msg_pos = 0;
-//			vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-			continue;
-		}
-		ESP_LOGD(tag, "Read length: :%d", read_len);
-
-		ESP_LOGD(tag, "Uart_pos:%d|msg_pos:%d|read_len:%d|", uart_pos, msg_pos,
-				read_len);
-		ESP_LOG_BUFFER_HEXDUMP(tag, buf, UART_BUFFER_SIZE, ESP_LOG_INFO);
-//    	pos = 0;
-//    	memset(buf, '\0', sizeof(buf));
-//        for (int i = 0; i<UART_BUFFER_SIZE;i++){
-//        		pos += sprintf(&buf[pos], "%02x:",uart_buffer[i] );
-//		}
-
-//		ESP_LOGD(tag, "RESP BUF: 0X%s", buf);UART_SERIAL_INNO
-
-		// process buffer
-		for (size_t i = 0; i < read_len; i++) {
-			// get one byte at a time from the buffer
-			byte = uart_buffer[uart_pos + i];
-    		ESP_LOGD(tag, "%d, Byte:%02x", i, byte);
-
-			if (msg_pos == 0 && byte != FLAG) {
-				// ignore bytes before start flag
-				ESP_LOGW(tag, "Ignoring Byte %d: 0x%x of read_len:%d", i, byte,
-						read_len);
-				continue;
-			}
-			if (msg_pos == 0 && byte == FLAG) {
-				// Found start byte
-				ESP_LOGD(tag, "Start Flag");
-				msg_buffer[msg_pos++] = byte;
-				continue;
-			}
-
-			if (byte == FLAG) {
-				// end of message, decode and add to queue
-				ESP_LOGD(tag, "End Flag found, creating msg16_t, reseting ");
-				msg_buffer[msg_pos] = FLAG;
-				msg16_t msg_struct;
-				msg16_t *msg = &msg_struct;
-				if (msg != NULL) {
-					size_t msg_len = unpack_msg16(msg_buffer, msg_pos, msg);
-					if (msg_len == 0) {
-						ESP_LOGW(tag, "Discarding msg unable to unpack");
-//                		free(msg);
-					} else {
-
-						//                    xQueueSend(uart_rx_queue, ( void * ) &msg, portMAX_DELAY);
-						if (msg->dev_id == 0x11 && msg->type == READ_REQ) {
-							xQueueSend(rack_queue, &msg, portMAX_DELAY);
-						} else {
-							xQueueSend(uart_rx_queue, msg, portMAX_DELAY);
-						}
-					}
-				} else {
-					ESP_LOGW(tag, "Can not allocate memory");
-				}
-				msg_pos = 0;
-			}
-			// If the byte is th ESCAPE sequence do not copy byte and xor the next byte
-			else if (byte == ESC && msg_pos > 0) {
-				// Set esc flag and increment position
-				esc_next = 1;
-				ESP_LOGE(tag, "Received escape Flag, Byte: 0X%02x | 0X%02x",
-						byte, byte + 1);
-			}
-
-
-			else {
-				if (esc_next){
-								// escape character
-					byte = byte ^ 0x20;
-					//VTaskDelay(1000 / portTICK_PERIOD_MS);
-				}
-				 if (msg_pos < sizeof(msg_buffer)){
-					 msg_buffer[msg_pos++] = byte;
-				 }
-
-
-			}
-
-		}
-
-		// move remaining bytes to start of buffer
-		if (msg_pos == 0) {
-			uart_pos = 0;
-		} else if (msg_buffer[msg_pos - 1] == 0x7e) {
-			// message ended at end of buffer, move remaining bytes to start of buffer
-			uart_pos = 0;
-			msg_pos = 0;
-		}  else {
-			// message not complete, move remaining bytes to start of buffer
-			uart_pos = read_len;
-			memmove(uart_buffer, uart_buffer + uart_pos,
-			UART_BUFFER_SIZE - uart_pos);
-		}
-	}
-}
 int uart_tx_task(uint8_t *buf, size_t len) {
 	// send the buffer check that it was sent
 	int pos = 0;
-	char buf_s[40] = { '\0' };
+	char buf_s[257] = { '\0' };
+
 	// Print out the message and compare the values
 	for (int i = 0; i < len; i++) {
 		pos += sprintf(&buf_s[pos], "%02x:", buf[i]);
 	}
-	ESP_LOGI(tag, "Sending data:%s length %d| Bytes written", buf_s, len);
 
+	ESP_LOGD(tag, "Sending data:%s length %d| Bytes written", buf_s, len);
 	int num_byt_written = uart_write_bytes(UART_SERIAL_INNO, (const char*) buf,
 			len);
-//    esp_err_t err = uart_wait_tx_done(UART_SERIAL_INNO, TRANSMIT_WAIT_TIME);
-//    return (err == ESP_OK) ? num_byt_written : err;
+
+	vTaskDelay(0);
+
 	return num_byt_written;
 
 }
 
 static int set_;
+#define USING_CONTROL_LINE_RTS 1
+#ifdef USING_CONTROL_LINE_RTS
+void setup_driver() {
+	if (set_) {
+		// TODO change to return espok
+		return;
+	}
+	// Setup the queue
+	uart_rx_queue = xQueueCreate(10, sizeof(msg16_t));
+//	rack_queue = xQueueCreate(10, sizeof(msg16_t));
 
+	uart_config_t uart_config = { .baud_rate = 115200, .data_bits =
+			UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits =
+			UART_STOP_BITS_1, .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+			.rx_flow_ctrl_thresh = 122,
+			.source_clk = UART_SCLK_DEFAULT, };
+	int intr_alloc_flags = 0;
+
+#if CONFIG_UART_ISR_IN_IRAM
+        intr_alloc_flags = ESP_INTR_FLAG_IRAM;
+    #endif
+	uart_driver_install(UART_SERIAL_INNO, BUF_SIZE, 0, 0, NULL,
+			intr_alloc_flags);
+	uart_param_config(UART_SERIAL_INNO, &uart_config);
+	uart_set_pin(UART_SERIAL_INNO, 43, 44, 14, -1);
+	uart_set_mode(UART_SERIAL_INNO, UART_MODE_RS485_HALF_DUPLEX);
+
+
+	set_ = 1;
+
+}
+
+#else
 void setup_driver() {
 	if (set_) {
 		// TODO change to return espok
@@ -342,13 +252,28 @@ void setup_driver() {
 	uart_param_config(UART_SERIAL_INNO, &uart_config);
 	uart_set_pin(UART_SERIAL_INNO, 43, 44, UART_PIN_NO_CHANGE,
 	UART_PIN_NO_CHANGE);
-//    uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+	uart_set_mode(UART_SERIAL_INNO, UART_MODE_RS485_HALF_DUPLEX);
 
-//    uart_driver_install(UART_NUM_0, UART_BUFFER_SIZE,UART_BUFFER_SIZE,0,NULL,0);
+	// Setup CTS pin
+	gpio_config_t io_conf = {};
+	//disable interrupt
+	io_conf.intr_type = GPIO_INTR_DISABLE;
+	io_conf.mode = GPIO_MODE_OUTPUT;
+	//bit mask of the pins that you want to set,e.g.GPIO18/19
+	io_conf.pin_bit_mask = F_DE_RS485
+;
+	//disable pull-down mode
+	io_conf.pull_down_en = 0;
+	//disable pull-up mode
+	io_conf.pull_up_en = 0;
+	//configure GPIO with the given settings
+	gpio_config(&io_conf);
+
 
 	set_ = 1;
 
 }
+#endif
 
 /*
  * Creates a read transaction on the modbus inno network
@@ -699,4 +624,128 @@ int clear_uart_rx_queue() {
 	}
 	return num_cleared;
 }
+
+//
+//
+//void uart_rx_task0(void *pvParameters) {
+//	uint8_t uart_buffer[UART_BUFFER_SIZE] = { 0 };
+//	uint8_t msg_buffer[UART_BUFFER_SIZE] = { 0 };
+//	size_t uart_pos = 0;
+//	size_t msg_pos = 0;
+//	int esc_next = 0;
+//	int read_len = 0;
+//	char buf[UART_BUFFER_SIZE] = { '\0' };
+//	uint8_t byte;
+//
+//	while (true) {
+//		// read from UART buffer
+////		vTaskDelay(1000 / portTICK_PERIOD_MS);
+//
+//		read_len = uart_read_bytes(UART_SERIAL_INNO, uart_buffer + uart_pos,
+//		UART_BUFFER_SIZE - uart_pos, 10 / portTICK_PERIOD_MS);
+//		if (read_len <= 0) {
+//
+//			continue;
+//		}
+//		if (read_len > UART_BUFFER_SIZE) {
+//			ESP_LOGE(tag, "Exceeded Read length: :%d", read_len);
+//			ESP_LOGE(tag, "Uart_pos: :%d, msg_pos:%d", uart_pos, msg_pos);
+//			// Should we reset the position?
+//			uart_pos = 0;
+//			msg_pos = 0;
+////			vTaskDelay(1000 / portTICK_PERIOD_MS);
+//
+//			continue;
+//		}
+//		ESP_LOGD(tag, "Read length: :%d", read_len);
+//
+//		ESP_LOGD(tag, "Uart_pos:%d|msg_pos:%d|read_len:%d|", uart_pos, msg_pos,
+//				read_len);
+//		ESP_LOG_BUFFER_HEXDUMP(tag, buf, UART_BUFFER_SIZE, ESP_LOG_INFO);
+////    	pos = 0;
+////    	memset(buf, '\0', sizeof(buf));
+////        for (int i = 0; i<UART_BUFFER_SIZE;i++){
+////        		pos += sprintf(&buf[pos], "%02x:",uart_buffer[i] );
+////		}
+//
+////		ESP_LOGD(tag, "RESP BUF: 0X%s", buf);UART_SERIAL_INNO
+//
+//		// process buffer
+//		for (size_t i = 0; i < read_len; i++) {
+//			// get one byte at a time from the buffer
+//			byte = uart_buffer[uart_pos + i];
+//    		ESP_LOGD(tag, "%d, Byte:%02x", i, byte);
+//
+//			if (msg_pos == 0 && byte != FLAG) {
+//				// ignore bytes before start flag
+//				ESP_LOGW(tag, "Ignoring Byte %d: 0x%x of read_len:%d", i, byte,
+//						read_len);
+//				continue;
+//			}
+//			if (msg_pos == 0 && byte == FLAG) {
+//				// Found start byte
+//				ESP_LOGD(tag, "Start Flag");
+//				msg_buffer[msg_pos++] = byte;
+//				continue;
+//			}
+//
+//			if (byte == FLAG) {
+//				// end of message, decode and add to queue
+//				ESP_LOGD(tag, "End Flag found, creating msg16_t, reseting ");
+//				msg_buffer[msg_pos] = FLAG;
+//				msg16_t msg_struct;
+//				msg16_t *msg = &msg_struct;
+//				if (msg != NULL) {
+//					size_t msg_len = unpack_msg16(msg_buffer, msg_pos, msg);
+//					if (msg_len == 0) {
+//						ESP_LOGW(tag, "Discarding msg unable to unpack");
+////                		free(msg);
+//					} else {
+//
+//						//                    xQueueSend(uart_rx_queue, ( void * ) &msg, portMAX_DELAY);
+//						if (msg->dev_id == 0x11 && msg->type == READ_REQ) {
+//							xQueueSend(rack_queue, &msg, portMAX_DELAY);
+//						} else {
+//							xQueueSend(uart_rx_queue, msg, portMAX_DELAY);
+//						}
+//					}
+//				} else {
+//					ESP_LOGW(tag, "Can not allocate memory");
+//				}
+//				msg_pos = 0;
+//			}
+//			// If the byte is th ESCAPE sequence do not copy byte and xor the next byte
+//			else if (byte == ESC && msg_pos > 0) {
+//				// Set esc flag and increment position
+//				esc_next = 1;
+//				ESP_LOGE(tag, "Received escape Flag, Byte: 0X%02x | 0X%02x",
+//						byte, byte + 1);
+//			}
+//			else {
+//				if (esc_next){
+//								// escape character
+//					byte = byte ^ 0x20;
+//					//VTaskDelay(1000 / portTICK_PERIOD_MS);
+//				}
+//				 if (msg_pos < sizeof(msg_buffer)){
+//					 msg_buffer[msg_pos++] = byte;
+//				 }
+//			}
+//		}
+//
+//		// move remaining bytes to start of buffer
+//		if (msg_pos == 0) {
+//			uart_pos = 0;
+//		} else if (msg_buffer[msg_pos - 1] == 0x7e) {
+//			// message ended at end of buffer, move remaining bytes to start of buffer
+//			uart_pos = 0;
+//			msg_pos = 0;
+//		}  else {
+//			// message not complete, move remaining bytes to start of buffer
+//			uart_pos = read_len;
+//			memmove(uart_buffer, uart_buffer + uart_pos,
+//			UART_BUFFER_SIZE - uart_pos);
+//		}
+//	}
+//}
 

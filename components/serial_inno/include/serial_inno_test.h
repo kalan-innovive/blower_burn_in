@@ -14,6 +14,9 @@
 esp_err_t serial_inno_unit_tests(void);
 esp_err_t serial_inno_in_system_tests(void);
 esp_err_t serial_inno_system_tests(void);
+esp_err_t serial_inno_blower_tests(void);
+
+
 
 //typedef struct {
 //	uint8_t tx_buf[25];
