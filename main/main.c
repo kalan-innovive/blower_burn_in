@@ -116,9 +116,9 @@ static esp_err_t run_event_handler_tests() {
 
 
 void run_ser_inno_tests(void *pvParameter){
-	esp_log_level_set("msg16", ESP_LOG_DEBUG);
+	esp_log_level_set("msg16", ESP_LOG_INFO);
 	esp_log_level_set("serial_inno", ESP_LOG_DEBUG);
-	setup_driver();
+//	setup_driver();
 	// Start the task for receiving
 //	xTaskCreate(&uart_rx_task, "uart_rx_task", 2048,
 //				NULL, configMAX_PRIORITIES, &uart_rx_handle);

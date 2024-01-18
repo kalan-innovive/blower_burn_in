@@ -146,16 +146,21 @@ static size_t pack_write_resp_payload(const msg16_t *msg16, uint8_t *packed_msg)
 static size_t pack_write_req_payload(const msg16_t *msg16, uint8_t *packed_msg) {
 	//Payload length
 	size_t len_ = 0;
-	packed_msg[len_++] = READ_PAYLOAD_LEN;
+	// Pack the length of the payload
+	packed_msg[len_++] = (msg16->len *2) + 2;
+	// Pack the payload base adress
+	packed_msg[len_++] = (uint8_t) (msg16->addr & 0xff);
+	packed_msg[len_++] = (uint8_t) ((msg16->addr >> 8) & 0xff);
+
 	//Pack data
 	for (int ii = 0; ii < msg16->len; ii++) {
 		// Base register + the number of write requested
 		// Base register lsb first
-		packed_msg[len_++] = (uint8_t) (msg16->addr & 0xff);
-		packed_msg[len_++] = (uint8_t) ((msg16->addr >> 8) & 0xff);
+		packed_msg[len_++] = (uint8_t) (msg16->payload[ii] & 0xff);
+		packed_msg[len_++] = (uint8_t) ((msg16->payload[ii] >> 8) & 0xff);
 	}
 	// length
-	packed_msg[len_++] = (uint8_t) msg16->len;
+//	packed_msg[len_++] = (uint8_t) msg16->len;
 	return len_;
 
 }
@@ -282,34 +287,17 @@ static size_t unpack_write_req_payload(msg16_t *m, uint8_t *packed_msg) {
 
 
 static size_t unpack_write_resp_payload( msg16_t *m, uint8_t *packed_msg) {
-	size_t j = 0;
-	if (packed_msg[3]>=4) {
-		uint16_t count = (uint16_t) (packed_msg[3] - 2);
-		// Pack adress add 2 to num_packed
-		m->addr = packed_msg[4];
-		m->addr |= packed_msg[5]<<8;
-		if (count%2 !=0) {
-			ESP_LOGD(tag, "Unpacked len must be >4 and even| %d", count);
-			m->len = 0;
-		} else {
-			// add 1 to num_packed
-			m->len = count/2;
-
-			ESP_LOGD(tag, "Unpacked len=%d, addr=0X04%x", m->len, m->addr);
-			uint8_t *p = &packed_msg[6];
-
-			for (j = 0; j < m->len; j++) {
-				// add 2 for each iteration of j to num_packed
-				m->payload[j] = (uint16_t) packed_msg[4] & 0xffff;
-				m->payload[j] |= *p++ << 8;
-				ESP_LOGD(tag, "    Unpacked Val: u=%d, s=%d", (uint16_t)m->payload[j],
-						(int16_t )m->payload[j]);
-			}
-		}
+	if (packed_msg[3]>0) {
+		ESP_LOGD(tag, "Unpacked payload should be len  0| %d", packed_msg[3]);
+		m->len = 0;
 	}
-	size_t num_packed = (size_t) packed_msg[3];
-	ESP_LOGD(tag, "Number of bits packed= %d", num_packed);
-	return num_packed;
+
+		ESP_LOGD(tag, "Unpacked payload length= %d", packed_msg[3]);
+
+	m->len = 1;
+	m->payload[0] = 0xFFFF;
+
+	return 1;
 }
 
 
@@ -325,7 +313,7 @@ static size_t unpack_payload(msg16_t *msg16, uint8_t *packed_msg) {
 			ESP_LOGI(tag, "Unpacking: READ_RESP");
 			return unpack_read_resp_payload(msg16, packed_msg);
 		case WRITE_RESP:
-			ESP_LOGI(tag, "Unpacking: READ_REQ");
+			ESP_LOGI(tag, "Unpacking: WRITE_RESP");
 			return unpack_write_resp_payload(msg16, packed_msg);
 		default:
 			ESP_LOGW(tag, "Error packing data msg type: %d", msg16->type);
@@ -369,7 +357,7 @@ size_t unpack_msg16(uint8_t *packed_msg, size_t packed_msg_size, msg16_t *msg16)
 	if (*p++ != 0x7e) {
 		// error
 		ESP_LOGW(tag, "%d. Illegal start byte : 0X%02x", i, *p);
-		return i;
+		return 0;
 	}
 
 	// device ID

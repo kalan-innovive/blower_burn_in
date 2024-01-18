@@ -8,8 +8,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-
 #include "serial_inno_test.h"
+#include "serial_inno_api_test.h"
 #include "serial_inno.h"
 #include <string.h>
 
@@ -115,16 +115,20 @@ esp_err_t serial_inno_in_system_tests(void){
 
 
 esp_err_t serial_inno_blower_tests(void){
-	esp_err_t ret;
+	esp_err_t ret = ESP_OK;
 	setup_driver();
 	// Start the task for receiving
-	xTaskCreate(&uart_rx_task, "uart_rx_task", 2048*2,
-				NULL, 6, &uart_rx_handle);
-//	xTaskCreate(&rack_task, "rack_task", 2048,
-//					NULL, 6, &rack_task_handle);
+	xTaskCreate(&uart_rx_task, "uart_rx_task", 6*1024,
+				NULL, 1, &uart_rx_handle);
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-	ret = serial_inno_blower_comm_test();
+	valve_function_test(NULL);
+//	xTaskCreate(&rack_task, "rack_task", 2048,
+//					NULL, 6, &rack_task_handle);
+
+//	ret = serial_inno_blower_api_tests();
+
+//	ret = serial_inno_blower_comm_test();
 //	ret = insys_test_urt_rx_tx_task();
 //	ret &= insys_test_unit_urt_get_offset_();
 //	ret &= insys_test_urt_write_offset_();
@@ -333,35 +337,54 @@ static esp_err_t serial_inno_blower_comm_test(void){
 	msg16_t msg_res;
 	int trans_result = 0;
 	TickType_t timeout = 0;
+	TickType_t testing_period = 50;
+	TickType_t passsing_period = 6;
+	TickType_t max_timeout = testing_period;
+	vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-	for(int i =1; i<24; i++) {
 
-		trans_result = 1;
-		timeout = 50;
+	for(TickType_t j=testing_period; j >= 1 ; j--){
 
-		ESP_LOGI(tag, "Testing transact_read with length : %d", (int) i);
-		msg_req.len = i;
+		timeout = j;
+		ESP_LOGI(tag, "__Testing transact_read period: %d", (int) j);
 
-		while (trans_result == 1){
+		for(int i =1; i<=24; i++) {
+			trans_result = 0;
+			msg_req.len = i;
+			msg_res.len = 0;
+			vTaskDelay(0 / portTICK_PERIOD_MS);
+
 			trans_result = transact_read(&msg_req, &msg_res, timeout);
-			vTaskDelay(1 / portTICK_PERIOD_MS);
+			vTaskDelay(0 / portTICK_PERIOD_MS);
+
+
 			if (trans_result != 1) {
-				vTaskDelay(10000 / portTICK_PERIOD_MS);
-				ESP_LOGW(tag, "Transaction failed on length: %d, timeout=%d, result %d ", i, (int)timeout, trans_result);
+				ESP_LOGW(tag, "Transaction failed on length: %d, timeout=%d, result %d ", msg_req.len, (int)timeout, trans_result);
+				vTaskDelay(5000 / portTICK_PERIOD_MS);
 				break;
 			}
-			if (--timeout <=1) {
-				trans_result = -2;
+			else if(msg_req.len != msg_res.len){
+				ESP_LOGE(tag, "Transaction Received incorrect frame length: %d, timeout=%d, result %d ", (int)msg_res.len, (int)timeout, trans_result);
+				vTaskDelay(5000 / portTICK_PERIOD_MS);
+				break;
 			}
-
+			else if (trans_result == 1){
+				ESP_LOGI(tag, "_Test Length=%d  : timeout=%d ms   : errrormsg=%d",i, (int)timeout, trans_result);
+			}
+			else {
+				ESP_LOGW(tag, "Logic Error: length: %d, timeout=%d, result %d ", i, (int)timeout, trans_result);
+				vTaskDelay(5000 / portTICK_PERIOD_MS);
+			}
 		}
-		vTaskDelay(10000 / portTICK_PERIOD_MS);
-		ESP_LOGI(tag, "Result transact test: Length=%d   : timeout=%d ms   : errrormsg=%d",i, (int)timeout, trans_result);
 
+
+		max_timeout = (max_timeout > timeout) ? max_timeout : timeout;
+		ESP_LOGI(tag, "_____Result transact test: Length=%d   : timeout=%d ms   : errrormsg=%d",msg_req.len, (int)timeout, trans_result);
+		vTaskDelay(3000 / portTICK_PERIOD_MS);
 	}
 
-	ESP_LOGI(tag, "Result transact test: %d", (int)timeout);
-	return (timeout <= 10000 ) ? ESP_OK: ESP_FAIL;
+	ESP_LOGI(tag, "_______Result transact test: %d", (int)max_timeout);
+	return (timeout <= passsing_period ) ? ESP_OK: ESP_FAIL;
 
 }
 
