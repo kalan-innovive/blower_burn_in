@@ -1,6 +1,7 @@
 #include "esp_log.h"
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/uart.h"
@@ -12,7 +13,6 @@
 
 #include "include/msg16.h"
 #include "serial_inno.h"
-
 
 #include <stdio.h>
 
@@ -27,9 +27,11 @@
 extern QueueHandle_t uart_rx_queue;
 extern QueueHandle_t uart_tx_queue;
 extern QueueHandle_t rack_queue;
+SemaphoreHandle_t transactSemaphore;
 
 static const char *tag = "serial_inno";
 
+static int set_;
 #define F_DE_RS485 (1ULL<<GPIO_NUM_9)
 
 
@@ -40,6 +42,8 @@ typedef struct {
     int len;
 } comm_frame_t;
 
+static void transact_wrapper_init();
+static void transact_wrapper_deinit();
 
 /*
  * Receives MSG16_REQUEST events from EH
@@ -190,8 +194,6 @@ int uart_tx_task(uint8_t *buf, size_t len) {
 
 }
 
-static int set_;
-#if USING_CONTROL_LINE_RTS
 void setup_driver() {
 	if (set_) {
 		// TODO change to return espok
@@ -200,6 +202,7 @@ void setup_driver() {
 	// Setup the queue
 	uart_rx_queue = xQueueCreate(6, sizeof(msg16_t));
 //	rack_queue = xQueueCreate(10, sizeof(msg16_t));
+	transact_wrapper_init();
 
 	uart_config_t uart_config = { .baud_rate = 115200, .data_bits =
 			UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits =
@@ -222,52 +225,29 @@ void setup_driver() {
 
 }
 
-#else
-void setup_driver() {
-	if (set_) {
-		// TODO change to return espok
-		return;
-	}
-	// Setup the queue
-	uart_rx_queue = xQueueCreate(10, sizeof(msg16_t));
-//	rack_queue = xQueueCreate(10, sizeof(msg16_t));
 
-	uart_config_t uart_config = { .baud_rate = 115200, .data_bits =
-			UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits =
-			UART_STOP_BITS_1, .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-			.source_clk = UART_SCLK_DEFAULT, };
-	int intr_alloc_flags = 0;
+void deinit_driver() {
+    if (!set_) {
+        // Driver has not been set up, so there's nothing to deinitialize
+        return;
+    }
 
-#if CONFIG_UART_ISR_IN_IRAM
-        intr_alloc_flags = ESP_INTR_FLAG_IRAM;
-    #endif
-	uart_driver_install(UART_SERIAL_INNO, BUF_SIZE, 0, 0, NULL,
-			intr_alloc_flags);
-	uart_param_config(UART_SERIAL_INNO, &uart_config);
-	uart_set_pin(UART_SERIAL_INNO, 43, 44, UART_PIN_NO_CHANGE,
-	UART_PIN_NO_CHANGE);
-	uart_set_mode(UART_SERIAL_INNO, UART_MODE_RS485_HALF_DUPLEX);
+    // Deinitialize the UART driver
+    uart_driver_delete(UART_SERIAL_INNO);
 
-	// Setup CTS pin
-	gpio_config_t io_conf = {};
-	//disable interrupt
-	io_conf.intr_type = GPIO_INTR_DISABLE;
-	io_conf.mode = GPIO_MODE_OUTPUT;
-	//bit mask of the pins that you want to set,e.g.GPIO18/19
-	io_conf.pin_bit_mask = F_DE_RS485
-;
-	//disable pull-down mode
-	io_conf.pull_down_en = 0;
-	//disable pull-up mode
-	io_conf.pull_up_en = 0;
-	//configure GPIO with the given settings
-	gpio_config(&io_conf);
+    // Deinitialize the semaphore or any other synchronization primitives
+    transact_wrapper_deinit();
 
+    // Delete the queues if they were created
+    if (uart_rx_queue != NULL) {
+        vQueueDelete(uart_rx_queue);
+        uart_rx_queue = NULL;
+    }
 
-	set_ = 1;
-
+    // Reset the set flag to indicate the driver is no longer initialized
+    set_ = 0;
 }
-#endif
+
 
 /*
  * Creates a read transaction on the modbus inno network
@@ -408,52 +388,54 @@ int transact_write(const msg16_t *request, msg16_t *response,
 		}
 	}
 
-//	// wait for response
-//	msg16_t *r_msg = malloc(sizeof(msg16_t));
-//	if (r_msg == NULL) {
-//		return 0;
-//	}
-//
-//	while (xQueueReceive(uart_rx_queue, r_msg, timeout) == pdTRUE) {
-//
-//		ESP_LOGI(tag, "Queue Received type%d, dev ID=%d, addr=%d, len=%d",
-//				r_msg->type, r_msg->dev_id, r_msg->addr, r_msg->len);
-//
-//		// validate response
-//		if (r_msg->type != (READ_RESP) || r_msg->dev_id != request->dev_id) {
-//			//invalid response
-//			ESP_LOGW(tag, "Msg_type %d, Received DevID:%d Request DevID:%d",
-//					r_msg->type, r_msg->dev_id, request->dev_id);
-//			ret = -1;
-//		} else {
-//
-//			// fill out response struct
-//			response->type = r_msg->type;
-//			response->dev_id = r_msg->dev_id;
-//			response->addr = r_msg->addr;
-//			response->len = r_msg->len;
-//			for (int i = 0; i < response->len; i++) {
-//				response->payload[i] = r_msg->payload[i];
-//			}
-//			ret = 1;
-//			break;
-//		}
-//	}
-//	if (ret == 0) {
-//		// timeout
-//		ESP_LOGW(tag, "Transact Timed out; Timeout period=%lu", timeout);
-//	}
-//
-//	// free received message
-//	if (r_msg != NULL) {
-//		free(r_msg);
-//	}
 
 	return ret;
 }
 
 
 
+
+static void transact_wrapper_init() {
+    transactSemaphore = xSemaphoreCreateBinary();
+    xSemaphoreGive(transactSemaphore); // Initially release the semaphore
+}
+
+static void transact_wrapper_deinit() {
+    if (transactSemaphore != NULL) {
+        vSemaphoreDelete(transactSemaphore);
+        transactSemaphore = NULL;
+    }
+}
+
+int transact(const msg16_t *request, msg16_t *response, TickType_t timeout) {
+	// Check if the request pointer is not null
+	    if (request == NULL) {
+	        return -1; // Or any other error code indicating null pointer
+	    }
+
+	    if (xSemaphoreTake(transactSemaphore, timeout) == pdTRUE) {
+	        // Semaphore obtained, check request type and perform the appropriate transaction
+	        int result = -1; // Default to an error code
+	        switch (request->type) {
+	            case READ_REQ:
+	                result = transact_read(request, response, timeout);
+	                break;
+	            case WRITE_REQ:
+	                result = transact_write(request, response, timeout);
+	                break;
+	            default:
+	                // Invalid request type
+	                result = -2; // Or any other error code indicating invalid request type
+	                break;
+	        }
+
+	        xSemaphoreGive(transactSemaphore); // Release the semaphore for other tasks
+	        return result;
+	    } else {
+	        // Timeout occurred while waiting for the semaphore
+	        return -3;
+	    }
+}
 
 
 

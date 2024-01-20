@@ -11,14 +11,15 @@
 #include "esp_err.h"
 #include "msg16.h"
 
+
 typedef void *burnin_handle_t;
 /**
  * @brief Supported button type
  *
  */
 typedef enum {
-	FUNCTIONALBLOWER,
-    FUNCTIONALBLOWER,
+	FAN_BLOWER,
+    VALVE_BLOWER,
     FUNCTIONAL_CUSTOM
 } burnin_type_t;
 
@@ -34,6 +35,45 @@ typedef enum {
 	REG_WRITTEN,
 	REG_VALID
 } reg_staus_type_t;
+
+
+typedef enum {
+	cal_init,
+	cal_stopping_fan,
+	cal_wait,
+	cal_running,
+	cal_complete,
+	cal_success,
+	cal_failed
+}calibration_state_t;
+
+typedef struct {
+	dev_id id;
+	dev_id contr_id;
+	uint32_t start; // @suppress("Type cannot be resolved")
+	uint32_t stop;
+	uint32_t time_out;
+	calibration_state_t state;
+	int itterations;
+	int cal_val;
+}calibration_conf_t;
+
+typedef struct{
+	dev_id id;
+	dev_id contr_id;
+	TickType_t start;
+	TickType_t stop;
+	TickType_t time_out;
+	unsigned control_pressure;
+	unsigned control_pwm;
+	unsigned max_blowby;
+	unsigned rec_len;
+	unsigned *records;
+	unsigned max_press_val;
+	calibration_state_t state;
+	int iterations;
+	int blow_by_val;
+} blowby_conf_t;
 
 
 /**

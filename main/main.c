@@ -31,6 +31,7 @@
 #include "rack_device.h"
 
 #include "burn_in.h"
+#include "burnin_valve.h"
 #include "ui.h"
 #include "mqtt_handler.h"
 

@@ -11,7 +11,7 @@
 #define USING_CONTROL_LINE_RTS 1
 
 void setup_driver(void);
-
+void deinit_driver(void);
 /** Inno Serial Modbus tasks*/
 void uart_rx_task(void *pvParameters);
 int uart_tx_task(uint8_t *buf, size_t len);

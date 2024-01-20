@@ -170,43 +170,7 @@ static esp_err_t test_set_target_pressure() {
 }
 
 
-//
-//
-//static esp_err_t test_set_target_pressure() {
-//	int ret;
-//	unsigned val;
-//	ret = get_fan_rpm(DEV_SUPA, &val);
-//	if (ret == 1){
-//		ESP_LOGI(tag, "Passed set_target_pressure test ret:%d val %d", ret, val);
-//	}
-//	ESP_LOGE(tag, "Failed set_target_pressure test %d ", ret);
-//	return ESP_ERR_INVALID_RESPONSE;
-//}
-//
-typedef enum {
-	cal_init,
-	cal_stopping_fan,
-	cal_wait,
-	cal_running,
-	cal_complete,
-	cal_success,
-	cal_failed
-}calibration_state_t;
 
-typedef struct {
-	dev_id id;
-	dev_id contr_id;
-	TickType_t start;
-	TickType_t stop;
-	calibration_state_t state;
-	int cal_val;
-}calibration_conf_t;
-
-
-void valve_calibration_task(void *arg){
-	calibration_conf_t *v_conf = (calibration_conf_t*)  arg;
-
-}
 
 void valve_function_test(void *arg){
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -232,6 +196,7 @@ void valve_function_test(void *arg){
 		unsigned rpm_v = 0;
 		unsigned rpm_c = 0;
 		unsigned pwm = 100;
+
 
 		//Ramp the fan blower up to verify it is connected
 		for (int i=0; i<5; i++){

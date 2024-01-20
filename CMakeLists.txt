@@ -7,8 +7,11 @@ cmake_minimum_required(VERSION 3.5)
     
     
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
 get_filename_component(ProjectId ${CMAKE_CURRENT_LIST_DIR} NAME)
 string(REPLACE " " "_" ProjectId ${ProjectId})
-add_compile_options(-fdiagnostics-color=always)
+add_compile_options(-fdiagnostics-color=always
+                    -Wno-ignored-qualifiers
+                    -Wno-deprecated-declarations)
 
 project(${ProjectId})
