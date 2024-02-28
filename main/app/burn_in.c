@@ -27,7 +27,7 @@
 #include "serial_inno.h"
 #include "offset_data.h"
 #include "app_event_handler.h"
-#include "gui/ui_main.h"
+#include "gui/ui_burnin/ui_main.h"
 #include "mqtt_handler.h"
 
 static const char *TAG = "burn-in";

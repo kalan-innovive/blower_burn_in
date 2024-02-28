@@ -202,7 +202,13 @@ void setup_driver() {
 	// Setup the queue
 	uart_rx_queue = xQueueCreate(6, sizeof(msg16_t));
 //	rack_queue = xQueueCreate(10, sizeof(msg16_t));
+	ESP_LOGI(tag, "Creating transact wrapper");
 	transact_wrapper_init();
+	ESP_LOGI(tag, "Finished transact wrapper");
+	vTaskDelay(100);
+
+
+	ESP_LOGI(tag, "Uart Config on UART1 ");
 
 	uart_config_t uart_config = { .baud_rate = 115200, .data_bits =
 			UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits =
@@ -216,10 +222,23 @@ void setup_driver() {
     #endif
 	uart_driver_install(UART_SERIAL_INNO, BUF_SIZE, 0, 0, NULL,
 			intr_alloc_flags);
-	uart_param_config(UART_SERIAL_INNO, &uart_config);
-	uart_set_pin(UART_SERIAL_INNO, 43, 44, 14, -1);
-	uart_set_mode(UART_SERIAL_INNO, UART_MODE_RS485_HALF_DUPLEX);
+	vTaskDelay(100);
 
+	ESP_LOGI(tag, "Uart Driver installed on UART1 ");
+
+	uart_param_config(UART_SERIAL_INNO, &uart_config);
+	ESP_LOGI(tag, "Uart Config installed on UART1 ");
+	vTaskDelay(100);
+
+
+	uart_set_pin(UART_SERIAL_INNO, 43, 44, 14, -1);
+	ESP_LOGI(tag, "Uart Pins installed on UART1 ");
+	vTaskDelay(100);
+
+
+	uart_set_mode(UART_SERIAL_INNO, UART_MODE_RS485_HALF_DUPLEX);
+	ESP_LOGI(tag, "Uart Mode installed on UART1 ");
+	vTaskDelay(100);
 
 	set_ = 1;
 
