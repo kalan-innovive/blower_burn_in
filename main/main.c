@@ -66,8 +66,8 @@ void app_main(void) {
 
 	srand(time(NULL));   // Initialization, should only be called once.
 	esp_log_level_set("inno_common", ESP_LOG_WARN);
-	esp_log_level_set("inno_connect", ESP_LOG_DEBUG);
-	esp_log_level_set("inno_wifi_connect", ESP_LOG_DEBUG);
+	esp_log_level_set("inno_connect", ESP_LOG_WARN);
+	esp_log_level_set("inno_wifi_connect", ESP_LOG_WARN);
 
 	esp_log_level_set("wifi", ESP_LOG_WARN);
 	esp_log_level_set("mqtt_handler", ESP_LOG_WARN);
@@ -98,8 +98,8 @@ void app_main(void) {
 
 	esp_log_level_set("msg16", ESP_LOG_ERROR);
 	esp_log_level_set("serial_inno", ESP_LOG_ERROR);
-	esp_log_level_set("burn-in", ESP_LOG_DEBUG);
-	esp_log_level_set("UI_blower-BI", ESP_LOG_DEBUG);
+	esp_log_level_set("burn-in", ESP_LOG_WARN);
+	esp_log_level_set("UI_blower-BI", ESP_LOG_WARN);
 	esp_log_level_set("UI_Timer", ESP_LOG_WARN);
 	esp_log_level_set("UI_EVENT", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_Detail", ESP_LOG_DEBUG);
@@ -107,7 +107,7 @@ void app_main(void) {
 	esp_log_level_set("efuse", ESP_LOG_WARN);
 	esp_log_level_set("GC_task", ESP_LOG_WARN);
 	esp_log_level_set("user_event_loop", ESP_LOG_WARN);
-	esp_log_level_set("offset_data", ESP_LOG_DEBUG);
+	esp_log_level_set("offset_data", ESP_LOG_WARN);
 	ESP_ERROR_CHECK(esp_netif_init());
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 

@@ -55,7 +55,7 @@ void register_serialinno(void){
  * Expected Json request
  *  arg = {"id": 1, "msg_id":435}
  * response sent through printf()
- * resp_suc: {"cmd": "check_id", "id": 1, "msg_id":435, "value":255, "chipID":"12345678"}
+ * resp_suc: {"cmd": "check_id", "id": 1,  "offset":-2, "chipID":"12345678", "flag":"None"}
  * resp_timeout: {"cmd": "check_id", "id": 1, "msg_id":435, "flag":"timeout"}
  */
 static int check_id(int argc, char **argv)
@@ -99,13 +99,13 @@ static int check_id(int argc, char **argv)
 
 	if (ret == 1 && ret1 == 1 && ret2 == 1){
 
-		sprintf(str_chipid, "%ul", chipID);
+		sprintf(str_chipid, "%u", chipID);
 		blowerinfo.devid = devid;
 		blowerinfo.chipid = chipID;
 		blowerinfo.offset = offset;
 		blowerinfo.valid = 1;
 		cJSON_AddStringToObject(json, "chipID", str_chipid);
-		cJSON_AddNumberToObject(json, "offset", 0);
+		cJSON_AddNumberToObject(json, "offset", offset);
 		cJSON_AddStringToObject(json, "flag", flag_none);
 
 	}
@@ -126,6 +126,11 @@ static int check_id(int argc, char **argv)
 	}
 
 	blowerinfo.is_updated = 1;
+	printf(" \n ");
+	printf(" \r\n ");
+	vTaskDelay(5);
+	printf(" \r\n ");
+	vTaskDelay(10);
 
 
     printf("%s\n", cJSON_Print(json));
@@ -178,7 +183,7 @@ static int check_id_moc(int argc, char **argv)
 
 	// send the message wit for response.
 
-	sprintf(str_chipid, "%ul", chipID);
+	sprintf(str_chipid, "%u", chipID);
 	blowerinfo.devid = devid;
 	blowerinfo.chipid = chipID;
 	blowerinfo.offset = offset;
@@ -188,8 +193,12 @@ static int check_id_moc(int argc, char **argv)
 	cJSON_AddStringToObject(json, "chipID", str_chipid);
 	cJSON_AddNumberToObject(json, "offset", 0);
 	cJSON_AddStringToObject(json, "flag", flag_none);
+	printf(" \r\n ");
+	vTaskDelay(1);
+	printf(" \r\n ");
+	vTaskDelay(1);
 
-    printf("\n%s\n", cJSON_Print(json));
+    printf(" \n%s\n ", cJSON_Print(json));
 
 	cJSON_Delete(json);
     return 0;
