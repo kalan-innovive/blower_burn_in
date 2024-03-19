@@ -18,6 +18,8 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 
+static esp_err_t connect_to_known_network(wifi_config_t wifi_config);
+
 #if CONFIG_INNO_CONNECT_WIFI
 
 static const char *TAG = "inno_wifi_connect";

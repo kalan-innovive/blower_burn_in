@@ -53,6 +53,7 @@ static esp_err_t run_blower_burn_in_app(void);
 
 QueueHandle_t task_queue_handle;
 QueueHandle_t uart_rx_queue;
+QueueHandle_t uart_tx_queue;
 QueueHandle_t rack_queue;
 
 TaskHandle_t rack_task_handle;
@@ -60,6 +61,7 @@ TaskHandle_t uart_rx_handle;
 TaskHandle_t burn_in_handle;
 
 mqtt_handler_config_t app_cfg;
+int wifi_conn=0;
 
 #ifdef TESTING_EH_LOOP		// Testing Event Loop includes an variables
 
@@ -185,16 +187,16 @@ static esp_err_t run_mqtt_test(void) {
  * Setup all components for the blower burn in app
  */
 static esp_err_t run_blower_burn_in_app(void) {
-
+	TickType_t v;
 	esp_err_t ret = ESP_OK;
 	ESP_LOGI(TAG, "Setting up Serial Inno and burn in task");
 	setup_driver();
 	// Start the task for receiving on InnoModbus
-	xTaskCreate(&uart_rx_task, "uart_rx_", 1024 * 2,
+	xTaskCreate(&uart_rx_task, "uart_rx_", 1024 * 6,
 	NULL, 12, &uart_rx_handle);
 
 	// Start the task for Blower Burn-in
-	xTaskCreate(&burn_in_task, "burn_in_", 1024 * 4,
+	xTaskCreate(&burn_in_task, "burn_in_", 1024 * 6,
 	NULL, 6, &burn_in_handle);
 
 	vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -207,6 +209,8 @@ static esp_err_t run_blower_burn_in_app(void) {
 	app_cfg.eh_handler = get_event_handler_loop();
 
 	ESP_ERROR_CHECK(setup_mqtt_default(&app_cfg));
+			ESP_ERROR_CHECK(setup_mqtt_setup(&app_cfg));
+	
 	set_ui_ip(get_ip());
 	set_ui_esp_name(app_cfg.node_name);
 
@@ -285,7 +289,10 @@ void app_main(void) {
 	bsp_display_backlight_on();
 
 	ESP_ERROR_CHECK(ui_main_start());
-	ESP_ERROR_CHECK(inno_connect());
+	esp_err_t err_wifi = inno_connect();
+	if (err_wifi==ESP_OK) {
+		wifi_conn = 1;
+	}
 
 	ESP_ERROR_CHECK(run_blower_burn_in_app());
 #endif

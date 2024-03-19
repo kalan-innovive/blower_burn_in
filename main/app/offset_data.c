@@ -194,6 +194,10 @@ int get_min_last_n(ChipData *cd, int last_n) {
 	if (cd->vas_offset != DEF_OFFSET_VAL) {
 		min = (cd->vas_offset > min) ? min : cd->vas_offset;
 	}
+	if (cd->qc_offset != DEF_OFFSET_VAL) {
+		min = (cd->qc_offset > min) ? min : cd->qc_offset;
+	}
+
 
 	ESP_LOGW(TAG,
 			"[%s,%d] last N: %d, Min circular array :%d, Min ChipData %d",
@@ -220,6 +224,10 @@ int get_max_last_n(ChipData *cd, int last_n) {
 
 	if (cd->vas_offset != DEF_OFFSET_VAL) {
 		max = (cd->vas_offset < max) ? max : cd->vas_offset;
+
+	}
+	if (cd->qc_offset != DEF_OFFSET_VAL) {
+		max = (cd->qc_offset < max) ? max : cd->qc_offset;
 
 	}
 

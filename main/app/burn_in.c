@@ -71,8 +71,8 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		int32_t id, void *event_data);
 static int get_ppb_values();
 static int check_power_on();
-static void on_settings_update(void *handler_arg, esp_event_base_t base,
-		int32_t id, void *event_data);
+//static void on_settings_update(void *handler_arg, esp_event_base_t base,
+//		int32_t id, void *event_data);
 
 /**
  *  ___Static Function  definitions ______
@@ -312,10 +312,17 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				blower->vas_offset = cd->vas_offset;
 				blower->qc_offset = cd->qc_offset;
 
+				if (blower->vas_offset == DEF_OFFSET_VAL || blower->qc_offset == DEF_OFFSET_VAL){
+					// Send a request for the values
+					get_ppb_values();
+				}
+
 				// Set the min max and range values
-				blower->min_val = get_min_last_n(cd, 6);
-				blower->max_val = get_max_last_n(cd, 6);
+				blower->min_val = get_min_last_n(cd, 4);
+				blower->max_val = get_max_last_n(cd, 4);
 				blower->range = blower->max_val - blower->min_val;
+				// Range should be greater than 0 to get rid of false posatives
+				blower->range = (blower->range==0) ? 1 : blower->range;
 
 				// set the burn in array
 				int num_burn_val = copy_array(&cd->offset_array,
@@ -341,9 +348,9 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				return;
 			}
 			int passing = 0;
-			passing = (blower->min_val > -80) ? 1 : 0;
-			passing &= (blower->max_val < 80) ? 1 : 0;
-			passing &= (blower->range <= 11) ? 1 : 0;
+			passing = (blower->min_val > -40) ? 1 : 0;
+			passing &= (blower->max_val < 40) ? 1 : 0;
+			passing &= (blower->range <= 15) ? 1 : 0;
 
 			if (passing) {
 				blower->state =
@@ -373,7 +380,7 @@ static void init_blower_test(burn_in_ui_value_t *brn_val) {
 		strcpy(blower->name, test_blower_device_names[i]);
 		strcpy(blower->chip_id, " ");
 		blower->offset = DEF_OFFSET_VAL;
-		blower->range = DEF_OFFSET_VAL;
+		blower->range = DEF_OFFSET_RANGE;
 		blower->vas_offset = DEF_OFFSET_VAL;
 		blower->qc_offset = DEF_OFFSET_VAL;
 		for (int ii = 0; ii < NUM_OF_TEST; ii++) {
@@ -383,7 +390,7 @@ static void init_blower_test(burn_in_ui_value_t *brn_val) {
 
 		blower->min_val = DEF_OFFSET_VAL;
 		blower->max_val = DEF_OFFSET_VAL;
-		blower->num_point = DEF_OFFSET_VAL;
+		blower->num_point = 0;
 	}
 }
 
@@ -787,7 +794,9 @@ void burn_in_task(void *pvParameter) {
 		else if (state == RUNNING_BURNIN_TEST) {
 			update_rack_blower_list();
 //			if (count % UPDATE_UI_COUNT == 0)
-//			if (count % 10 == 0)
+			if (count % 45 == 0) {
+				int ppb_sec = get_ppb_values();
+			}
 			if (count % 2 == 0)
 
 				// Update every

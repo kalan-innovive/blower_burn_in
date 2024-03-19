@@ -37,6 +37,16 @@ extern "C" {
 #define get_example_netif() get_example_netif_from_desc(EXAMPLE_NETIF_DESC_STA)
 #endif
 
+#define CONN_KNOWN_WIFI_NETWORKS 1
+typedef struct {
+	char ssid[25];
+	char pass[25];
+}wifi_net_login;
+
+
+
+
+
 /**
  * @brief Configure Wi-Fi or Ethernet, connect, wait for IP
  *

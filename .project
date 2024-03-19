@@ -689,6 +689,11 @@
 			<location>/Users/ekalan/esp/esp-idf/components/heap/heap_task_info.c</location>
 		</link>
 		<link>
+			<name>build/ide/esp_idf_components/heap/heap_trace_standalone.c</name>
+			<type>1</type>
+			<location>/Users/ekalan/esp/esp-idf/components/heap/heap_trace_standalone.c</location>
+		</link>
+		<link>
 			<name>build/ide/esp_idf_components/heap/multi_heap.c</name>
 			<type>1</type>
 			<location>/Users/ekalan/esp/esp-idf/components/heap/multi_heap.c</location>
