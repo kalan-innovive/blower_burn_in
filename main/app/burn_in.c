@@ -798,7 +798,7 @@ void burn_in_task(void *pvParameter) {
 			if (count % 45 == 0) {
 				int ppb_sec = get_ppb_values();
 			}
-			if (count % 2 == 0)
+			if (count % 10 == 0){
 
 				// Update every
 				if (test_vals_acquire(10)) {
@@ -826,6 +826,7 @@ void burn_in_task(void *pvParameter) {
 //						}
 //					}
 				}
+			}
 
 		}
 		else if (state == FINISHED_BURNIN_TEST && !rack_on) {
@@ -847,7 +848,13 @@ void burn_in_task(void *pvParameter) {
 				// Update the state to startting
 
 				// We do not want to log the value until the timer has run down
-				int err = update_test_state(CANCEL_BURNIN_TEST);
+				esp_err_t err = update_test_state(CANCEL_BURNIN_TEST);
+				if (err != ESP_OK) {
+					ESP_LOGE(TAG,
+										"Error Updating test state, %d", err);
+
+				}
+
 
 			}
 

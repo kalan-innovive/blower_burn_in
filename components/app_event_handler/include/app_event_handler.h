@@ -12,6 +12,7 @@ extern "C" {
 //#include <cjson/cJSON.h>
 typedef enum {
 	MSG16_REQUEST,
+	MSG16_RESPONSE,
 	SETTINGS_REQUEST,
 	SERVER_EH_RESPONSE,
 	SERVER_EH_REQUEST,
@@ -21,6 +22,32 @@ typedef enum {
 	DB_LIST_BUCKETS,
 	APP_EVENT_ID_LEN,
 } eh_event_id_t;
+
+typedef enum {
+	MSG16_EVENT_REQUEST,
+	MSG16_EVENT_RESPONSE,
+	MSG16_EVENT_TIMEOUT,
+	MSG16_EVENT_CONNECTED,
+	MSG16_EVENT_DISCONECTED,
+	MSG16_EVENT_QUEUE_FULL,
+} serial_event_id_t;
+
+typedef enum {
+	CONSOLE_EVENT_REQ,
+	CONSOLE_EVENT_RESPONSE,
+	CONSOLE_EVENT_TIMEOUT,
+	CONSOLE_EVENT_CONNECTED,
+	CONSOLE_EVENT_DISCONECTED,
+	CONSOLE_EVENT_QUEUE_FULL,
+} console_event_id_t;
+
+typedef enum {
+	SETTINGS_EVENT_REQ,
+	SETTINGS_EVENT_RESPONSE,
+	SETTINGS_EVENT_CONNECTED,
+	SETTINGS_EVENT_DISCONECTED,
+	SETTINGS_EVENT_QUEUE_FULL,
+} settings_event_id_t;
 
 typedef enum {
 	DB_RESP,
@@ -34,6 +61,7 @@ typedef enum {
 	SET_CAL,
 	CAL_30_MIN,
 } server_event_t;
+
 #define MAX_CALIBRATION_VALUE_LEN (10)
 
 extern const char *cal_pre_post_burn_str;

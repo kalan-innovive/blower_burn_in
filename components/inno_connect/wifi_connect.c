@@ -13,6 +13,7 @@
  */
 
 #include <string.h>
+#include "stdint.h"
 #include "inno_connect.h"
 #include "example_common_private.h"
 #include "esp_log.h"

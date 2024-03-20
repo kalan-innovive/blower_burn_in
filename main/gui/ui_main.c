@@ -355,7 +355,7 @@ void ui_release(void) {
 
 static void ui_after_boot(void)
 {
-//	sys_param_t *param = settings_get_parameter();
+	sys_param_t *param = settings_get_parameter();
 	// Fill in the parametesrs in the header
 	// - IP address of the event handler
 	// - Node name

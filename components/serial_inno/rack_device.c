@@ -30,38 +30,38 @@ void handle_rack_req(msg16_t *request, msg16_t *response){
 	for (int i=0; i<request->len; i++){
 		switch (base) {
 			case INFO_REVISION:
-				response->msg_val[i] = rack_regs.revision;
+				response->payload[i] = rack_regs.revision;
 				break;
 			case INFO_RACKTYPE:
-				response->msg_val[i] = rack_regs.rack_type;
+				response->payload[i] = rack_regs.rack_type;
 				break;
 			case INFO_ROWS:
-				response->msg_val[i] = rack_regs.rows;
+				response->payload[i] = rack_regs.rows;
 				break;
 			case INFO_COLUMNS:
-				response->msg_val[i] = rack_regs.columns;
+				response->payload[i] = rack_regs.columns;
 				break;
 			case INFO_SIDES:
-				response->msg_val[i] = rack_regs.sides;
+				response->payload[i] = rack_regs.sides;
 				break;
 			case INFO_CHECKSUM:
-				response->msg_val[i] = rack_regs.checksum;
+				response->payload[i] = rack_regs.checksum;
 				break;
 			case INFO_RACKREV:
-				response->msg_val[i] = rack_regs.rack_rev;
+				response->payload[i] = rack_regs.rack_rev;
 				break;
 			case REG_CHIPIDH:
-				response->msg_val[i] = rack_regs.chip_idh;
+				response->payload[i] = rack_regs.chip_idh;
 				break;
 			case REG_CHIPIDL:
-				response->msg_val[i] = rack_regs.chip_idl;
+				response->payload[i] = rack_regs.chip_idl;
 				break;
 			case REG_MODBUS_ADDR:
-				response->msg_val[i] = rack_regs.modbus_addr;
+				response->payload[i] = rack_regs.modbus_addr;
 				break;
 			default:
 				// invalid address, send error response
-				response->msg_val[0] = 0;
+				response->payload[0] = 0;
 				response->len = 0;
 				break;
 		}

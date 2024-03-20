@@ -6,6 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
+#include "freertos/queue.h"
 
 #include "esp_netif.h"
 #include "esp_heap_caps.h"
@@ -16,8 +17,7 @@
 #include "nvs.h"
 #include "esp_check.h"
 
-#include "freertos/queue.h"
-//#include "settings.h"
+#include "settings.h"
 #include "app_event_handler.h"
 #include "gui/ui_main.h"
 
@@ -206,7 +206,6 @@ static esp_err_t run_blower_burn_in_app(void) {
 	app_cfg.config_type = CONFIG_TYPE_DEFAULT;
 	app_cfg.event_base = get_event_handler_base();
 	app_cfg.eh_handler = get_event_handler_loop();
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 	ESP_ERROR_CHECK(setup_mqtt_default(&app_cfg));
 	ESP_LOGI(TAG, "Setup MQTT handler Started ");
@@ -216,6 +215,7 @@ static esp_err_t run_blower_burn_in_app(void) {
 	set_ui_esp_name(app_cfg.node_name);
 
 	ESP_LOGI(TAG, "Setup MQTT handler Completed ");
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 	return ret;
 }
@@ -294,7 +294,6 @@ void app_main(void) {
 	if (err_wifi==ESP_OK) {
 		wifi_conn = 1;
 	}
-	vTaskDelay(3000 / portTICK_PERIOD_MS);
 
 		ESP_ERROR_CHECK(run_blower_burn_in_app());
 

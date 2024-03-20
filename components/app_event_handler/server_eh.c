@@ -51,6 +51,11 @@ static const char *TAG = "user_event_loop";
  */
 
 ESP_EVENT_DEFINE_BASE(APP_EH_EVENT);
+ESP_EVENT_DEFINE_BASE(SERIAL_EVENT);
+ESP_EVENT_DEFINE_BASE(SERVER_EH_EVENT);
+ESP_EVENT_DEFINE_BASE(SETTINGS_EVENT);
+ESP_EVENT_DEFINE_BASE(MSG16_EVENT);
+
 
 esp_event_loop_handle_t eh_loop;
 
@@ -403,6 +408,8 @@ const char* get_eh_event_id_string(eh_event_id_t event_id) {
 	switch (event_id) {
 		case MSG16_REQUEST:
 			return "MSG16_REQUEST";
+		case MSG16_RESPONSE:
+			return "MSG16_RESPONSE";
 		case SETTINGS_REQUEST:
 			return "SETTINGS_REQUEST";
 		case SERVER_EH_RESPONSE:

@@ -9,6 +9,9 @@ extern "C" {
 #include "esp_err.h"
 #include "mqtt_client.h"
 
+// Update the version when api changes are made
+#define MQTT_EH_VER "2.0.1";
+
 // Assuming we have a type defined as:
 typedef void (*eh_handler_t)(void);
 
@@ -26,6 +29,7 @@ typedef enum {
 	INFO_TOPIC,
 	UPDATE_TOPIC,
 	PING_TOPIC,
+	MSG16_TOPIC,
 	CONFIG_TOPIC,
 } sub_topic_t;
 
@@ -38,24 +42,31 @@ typedef enum {
 } client_status_t;
 
 // The MQTT handler configuration structure
+// TODO: move to the settings header?
 typedef struct {
 	config_type_t config_type;   // Config type: either custom, default, or NVME
-	eh_handler_t eh_handler;                 // Pointer to an event handler
-	esp_mqtt_client_config_t *mqtt_config; // Pointer to an MQTT client configuration structure
-	esp_event_base_t event_base;             // Event base for ESP events
-	unsigned node_number;
-	char *node_name;
-	char *up_topic;
-	char *up_message;
-	char *last_will_topic;
-	char *eh_topic;
-	const char **sub_topics;
-	const int *sub_topic_ids;
-	size_t sub_topic_len;
-	int status;
+	eh_handler_t eh_handler;                 	// Pointer to an event handler
+	esp_mqtt_client_config_t *mqtt_config; 		// Pointer to an MQTT client configuration structure
+	esp_event_base_t event_base;             	// Event base for ESP app events
+	esp_event_base_t event_base_serial;			// Event base for ESP Serial Console Events
+	esp_event_base_t event_base_settings; 		// Event base for ESP settings
+	esp_event_base_t event_base_msg16;   		// Event base for ESP Modbus SerialInno msgs
 
+
+	unsigned node_number;
+	char *node_name;	// Node identification name
+	char *eh_topic;		// Used to set the event handler node for the esp device
+	const char **sub_topics; // Topics that are subscribed to listen
+	const int *sub_topic_ids; // Topic ID list
+	size_t sub_topic_len; // Length of sub topic list
+	char *mac_addr_str; // String repr
+	uint8_t mac_addr[8]; // Mac address array
+	unsigned ssid;	// The sum of all mac address 32 bit bytes
+	int status;		// Current status of the dMQTT server
+	const char *ver;	// Version of MQTT handler
+	const char *mqtt_ver; 	// Version of MQTT
+	const char *uri; // URI of MQTT server
 	const char *prog_name;
-	const char *ver;
 
 } mqtt_handler_config_t;
 
@@ -87,6 +98,7 @@ const char** create_esp_subscriptions(unsigned int userNode,
 		const char **topics, size_t numTopics);
 
 esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg);
+esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg);
 esp_err_t request_ppb_vals(unsigned chipID);
 esp_err_t set_calibration_val(unsigned chipID, int val);
 esp_err_t set_cal_burnin_val(unsigned chipID, int val);
