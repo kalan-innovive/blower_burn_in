@@ -3,12 +3,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <cJSON.h>
-
+#include "stdlib.h"
+#include <stdbool.h>
 #include "esp_types.h"
 #include "esp_event.h"
 #include "esp_err.h"
-
+#include <cJSON.h>
+//#include <cjson/cJSON.h>
 typedef enum {
 	MSG16_REQUEST,
 	SETTINGS_REQUEST,
@@ -78,6 +79,9 @@ typedef struct {
 	int qc_cal_val;
 	int num_burnin;
 	int burnin_val[MAX_CALIBRATION_VALUE_LEN];
+	int range;
+	int result;
+	char *result_msg;
 } db_resp_pre_post_burnin_t;
 
 typedef enum {

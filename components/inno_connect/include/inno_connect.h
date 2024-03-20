@@ -12,9 +12,7 @@
 #include "sdkconfig.h"
 #include "esp_err.h"
 #include "esp_netif.h"
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-#include "esp_eth.h"
-#endif
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,15 +22,10 @@ extern "C" {
 #define EXAMPLE_NETIF_DESC_STA "Inno_netif_sta"
 #endif
 
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-#define EXAMPLE_NETIF_DESC_ETH "example_netif_eth"
-#endif
 
 /* Example default interface, prefer the ethernet one if running in example-test (CI) configuration */
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-#define EXAMPLE_INTERFACE get_example_netif_from_desc(EXAMPLE_NETIF_DESC_ETH)
-#define get_example_netif() get_example_netif_from_desc(EXAMPLE_NETIF_DESC_ETH)
-#elif CONFIG_INNO_CONNECT_WIFI
+
+#if CONFIG_INNO_CONNECT_WIFI
 #define EXAMPLE_INTERFACE get_example_netif_from_desc(EXAMPLE_NETIF_DESC_STA)
 #define get_example_netif() get_example_netif_from_desc(EXAMPLE_NETIF_DESC_STA)
 #endif

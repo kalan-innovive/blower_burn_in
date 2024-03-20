@@ -418,7 +418,7 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 
 		}
 		//	char client_id[64];
-		unsigned int node_num = (ssid) & 0xff;
+		unsigned int node_num = (ssid) & 0xeff;
 		node_num += (node_num < 2) ? 2 : 0;
 //		uint8_t node_num = 1;
 		ESP_LOGI(TAG, "%s : SSID=%u", __FUNCTION__, node_num);
@@ -433,7 +433,7 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 		app_cfg->last_will_topic = (char*) topic_last_will;
 		app_cfg->eh_topic = (char*) topic_db_set;
 		app_cfg->prog_name = "burn_in";
-		app_cfg->ver = "1.0.0";
+		app_cfg->ver = "1.1.0";
 
 		// Create the sub topic list
 		const char *topics[] = { "", "info", "update", "ping", "config" };

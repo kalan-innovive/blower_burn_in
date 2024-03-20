@@ -356,6 +356,10 @@ esp_err_t db_pre_post_parser(cJSON *root, db_resp_pre_post_burnin_t **db_ppb) {
 	cJSON *vas_value = cJSON_GetObjectItem(root, "vas_val");
 	cJSON *qc_value = cJSON_GetObjectItem(root, "qc_val");
 	cJSON *burnin_value = cJSON_GetObjectItem(root, "burnin_value");
+	cJSON *range = cJSON_GetObjectItem(root, "burnin_value");
+	cJSON *result = cJSON_GetObjectItem(root, "result_code");
+	cJSON *result_msg = cJSON_GetObjectItem(root, "result_msg");
+	cJSON *uuid = cJSON_GetObjectItem(root, "uuid");
 
 	if (!cJSON_IsNumber(chip_id) || !cJSON_IsNumber(vas_value)
 			|| !cJSON_IsNumber(qc_value) || !cJSON_IsArray(burnin_value)) {

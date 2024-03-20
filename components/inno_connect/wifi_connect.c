@@ -16,18 +16,18 @@
 #include "inno_connect.h"
 #include "example_common_private.h"
 #include "esp_log.h"
-#include "esp_wifi.h"
+#include <esp_wifi.h>
 
-static esp_err_t connect_to_known_network(wifi_config_t wifi_config);
+//static esp_err_t connect_to_known_network(wifi_config_t wifi_config);
 
 #if CONFIG_INNO_CONNECT_WIFI
 
 static const char *TAG = "inno_wifi_connect";
 static esp_netif_t *s_example_sta_netif = NULL;
 static SemaphoreHandle_t s_semph_get_ip_addrs = NULL;
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-static SemaphoreHandle_t s_semph_get_ip6_addrs = NULL;
-#endif
+//#if CONFIG_EXAMPLE_CONNECT_IPV6
+//static SemaphoreHandle_t s_semph_get_ip6_addrs = NULL;
+//#endif
 
 #if CONFIG_EXAMPLE_WIFI_SCAN_METHOD_FAST
 #define EXAMPLE_WIFI_SCAN_METHOD WIFI_FAST_SCAN
@@ -75,11 +75,11 @@ static void inno_handler_on_wifi_disconnect(void *arg,
 		if (s_semph_get_ip_addrs) {
 			xSemaphoreGive(s_semph_get_ip_addrs);
 		}
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-        if (s_semph_get_ip6_addrs) {
-            xSemaphoreGive(s_semph_get_ip6_addrs);
-        }
-#endif
+//#if CONFIG_EXAMPLE_CONNECT_IPV6
+//        if (s_semph_get_ip6_addrs) {
+//            xSemaphoreGive(s_semph_get_ip6_addrs);
+//        }
+//#endif
 		return;
 	}
 	ESP_LOGI(TAG, "Wi-Fi disconnected, trying to reconnect...");
@@ -94,9 +94,9 @@ static void inno_handler_on_wifi_connect(void *esp_netif,
 		esp_event_base_t event_base,
 		int32_t event_id, void *event_data)
 {
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-    esp_netif_create_ip6_linklocal(esp_netif);
-#endif // CONFIG_EXAMPLE_CONNECT_IPV6
+//#if CONFIG_EXAMPLE_CONNECT_IPV6
+//    esp_netif_create_ip6_linklocal(esp_netif);
+//#endif // CONFIG_EXAMPLE_CONNECT_IPV6
 }
 
 static void inno_handler_on_sta_got_ip(void *arg,
@@ -117,27 +117,27 @@ static void inno_handler_on_sta_got_ip(void *arg,
 	}
 }
 
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-static void example_handler_on_sta_got_ipv6(void *arg, esp_event_base_t event_base,
-                        int32_t event_id, void *event_data)
-{
-    ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
-    if (!example_is_our_netif(EXAMPLE_NETIF_DESC_STA, event->esp_netif)) {
-        return;
-    }
-    esp_ip6_addr_type_t ipv6_type = esp_netif_ip6_get_addr_type(&event->ip6_info.ip);
-    ESP_LOGI(TAG, "Got IPv6 event: Interface \"%s\" address: " IPV6STR ", type: %s", esp_netif_get_desc(event->esp_netif),
-             IPV62STR(event->ip6_info.ip), example_ipv6_addr_types_to_str[ipv6_type]);
-
-    if (ipv6_type == EXAMPLE_CONNECT_PREFERRED_IPV6_TYPE) {
-        if (s_semph_get_ip6_addrs) {
-            xSemaphoreGive(s_semph_get_ip6_addrs);
-        } else {
-            ESP_LOGI(TAG, "- IPv6 address: " IPV6STR ", type: %s", IPV62STR(event->ip6_info.ip), example_ipv6_addr_types_to_str[ipv6_type]);
-        }
-    }
-}
-#endif // CONFIG_EXAMPLE_CONNECT_IPV6
+//#if CONFIG_EXAMPLE_CONNECT_IPV6
+//static void example_handler_on_sta_got_ipv6(void *arg, esp_event_base_t event_base,
+//                        int32_t event_id, void *event_data)
+//{
+//    ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
+//    if (!example_is_our_netif(EXAMPLE_NETIF_DESC_STA, event->esp_netif)) {
+//        return;
+//    }
+//    esp_ip6_addr_type_t ipv6_type = esp_netif_ip6_get_addr_type(&event->ip6_info.ip);
+//    ESP_LOGI(TAG, "Got IPv6 event: Interface \"%s\" address: " IPV6STR ", type: %s", esp_netif_get_desc(event->esp_netif),
+//             IPV62STR(event->ip6_info.ip), example_ipv6_addr_types_to_str[ipv6_type]);
+//
+//    if (ipv6_type == EXAMPLE_CONNECT_PREFERRED_IPV6_TYPE) {
+//        if (s_semph_get_ip6_addrs) {
+//            xSemaphoreGive(s_semph_get_ip6_addrs);
+//        } else {
+//            ESP_LOGI(TAG, "- IPv6 address: " IPV6STR ", type: %s", IPV62STR(event->ip6_info.ip), example_ipv6_addr_types_to_str[ipv6_type]);
+//        }
+//    }
+//}
+//#endif // CONFIG_EXAMPLE_CONNECT_IPV6
 
 void connect_wifi_start(void)
 {
@@ -180,13 +180,7 @@ esp_err_t inno_wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
 		if (s_semph_get_ip_addrs == NULL) {
 			return ESP_ERR_NO_MEM;
 		}
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-        s_semph_get_ip6_addrs = xSemaphoreCreateBinary();
-        if (s_semph_get_ip6_addrs == NULL) {
-            vSemaphoreDelete(s_semph_get_ip_addrs);
-            return ESP_ERR_NO_MEM;
-        }
-#endif
+
 	}
 	s_retry_num = 0;
 	ESP_ERROR_CHECK(
@@ -198,9 +192,7 @@ esp_err_t inno_wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
 	ESP_ERROR_CHECK(
 			esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED,
 					&inno_handler_on_wifi_connect, s_example_sta_netif));
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_GOT_IP6, &example_handler_on_sta_got_ipv6, NULL));
-#endif
+
 
 	ESP_LOGI(TAG, "Connecting to %s...", wifi_config.sta.ssid);
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -212,9 +204,7 @@ esp_err_t inno_wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
 	if (wait) {
 		ESP_LOGI(TAG, "Waiting for IP(s)");
 		xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-        xSemaphoreTake(s_semph_get_ip6_addrs, portMAX_DELAY);
-#endif
+
 		ESP_LOGD(TAG, "Retry count %d", s_retry_num);
 
 		if (s_retry_num > CONFIG_INNO_WIFI_CONN_MAX_RETRY) {
@@ -239,17 +229,11 @@ esp_err_t example_wifi_sta_do_disconnect(void)
 	ESP_ERROR_CHECK(
 			esp_event_handler_unregister(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED,
 					&inno_handler_on_wifi_connect));
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-    ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_GOT_IP6, &example_handler_on_sta_got_ipv6));
-#endif
+
 	if (s_semph_get_ip_addrs) {
 		vSemaphoreDelete(s_semph_get_ip_addrs);
 	}
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-    if (s_semph_get_ip6_addrs) {
-        vSemaphoreDelete(s_semph_get_ip6_addrs);
-    }
-#endif
+
 	return esp_wifi_disconnect();
 }
 
@@ -263,7 +247,10 @@ static char wifi_ssid_set[32];
 static char wifi_passwd_set[64];
 
 int set_wifi_cradentail(char *ssid, char *passwd) {
+	ESP_LOGI(TAG, "Setting up wifi credentials ");
 	if (strlen(ssid) > 23 || strlen(passwd) > 63) {
+		ESP_LOGW(TAG, "Setting up wifi credentials failed string length too long ssid len:%d max 23, passwd len: %d max 63 ", strlen(ssid) ,  strlen(passwd) > 63);
+
 		return 0;
 	}
 	strcpy((char*) wifi_ssid_set, ssid);
@@ -280,10 +267,12 @@ esp_err_t inno_wifi_connect(void)
 
 	wifi_config_t wifi_config = {
 			.sta = {
-					#if !CONFIG_INNO_WIFI_SSID_PWD_FROM_STDIN
-					.ssid = CONFIG_INNO_WIFI_SSID0,
-					.password = CONFIG_INNO_WIFI_PASSWORD0,
-					#endif
+//					#if !CONFIG_INNO_WIFI_SSID_PWD_FROM_STDIN
+//					.ssid = CONFIG_INNO_WIFI_SSID0,
+//					.password = CONFIG_INNO_WIFI_PASSWORD0,
+//					#endif
+					.ssid = "innowf",
+					.password = "Inn0wifi!",
 					.scan_method = EXAMPLE_WIFI_SCAN_METHOD,
 					.sort_method = EXAMPLE_WIFI_CONNECT_AP_SORT_METHOD,
 					.threshold.rssi =
@@ -300,7 +289,7 @@ esp_err_t inno_wifi_connect(void)
 //		memset(wifi_config.sta.ssid, 0, sizeof(wifi_config.sta.ssid));
 //		strncpy((char*) wifi_config.sta.ssid, wifi_ssid_set,
 //				sizeof(wifi_config.sta.ssid));
-//
+//Inn0wifi!
 //	}
 
 #if CONFIG_INNO_WIFI_SSID_PWD_FROM_STDIN

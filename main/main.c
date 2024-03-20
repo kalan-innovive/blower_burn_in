@@ -17,7 +17,7 @@
 #include "esp_check.h"
 
 #include "freertos/queue.h"
-#include "settings.h"
+//#include "settings.h"
 #include "app_event_handler.h"
 #include "gui/ui_main.h"
 
@@ -187,7 +187,6 @@ static esp_err_t run_mqtt_test(void) {
  * Setup all components for the blower burn in app
  */
 static esp_err_t run_blower_burn_in_app(void) {
-	TickType_t v;
 	esp_err_t ret = ESP_OK;
 	ESP_LOGI(TAG, "Setting up Serial Inno and burn in task");
 	setup_driver();
@@ -207,15 +206,16 @@ static esp_err_t run_blower_burn_in_app(void) {
 	app_cfg.config_type = CONFIG_TYPE_DEFAULT;
 	app_cfg.event_base = get_event_handler_base();
 	app_cfg.eh_handler = get_event_handler_loop();
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 	ESP_ERROR_CHECK(setup_mqtt_default(&app_cfg));
-			ESP_ERROR_CHECK(setup_mqtt_setup(&app_cfg));
-	
+	ESP_LOGI(TAG, "Setup MQTT handler Started ");
+
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 	set_ui_ip(get_ip());
 	set_ui_esp_name(app_cfg.node_name);
 
 	ESP_LOGI(TAG, "Setup MQTT handler Completed ");
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 	return ret;
 }
@@ -226,12 +226,12 @@ void app_main(void) {
 //	const char* tes = NULL;
 
 	srand(time(NULL));   // Initialization, should only be called once.
-	esp_log_level_set("inno_common", ESP_LOG_WARN);
-	esp_log_level_set("inno_connect", ESP_LOG_DEBUG);
-	esp_log_level_set("inno_wifi_connect", ESP_LOG_DEBUG);
-
-	esp_log_level_set("wifi", ESP_LOG_WARN);
-	esp_log_level_set("mqtt_handler", ESP_LOG_WARN);
+//	esp_log_level_set("inno_common", ESP_LOG_WARN);
+//	esp_log_level_set("inno_connect", ESP_LOG_DEBUG);
+//	esp_log_level_set("inno_wifi_connect", ESP_LOG_DEBUG);
+//
+//	esp_log_level_set("wifi", ESP_LOG_WARN);
+//	esp_log_level_set("mqtt_handler", ESP_LOG_WARN);
 
 	ESP_LOGI(TAG, "Compile time: %s %s", __DATE__, __TIME__);
 	/* Initialize NVS. */
@@ -243,12 +243,13 @@ void app_main(void) {
 		err = nvs_flash_init();
 	}
 	ESP_ERROR_CHECK(err);
-	ESP_ERROR_CHECK(settings_read_parameter_from_nvs());
+//	ESP_ERROR_CHECK(settings_read_parameter_from_nvs());
 	/* Initialize Board. */
 
 	bsp_i2c_init();
 	bsp_display_start();
 	bsp_board_init();
+
 #ifdef TESTING_INNO_COMPONENTS
 #ifdef TESTING_EH_LOOP
 	run_event_handler_tests();
@@ -271,18 +272,18 @@ void app_main(void) {
 	//	    ESP_LOG_DEBUG,      /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
 	//	    ESP_LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
 
-	esp_log_level_set("msg16", ESP_LOG_WARN);
-	esp_log_level_set("serial_inno", ESP_LOG_ERROR);
-	esp_log_level_set("burn-in", ESP_LOG_DEBUG);
-	esp_log_level_set("UI_blower-BI", ESP_LOG_DEBUG);
-	esp_log_level_set("UI_Timer", ESP_LOG_WARN);
-	esp_log_level_set("UI_EVENT", ESP_LOG_DEBUG);
-	esp_log_level_set("UI_Detail", ESP_LOG_INFO);
-	esp_log_level_set("spi_master", ESP_LOG_WARN);
-	esp_log_level_set("efuse", ESP_LOG_WARN);
-	esp_log_level_set("GC_task", ESP_LOG_WARN);
-	esp_log_level_set("user_event_loop", ESP_LOG_WARN);
-	esp_log_level_set("offset_data", ESP_LOG_WARN);
+//	esp_log_level_set("msg16", ESP_LOG_WARN);
+//	esp_log_level_set("serial_inno", ESP_LOG_ERROR);
+//	esp_log_level_set("burn-in", ESP_LOG_DEBUG);
+//	esp_log_level_set("UI_blower-BI", ESP_LOG_DEBUG);
+//	esp_log_level_set("UI_Timer", ESP_LOG_WARN);
+//	esp_log_level_set("UI_EVENT", ESP_LOG_DEBUG);
+//	esp_log_level_set("UI_Detail", ESP_LOG_INFO);
+//	esp_log_level_set("spi_master", ESP_LOG_WARN);
+//	esp_log_level_set("efuse", ESP_LOG_WARN);
+//	esp_log_level_set("GC_task", ESP_LOG_WARN);
+//	esp_log_level_set("user_event_loop", ESP_LOG_WARN);
+//	esp_log_level_set("offset_data", ESP_LOG_WARN);
 	ESP_ERROR_CHECK(esp_netif_init());
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
@@ -293,8 +294,10 @@ void app_main(void) {
 	if (err_wifi==ESP_OK) {
 		wifi_conn = 1;
 	}
+	vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-	ESP_ERROR_CHECK(run_blower_burn_in_app());
+		ESP_ERROR_CHECK(run_blower_burn_in_app());
+
 #endif
 
 }

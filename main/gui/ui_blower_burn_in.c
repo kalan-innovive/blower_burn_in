@@ -478,10 +478,10 @@ esp_err_t update_detail_values(int dev_id) {
 		char *failed_msg[4] = { "  ", f_range, f_TEB, f_both };
 
 		if (b_vals->state == FAILED_BLOWER_TEST) {
-			if (b_vals->range > 11) {
+			if (b_vals->range > 15) {
 				error_id += 1;
 			}
-			if (b_vals->max_val > 80 || b_vals->min_val < -80) {
+			if (b_vals->max_val > 40 || b_vals->min_val < -40) {
 				error_id += 2;
 			}
 			lv_label_set_text(ui_ErrorLable, failed_msg[error_id]);
@@ -879,6 +879,7 @@ void create_chart_with_data(lv_obj_t *chart,
 			sizeof(chart_data_burnin));
 	memset(chart_data_prev_val, DEF_OFFSET_VAL,
 			sizeof(chart_data_prev_val));
+	// check if the vas_offset is set before updating the chart
 
 	// Setting the previous calibration values in the array
 	chart_data_prev_val[0] = b_vals->vas_offset;

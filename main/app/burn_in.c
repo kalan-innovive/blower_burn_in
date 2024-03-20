@@ -241,6 +241,7 @@ static void setup_blower_(burn_in_ui_value_t *brn_val) {
 			blower->offset = cur_offset[i];
 
 			// Set the state
+			// TODO: change to a set state function
 			blower->state = STARTING_BLOWER_TEST;
 
 		} else {
@@ -320,7 +321,7 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				// Set the min max and range values
 				blower->min_val = get_min_last_n(cd, 4);
 				blower->max_val = get_max_last_n(cd, 4);
-				blower->range = blower->max_val - blower->min_val;
+				blower->range = offset_range_last_n(cd, 4);
 				// Range should be greater than 0 to get rid of false posatives
 				blower->range = (blower->range==0) ? 1 : blower->range;
 

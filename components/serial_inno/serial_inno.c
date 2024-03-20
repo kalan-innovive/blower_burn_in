@@ -17,7 +17,7 @@
 #include "driver/gpio.h"
 #include "sdkconfig.h"
 
-#define UART_BUFFER_SIZE 24
+#define UART_BUFFER_SIZE 124
 #define UART_RX_QUEUE_SIZE 10
 #define BUF_SIZE (1024)
 
@@ -344,7 +344,7 @@ int transact_write(const msg16_t *request, msg16_t *response,
  */
 int get_chipid(int devid, unsigned *chipid) {
 	int ret = 0;
-	TickType_t timeout = 30 / portTICK_PERIOD_MS;
+	TickType_t timeout = 60 / portTICK_PERIOD_MS;
 
 	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_CHIPIDH,
 			.len = 1 };
@@ -390,7 +390,7 @@ int get_chipid(int devid, unsigned *chipid) {
  */
 int get_raw_pressure(int devid, int *raw_pressure) {
 	int ret = 0;
-	TickType_t timeout = 30 / portTICK_PERIOD_MS;
+	TickType_t timeout = 60 / portTICK_PERIOD_MS;
 	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid,
 			.addr = REG_RAW_PRESS, .len = 1 };
 
@@ -428,7 +428,7 @@ int get_raw_pressure(int devid, int *raw_pressure) {
 int check_dev_id(int devid) {
 	ESP_LOGD(tag, "%s Checking Modbus id : %d", __FUNCTION__, devid);
 	int ret = 0;
-	TickType_t timeout = 30 / portTICK_PERIOD_MS;
+	TickType_t timeout = 60 / portTICK_PERIOD_MS;
 	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid,
 			.addr = REG_MODBUS_ADDR, .len = 1 };
 
