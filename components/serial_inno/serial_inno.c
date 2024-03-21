@@ -289,8 +289,8 @@ int transact_read(const msg16_t *request, msg16_t *response, TickType_t timeout)
 
 	// send the packed message
 	num_bytes = uart_tx_task(packed_request, packed_size);
-	ESP_LOGI(tag, "Transact Read type%d, dev ID=%d, addr=%d, len=%d",
-			request->type, request->dev_id, request->addr, request->len);
+	ESP_LOGI(tag, "Transact Read type%d, dev ID=%d, addr=%d, len=%d timeout=%lu ",
+			request->type, request->dev_id, request->addr, request->len, timeout);
 
 	if (num_bytes == 0){
 			return 0;

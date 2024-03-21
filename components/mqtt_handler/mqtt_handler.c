@@ -71,7 +71,7 @@ esp_err_t request_ppb_vals(unsigned chipID) {
 	ESP_LOGI(TAG, "Sent ppb request; topic=%s, msg=%s msg_id=%d",
 			topic, msg, msg_id);
 
-	return (len > ppb_jsn_len) ? ESP_OK : ESP_FAIL;
+	return (len >= ppb_jsn_len) ? ESP_OK : ESP_FAIL;
 
 }
 
@@ -467,10 +467,10 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 		ESP_LOGI(TAG, "%s : Node Name=[%s]", __FUNCTION__, app_cfg->node_name);
 
 		app_cfg->node_number = node_num;
-		app_cfg->up_topic = (char*) topic_notify;
-		app_cfg->last_will_topic = (char*) topic_last_will;
+//		app_cfg->up_topic = (char*) topic_notify;
+//		app_cfg->last_will_topic = (char*) topic_last_will;
 		app_cfg->eh_topic = (char*) topic_db_set;
-		app_cfg->ver = "1.0.0";
+//		app_cfg->ver = "1.0.0";
 		app_cfg->mqtt_ver = "3.11";
 
 
@@ -503,7 +503,9 @@ esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg) {
 	const char *last_will_msg = espname;
 	int last_will_msg_len = strlen(last_will_msg);
 	esp_err_t err = ESP_OK;
+//	sprintf(espname, app_cfg->node_name);
 	sprintf(espname, app_cfg->node_name);
+
 
 	// Client configuration step
 	esp_mqtt_client_config_t
@@ -559,6 +561,8 @@ esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg) {
 	 */
 	err = esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID,
 			mqtt_event_handler, app_cfg);
+//	err = esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID,
+//			mqtt_event_handler, NULL);
 	ESP_LOGI(TAG, "%s : esp_mqtt_client_register_event: err=[%d]", __FUNCTION__,
 			err);
 	if (err != ESP_OK) {
@@ -681,9 +685,9 @@ const char** create_esp_subscriptions(unsigned int userNode,
 	return nodeNames;
 }
 
-static void free_topic_arrays(const char **nodeNames, size_t len) {
-	for (size_t i = 0; i < len; i++) {
-		free((void*) nodeNames[i]);
-	}
-	free(nodeNames);
-}
+//static void free_topic_arrays(const char **nodeNames, size_t len) {
+//	for (size_t i = 0; i < len; i++) {
+//		free((void*) nodeNames[i]);
+//	}
+//	free(nodeNames);
+//}

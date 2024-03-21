@@ -24,6 +24,11 @@
 			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/app_trace/app_trace.c</location>
 		</link>
 		<link>
+			<name>build/ide/esp_idf_components/app_trace/app_trace_membufs_proto.c</name>
+			<type>1</type>
+			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/app_trace/app_trace_membufs_proto.c</location>
+		</link>
+		<link>
 			<name>build/ide/esp_idf_components/app_trace/app_trace_util.c</name>
 			<type>1</type>
 			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/app_trace/app_trace_util.c</location>
@@ -669,9 +674,24 @@
 			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/heap/heap_caps_init.c</location>
 		</link>
 		<link>
+			<name>build/ide/esp_idf_components/heap/heap_task_info.c</name>
+			<type>1</type>
+			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/heap/heap_task_info.c</location>
+		</link>
+		<link>
+			<name>build/ide/esp_idf_components/heap/heap_trace_standalone.c</name>
+			<type>1</type>
+			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/heap/heap_trace_standalone.c</location>
+		</link>
+		<link>
 			<name>build/ide/esp_idf_components/heap/multi_heap.c</name>
 			<type>1</type>
 			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/heap/multi_heap.c</location>
+		</link>
+		<link>
+			<name>build/ide/esp_idf_components/heap/multi_heap_poisoning.c</name>
+			<type>1</type>
+			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/heap/multi_heap_poisoning.c</location>
 		</link>
 		<link>
 			<name>build/ide/esp_idf_components/http_parser/http_parser.c</name>
@@ -2292,6 +2312,11 @@
 			<name>build/ide/esp_idf_components/wpa_supplicant/port/os_xtensa.c</name>
 			<type>1</type>
 			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/wpa_supplicant/port/os_xtensa.c</location>
+		</link>
+		<link>
+			<name>build/ide/esp_idf_components/app_trace/port/xtensa/port.c</name>
+			<type>1</type>
+			<location>/Users/ekalan/esp/esp-idf-v5/esp-idf-v5.0/components/app_trace/port/xtensa/port.c</location>
 		</link>
 		<link>
 			<name>build/ide/esp_idf_components/bootloader_support/bootloader_flash/src/bootloader_flash.c</name>

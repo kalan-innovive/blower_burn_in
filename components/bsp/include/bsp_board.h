@@ -110,7 +110,6 @@ typedef struct {
     bsp_codec_mute_fn mute_set_fn;
     bsp_codec_volume_fn volume_set_fn;
     bsp_codec_reconfig_fn codec_reconfig_fn;
-
     bsp_i2s_read_fn i2s_read_fn;
     bsp_i2s_write_fn i2s_write_fn;
     bsp_i2s_reconfig_clk_fn i2s_reconfig_clk_fn;
