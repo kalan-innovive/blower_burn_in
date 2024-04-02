@@ -637,7 +637,7 @@ static esp_err_t system_test_available_dev(void){
 		for (int i=0;i<num_dev; i++){
 			// Send a message and check for response
 			suc = get_chipid(dev_id[i], &chipid);
-			if (suc>=1){
+			if (suc==1){
 				ESP_LOGI(tag, "Chip ID Received %u for Dev:%d", chipid, dev_id[i]);
 				dev_chipid[i] = chipid;
 				num_avail +=1;

@@ -25,7 +25,7 @@
 #define BUF_SIZE (1024)
 
 extern QueueHandle_t uart_rx_queue;
-extern QueueHandle_t rack_queue;
+//extern QueueHandle_t rack_queue;
 
 static const char *tag = "serial_inno";
 

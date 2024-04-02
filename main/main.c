@@ -34,7 +34,7 @@
 #include "ui.h"
 #include "mqtt_handler.h"
 
-#define TESTING_INNO_COMPONENTS 0
+//#define TESTING_INNO_COMPONENTS 0
 
 #ifdef TESTING_INNO_COMPONENTS
 
