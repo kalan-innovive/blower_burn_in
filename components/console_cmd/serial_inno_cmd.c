@@ -97,6 +97,19 @@ static int check_id(int argc, char **argv)
 	ret1 = get_chipid(devid, &chipID);
 	ret2 = get_raw_pressure(devid, &offset);
 
+	float raw_avg = 0;
+//	for (int i=0;i<5;i++) {
+//		ret2 = get_raw_pressure(devid, &offset);
+//		raw_avg+=offset;
+//		if (ret2) {
+//			break;
+//
+//		}
+//		raw_avg+=offset;
+//	}
+
+	ret2 = get_raw_pressure(devid, &offset);
+
 	if (ret == 1 && ret1 == 1 && ret2 == 1){
 
 		sprintf(str_chipid, "%u", chipID);
