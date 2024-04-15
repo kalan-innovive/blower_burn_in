@@ -221,6 +221,7 @@ static esp_err_t run_blower_burn_in_app(void) {
 	app_cfg.config_type = CONFIG_TYPE_DEFAULT;
 	app_cfg.event_base = get_event_handler_base();
 	app_cfg.eh_handler = get_event_handler_loop();
+	app_cfg.ver = "1.1.0";
 
 	if (wifi_conn) {
 
@@ -247,7 +248,7 @@ void app_main(void) {
 	esp_log_level_set("inno_wifi_connect", ESP_LOG_DEBUG);
 
 	esp_log_level_set("wifi", ESP_LOG_WARN);
-	esp_log_level_set("mqtt_handler", ESP_LOG_WARN);
+	esp_log_level_set("mqtt_handler", ESP_LOG_DEBUG);
 
 	ESP_LOGI(TAG, "Compile time: %s %s", __DATE__, __TIME__);
 	/* Initialize NVS. */

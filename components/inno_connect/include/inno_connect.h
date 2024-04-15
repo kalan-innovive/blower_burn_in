@@ -12,29 +12,23 @@
 #include "sdkconfig.h"
 #include "esp_err.h"
 #include "esp_netif.h"
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-#include "esp_eth.h"
-#endif
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #if CONFIG_INNO_CONNECT_WIFI
-#define EXAMPLE_NETIF_DESC_STA "Inno_netif_sta"
+#define INNO_NETIF_DESC_STA "Inno_netif_sta"
 #endif
 
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-#define EXAMPLE_NETIF_DESC_ETH "example_netif_eth"
-#endif
+
 
 /* Example default interface, prefer the ethernet one if running in example-test (CI) configuration */
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-#define EXAMPLE_INTERFACE get_example_netif_from_desc(EXAMPLE_NETIF_DESC_ETH)
-#define get_example_netif() get_example_netif_from_desc(EXAMPLE_NETIF_DESC_ETH)
-#elif CONFIG_INNO_CONNECT_WIFI
-#define EXAMPLE_INTERFACE get_example_netif_from_desc(EXAMPLE_NETIF_DESC_STA)
-#define get_example_netif() get_example_netif_from_desc(EXAMPLE_NETIF_DESC_STA)
+
+#if CONFIG_INNO_CONNECT_WIFI
+#define EXAMPLE_INTERFACE get_example_netif_from_desc(INNO_NETIF_DESC_STA)
+#define get_example_netif() get_example_netif_from_desc(INNO_NETIF_DESC_STA)
 #endif
 
 #define CONN_KNOWN_WIFI_NETWORKS 1
@@ -50,15 +44,9 @@ typedef struct {
 /**
  * @brief Configure Wi-Fi or Ethernet, connect, wait for IP
  *
- * This all-in-one helper function is used in protocols examples to
- * reduce the amount of boilerplate in the example.
+ * This all-in-one helper function is used for different connection types to
+ * reduce the amount of boilerplate in Projects.
  *
- * It is not intended to be used in real world applications.
- * See examples under examples/wifi/getting_started/ and examples/ethernet/
- * for more complete Wi-Fi or Ethernet initialization code.
- *
- * Read "Establishing Wi-Fi or Ethernet Connection" section in
- * examples/protocols/README.md for more information about this function.
  *
  * @return ESP_OK on successful connection
  */
@@ -66,7 +54,7 @@ esp_err_t inno_connect(void);
 
 const char* get_ip(void);
 /**
- * Counterpart to example_connect, de-initializes Wi-Fi or Ethernet
+ * Counterpart to inno_connect, de-initializes Wi-Fi
  */
 esp_err_t inno_disconnect(void);
 
@@ -79,7 +67,7 @@ esp_err_t inno_disconnect(void);
 esp_err_t example_configure_stdin_stdout(void);
 
 /**
- * @brief Returns esp-netif pointer created by example_connect() described by
+ * @brief Returns esp-netif pointer created by inno_connect() described by
  * the supplied desc field
  *
  * @param desc Textual interface of created network interface, for example "sta"
@@ -98,14 +86,7 @@ esp_netif_t* get_example_netif_from_desc(const char *desc);
 void example_register_wifi_connect_commands(void);
 #endif
 
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-/**
- * @brief Get the example Ethernet driver handle
- *
- * @return esp_eth_handle_t
- */
-esp_eth_handle_t get_example_eth_handle(void);
-#endif // CONFIG_EXAMPLE_CONNECT_ETHERNET
+
 
 #ifdef __cplusplus
 }

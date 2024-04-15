@@ -96,18 +96,22 @@ const char* get_ip(void) {
 //
 //}
 
+
+/**
+ * Connects to all forms of transportation
+ * Wifi
+ * Bluetooth
+ * Serial
+ *
+ */
 esp_err_t inno_connect(void)
 {
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-    if (example_ethernet_connect() != ESP_OK) {
-        return ESP_FAIL;
-    }
-    ESP_ERROR_CHECK(esp_register_shutdown_handler(&example_ethernet_shutdown));
-#endif
+
 
 #if CONFIG_INNO_CONNECT_WIFI
 	ESP_LOGI(TAG, "Connecting to wifi");
 	esp_err_t err = ESP_FAIL;
+//	set_wifi_cradentail("Erik's iPhone","7342173e");
 
 #ifdef SSID_LIST_FROM_CFG
 
@@ -161,7 +165,7 @@ esp_err_t inno_connect(void)
 #endif
 
 #if CONFIG_INNO_CONNECT_WIFI
-	example_print_all_netif_ips(EXAMPLE_NETIF_DESC_STA);
+	example_print_all_netif_ips(INNO_NETIF_DESC_STA);
 #endif
 
 	return ESP_OK;
@@ -169,10 +173,7 @@ esp_err_t inno_connect(void)
 
 esp_err_t inno_disconnect(void)
 {
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-    example_ethernet_shutdown();
-    ESP_ERROR_CHECK(esp_unregister_shutdown_handler(&example_ethernet_shutdown));
-#endif
+
 #if CONFIG_INNO_CONNECT_WIFI
 	connect_wifi_shutdown();
 	ESP_ERROR_CHECK(

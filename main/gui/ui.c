@@ -4,6 +4,8 @@
 // PROJECT: InnoRack
 #include "stddef.h"
 #include "stdbool.h"
+#include "lvgl.h"
+#include "lv_symbol_extra_def.h"
 #include "ui.h"
 #include "ui_helpers.h"
 #include "esp_log.h"

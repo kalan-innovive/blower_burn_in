@@ -56,7 +56,7 @@ typedef struct {
 	unsigned node_number;
 	char *node_name;	// Node identification name
 	char *eh_topic;		// Used to set the event handler node for the esp device
-	const char **sub_topics; // Topics that are subscribed to listen
+	char **sub_topics; // Topics that are subscribed to listen
 	const int *sub_topic_ids; // Topic ID list
 	size_t sub_topic_len; // Length of sub topic list
 	char *mac_addr_str; // String repr

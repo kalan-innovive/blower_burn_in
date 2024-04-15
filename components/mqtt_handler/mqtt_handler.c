@@ -275,7 +275,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 	esp_event_base_t event_base = app_conf->event_base;
 	esp_event_base_t event_base_msg16 = app_conf->event_base_msg16;
 	char *node_name = app_conf->node_name;
-	const char **sub_topics = app_conf->sub_topics;
+	char **sub_topics = app_conf->sub_topics;
 	eh_handler_t eh_handle = app_conf->eh_handler;
 
 	// EVENT Processing
@@ -297,8 +297,9 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
 			// Create the publish list of topics in the app_handler config
 			for (int i = 0; i < app_conf->sub_topic_len; i++) {
-				const char *t = sub_topics[i];
-				ESP_LOGI(TAG, "Subscribed to topic=%s", t);
+				char *t = sub_topics[i];
+//				esp_mqtt_topic_t tp = {.filter = sub_topics[i], .qos=0};
+				ESP_LOGI(TAG, "Subscribing to topic=%s", t);
 				esp_mqtt_client_subscribe(client, t, 0);
 			}
 			break;
@@ -466,7 +467,7 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 
 		app_cfg->node_number = node_num;
 		app_cfg->eh_topic = (char*) topic_db_set;
-		app_cfg->ver = "1.0.0";
+
 		app_cfg->mqtt_ver = "3.11";
 
 
@@ -500,6 +501,7 @@ esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg) {
 	int last_will_msg_len = strlen(last_will_msg);
 	esp_err_t err = ESP_OK;
 	sprintf(espname, app_cfg->node_name);
+	app_cfg->prog_name = prog_name1;
 
 	// Client configuration step
 	esp_mqtt_client_config_t
