@@ -156,7 +156,7 @@ static esp_err_t test_mqtt_handler_init(void) {
 
 	esp_err_t err;
 	err = setup_mqtt_default(&app_cfg);
-	err = setup_mqtt_setup(&app_cfg);
+	err = setup_mqtt_config(&app_cfg);
 
 	_INNO_TEST_ASSERT(err != ESP_OK, __LINE__, "Setup returned error ");
 	_INNO_TEST_ASSERT(app_cfg.mqtt_config != NULL, __LINE__,

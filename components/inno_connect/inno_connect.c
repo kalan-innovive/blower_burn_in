@@ -24,17 +24,7 @@
 static const char *TAG = "inno_connect";
 static char IP_addr[150];
 
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-/* types of ipv6 addresses to be displayed on ipv6 events */
-const char *example_ipv6_addr_types_to_str[6] = {
-	"ESP_IP6_ADDR_IS_UNKNOWN",
-	"ESP_IP6_ADDR_IS_GLOBAL",
-	"ESP_IP6_ADDR_IS_LINK_LOCAL",
-	"ESP_IP6_ADDR_IS_SITE_LOCAL",
-	"ESP_IP6_ADDR_IS_UNIQUE_LOCAL",
-	"ESP_IP6_ADDR_IS_IPV4_MAPPED_IPV6"
-};
-#endif
+
 
 /**
  * @brief Checks the netif description if it contains specified prefix.
@@ -71,15 +61,7 @@ void example_print_all_netif_ips(const char *prefix)
 			sprintf(IP_addr, "%d.%d.%d.%d", IP2STR(&ip.ip));
 			ESP_LOGI(TAG, "Setting IPv4 address: %s", IP_addr);
 			ESP_LOGI(TAG, "- IPv4 address: " IPSTR ",", IP2STR(&ip.ip));
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-			esp_ip6_addr_t ip6[MAX_IP6_ADDRS_PER_NETIF];
-			int ip6_addrs = esp_netif_get_all_ip6(netif, ip6);
-			for (int j = 0; j < ip6_addrs; ++j) {
-				esp_ip6_addr_type_t ipv6_type = esp_netif_ip6_get_addr_type(
-						&(ip6[j]));
-			ESP_LOGI(TAG, "- IPv6 address: " IPV6STR ", type: %s", IPV62STR(ip6[j]), example_ipv6_addr_types_to_str[ipv6_type]);
-		}
-#endif
+
 		}
 	}
 }

@@ -226,7 +226,7 @@ static esp_err_t run_blower_burn_in_app(void) {
 	if (wifi_conn) {
 
 		ESP_ERROR_CHECK(setup_mqtt_default(&app_cfg));
-		ESP_ERROR_CHECK(setup_mqtt_setup(&app_cfg));
+		ESP_ERROR_CHECK(setup_mqtt_config(&app_cfg));
 		set_ui_ip(get_ip());
 		set_ui_esp_name(app_cfg.node_name);
 	}

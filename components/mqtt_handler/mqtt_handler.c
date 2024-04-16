@@ -26,7 +26,6 @@
 #include "esp_heap_caps.h"
 #include <cJSON.h>
 
-
 static const char *topic_notify = "esp/up";
 static const char *topic_last_will = "esp/down";
 static const char *topic_db_set = "eh/set";
@@ -37,13 +36,9 @@ static char espname[15] = "esp000";
 static const char *topics[] = { "", "info", "update", "ping", "config" };
 const char *uri = "mqtt://innovive:innovive@mqtt.innovive.com";
 
-
-
 static int is_mqtt_connected = 0;
 
-
 const char* createNodeNameTopic(const char *userNode, const char *topic);
-//static void free_topic_arrays(const char **nodeNames, size_t len);
 
 static const char *TAG = "mqtt_handler";
 static esp_mqtt_client_handle_t client;
@@ -84,6 +79,33 @@ esp_err_t set_calibration_val(unsigned chipID, int val) {
 			"{\"node_name\": \"%s\", \"cmd\": \"calibration\", \"chip_id\": %u, \"value\":%d}";
 	int cal_jsn_len = strlen(cal_jsn);
 	const char *topic = "esp/set";
+	char msg[150];
+	int msg_id = 0;
+	int len = sprintf(msg, cal_jsn, espname, chipID, val);
+
+	ESP_LOGI(TAG, "sending cal_jsn request; topic=%s, msg_id=%d, msg=%s ",
+			topic, msg_id, msg);
+
+	if (is_mqtt_connected) {
+		msg_id = esp_mqtt_client_publish(client, topic, msg, 0, 1, 0);
+	}
+
+	ESP_LOGI(TAG, "Sent ppb request; topic=%s, msg=%s msg_id=%d",
+			topic, msg, msg_id);
+
+	return (len > cal_jsn_len) ? ESP_OK : ESP_FAIL;
+
+}
+
+/**
+ * Send server event handler calibration val
+ *
+ */
+esp_err_t post_new_chipid(unsigned chipID, int val) {
+	const char *cal_jsn =
+			"{\"node_name\": \"%s\", \"cmd\": \"new_chip_id\", \"chip_id\": %u, \"value\":%d}";
+	int cal_jsn_len = strlen(cal_jsn);
+	const char *topic = "esp/update";
 	char msg[150];
 	int msg_id = 0;
 	int len = sprintf(msg, cal_jsn, espname, chipID, val);
@@ -175,7 +197,6 @@ const char* node_up_message(const mqtt_handler_config_t *config) {
 	return json_string;
 }
 
-
 const char* config_request_message(const mqtt_handler_config_t *config) {
 	if (config == NULL || config->node_name == NULL || config->ver == NULL) {
 		return NULL; // Unable to construct the message
@@ -208,7 +229,8 @@ void print_mqtt_handler_config(const mqtt_handler_config_t *config) {
 
 	if (config->node_name != NULL) {
 		ESP_LOGI(TAG, "Node Name: %s", config->node_name);
-	} else {
+	}
+	else {
 		ESP_LOGW(TAG, "Node Name: NULL");
 	}
 
@@ -217,18 +239,21 @@ void print_mqtt_handler_config(const mqtt_handler_config_t *config) {
 
 	if (config->eh_topic != NULL) {
 		ESP_LOGI(TAG, "Event Handler Topic: %s", config->eh_topic);
-	} else {
+	}
+	else {
 		ESP_LOGW(TAG, "Event Handler Topic: NULL");
 	}
 
 	if (config->ver != NULL) {
 		ESP_LOGI(TAG, "Version: %s", config->ver);
-	} else {
+	}
+	else {
 		ESP_LOGW(TAG, "Version: NULL");
 	}
 	if (config->prog_name != NULL) {
 		ESP_LOGI(TAG, "Prog: %s", config->prog_name);
-	} else {
+	}
+	else {
 		ESP_LOGW(TAG, "Prog: NULL");
 	}
 
@@ -236,7 +261,8 @@ void print_mqtt_handler_config(const mqtt_handler_config_t *config) {
 	for (size_t i = 0; i < config->sub_topic_len; ++i) {
 		if (config->sub_topics[i] != NULL) {
 			ESP_LOGI(TAG, "%d: %s", i, config->sub_topics[i]);
-		} else {
+		}
+		else {
 			ESP_LOGW(TAG, "%d: NULL", i);
 		}
 	}
@@ -280,153 +306,153 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
 	// EVENT Processing
 	switch ((esp_mqtt_event_id_t) event_id) {
-		case MQTT_EVENT_CONNECTED:
+	case MQTT_EVENT_CONNECTED:
 
-			ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-			print_mqtt_handler_config(app_conf);
-			is_mqtt_connected = 1;
+		ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+		print_mqtt_handler_config(app_conf);
+		is_mqtt_connected = 1;
 
-			// Publish on the notify topic to let subscribers know the device is up
-			const char *up_msg = node_up_message(app_conf);
-			msg_id = esp_mqtt_client_publish(client, topic_notify, up_msg,
-					0,
-					1, 0);
-			ESP_LOGI(TAG,
-					"Sent up topic message,topic=%s, payload=%s msg_id=%d",
-					topic_notify, up_msg, msg_id);
+		// Publish on the notify topic to let subscribers know the device is up
+		const char *up_msg = node_up_message(app_conf);
+		msg_id = esp_mqtt_client_publish(client, topic_notify, up_msg,
+				0,
+				1, 0);
+		ESP_LOGI(TAG,
+				"Sent up topic message,topic=%s, payload=%s msg_id=%d",
+				topic_notify, up_msg, msg_id);
 
-			// Create the publish list of topics in the app_handler config
-			for (int i = 0; i < app_conf->sub_topic_len; i++) {
-				char *t = sub_topics[i];
+		// Create the publish list of topics in the app_handler config
+		for (int i = 0; i < app_conf->sub_topic_len; i++) {
+			char *t = sub_topics[i];
 //				esp_mqtt_topic_t tp = {.filter = sub_topics[i], .qos=0};
-				ESP_LOGI(TAG, "Subscribing to topic=%s", t);
-				esp_mqtt_client_subscribe(client, t, 0);
-			}
+			ESP_LOGI(TAG, "Subscribing to topic=%s", t);
+			esp_mqtt_client_subscribe(client, t, 0);
+		}
+		break;
+
+	case MQTT_EVENT_DISCONNECTED:
+		ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+		is_mqtt_connected = 0;
+
+		// Free the array that was created in the connect event;
+	//		free_topic_arrays(hand_conf->post_topics, hand_conf->post_topic_len);
+
+		break;
+
+	case MQTT_EVENT_SUBSCRIBED:
+		ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+
+		break;
+
+	case MQTT_EVENT_UNSUBSCRIBED:
+		ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+		break;
+
+	case MQTT_EVENT_PUBLISHED:
+		ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+		break;
+
+	case MQTT_EVENT_DATA:
+		ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+		ESP_LOGI(TAG, "TOPIC=%.*s", event->topic_len, event->topic);
+		ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
+
+		// All communication responses from the server are on esp#
+		// Use a seperate event handler to send to proper event
+
+		/* EH Server message */
+		if (strncmp(event->topic, app_conf->node_name, event->topic_len)
+				== 0) {
+
+			// Create new event
+			/*TODO: Make sure this is freed*/
+			int len = event->data_len;
+			char *json_msg = malloc(sizeof(char) * (len + 1));
+			memcpy(json_msg, event->data, len);
+			json_msg[(size_t) len] = '\0';
+			ESP_LOGI(TAG, "%s, [%d] msg=%s", __func__, __LINE__, json_msg);
+
+			eh_event_t e = {
+					.type = DB_RESP,
+					.msg_id = event->msg_id,
+					.msg_struct = (void*) json_msg,
+					.valid = 1,
+			};
+			esp_event_post_to(eh_handle, event_base, SERVER_EH_RESPONSE,
+					&e, sizeof(e), portMAX_DELAY);
+
+		}
+		/* Msg16 request */
+		else if (strncmp(event->topic, sub_topics[MSG16_TOPIC], event->topic_len)
+				== 0) {
+
+			// Create new event
+			/*TODO: Make sure this is freed*/
+			int len = event->data_len;
+			char *json_msg = malloc(sizeof(char) * (len + 1));
+			memcpy(json_msg, event->data, len);
+			json_msg[(size_t) len] = '\0';
+			ESP_LOGI(TAG, "%s, [%d] msg=%s", __func__, __LINE__, json_msg);
+
+			// Request is in the form of {type(read, write, ) }
+			// exp: {"type": "read", "devid":3, "len":1, "base_addr":1000}
+
+			eh_event_t e = {
+					.type = MSG16_EVENT_REQUEST,
+					.msg_id = event->msg_id,
+					.msg_struct = (void*) json_msg,
+					.valid = 1,
+			};
+			esp_event_post_to(eh_handle, event_base_msg16, MSG16_EVENT_REQUEST,
+					&e, sizeof(e), portMAX_DELAY);
+
+		}
+		else if (strncmp(event->topic, sub_topics[PING_TOPIC],
+				event->topic_len)
+				== 0) {
+			char pong_topic[25];
+			sprintf(pong_topic, "%s/pong", espname);
+			esp_mqtt_client_publish(client, pong_topic, "pong", 0, 1, 0);
+		}
+		break;
+	case MQTT_EVENT_BEFORE_CONNECT:
+		ESP_LOGI(TAG, "%s, MQTT_EVENT_BEFORE_CONNECT:", __FUNCTION__);
+
+		ESP_LOGI(TAG, "%s :App Config    : %p", __FUNCTION__,
+				(void* )app_conf);
+		if (app_conf == NULL) {
+			ESP_LOGE(TAG, "%s, App Config pointer is NULL", __FUNCTION__);
+
 			break;
+		}
+		ESP_LOGI(TAG, "%s, Event handle=:%p", __FUNCTION__,
+				(void* )eh_handle);
+		ESP_LOGI(TAG, "%s, event base=:%s", __FUNCTION__, event_base);
+		ESP_LOGI(TAG, "%s, Node name=:%s", __FUNCTION__, node_name);
+		break;
 
-		case MQTT_EVENT_DISCONNECTED:
-			ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-			is_mqtt_connected = 0;
+	case MQTT_EVENT_ERROR:
+		ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+		if (event->error_handle->error_type
+				== MQTT_ERROR_TYPE_TCP_TRANSPORT) {
+			log_error_if_nonzero("reported from esp-tls",
+					event->error_handle->esp_tls_last_esp_err);
+			log_error_if_nonzero("reported from tls stack",
+					event->error_handle->esp_tls_stack_err);
+			log_error_if_nonzero("captured as transport's socket errno",
+					event->error_handle->esp_transport_sock_errno);
+			ESP_LOGI(TAG, "Last errno string (%s)",
+					strerror(
+							event->error_handle->esp_transport_sock_errno));
+		}
+		break;
 
-			// Free the array that was created in the connect event;
-//		free_topic_arrays(hand_conf->post_topics, hand_conf->post_topic_len);
-
-			break;
-
-		case MQTT_EVENT_SUBSCRIBED:
-			ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-
-			break;
-
-		case MQTT_EVENT_UNSUBSCRIBED:
-			ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-			break;
-
-		case MQTT_EVENT_PUBLISHED:
-			ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-			break;
-
-		case MQTT_EVENT_DATA:
-			ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-			ESP_LOGI(TAG, "TOPIC=%.*s", event->topic_len, event->topic);
-			ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
-
-			// All communication responses from the server are on esp#
-			// Use a seperate event handler to send to proper event
-
-			/* EH Server message */
-			if (strncmp(event->topic, app_conf->node_name, event->topic_len)
-					== 0) {
-
-				// Create new event
-				/*TODO: Make sure this is freed*/
-				int len = event->data_len;
-				char *json_msg = malloc(sizeof(char) * (len + 1));
-				memcpy(json_msg, event->data, len);
-				json_msg[(size_t) len] = '\0';
-				ESP_LOGI(TAG, "%s, [%d] msg=%s", __func__, __LINE__, json_msg);
-
-				eh_event_t e = {
-						.type = DB_RESP,
-						.msg_id = event->msg_id,
-						.msg_struct = (void*) json_msg,
-						.valid = 1,
-				};
-				esp_event_post_to(eh_handle, event_base, SERVER_EH_RESPONSE,
-						&e, sizeof(e), portMAX_DELAY);
-
-			}
-			/* Msg16 request */
-			else if (strncmp(event->topic, sub_topics[MSG16_TOPIC], event->topic_len)
-					== 0) {
-
-				// Create new event
-				/*TODO: Make sure this is freed*/
-				int len = event->data_len;
-				char *json_msg = malloc(sizeof(char) * (len + 1));
-				memcpy(json_msg, event->data, len);
-				json_msg[(size_t) len] = '\0';
-				ESP_LOGI(TAG, "%s, [%d] msg=%s", __func__, __LINE__, json_msg);
-
-				// Request is in the form of {type(read, write, ) }
-				// exp: {"type": "read", "devid":3, "len":1, "base_addr":1000}
-
-
-				eh_event_t e = {
-						.type = MSG16_EVENT_REQUEST,
-						.msg_id = event->msg_id,
-						.msg_struct = (void*) json_msg,
-						.valid = 1,
-				};
-				esp_event_post_to(eh_handle, event_base_msg16, MSG16_EVENT_REQUEST,
-						&e, sizeof(e), portMAX_DELAY);
-
-			}else if (strncmp(event->topic, sub_topics[PING_TOPIC],
-					event->topic_len)
-					== 0) {
-				char pong_topic[25];
-				sprintf(pong_topic, "%s/pong", espname);
-				esp_mqtt_client_publish(client, pong_topic, "pong", 0, 1, 0);
-			}
-			break;
-		case MQTT_EVENT_BEFORE_CONNECT:
-			ESP_LOGI(TAG, "%s, MQTT_EVENT_BEFORE_CONNECT:", __FUNCTION__);
-
-			ESP_LOGI(TAG, "%s :App Config    : %p", __FUNCTION__,
-					(void* )app_conf);
-			if (app_conf == NULL) {
-				ESP_LOGE(TAG, "%s, App Config pointer is NULL", __FUNCTION__);
-
-				break;
-			}
-			ESP_LOGI(TAG, "%s, Event handle=:%p", __FUNCTION__,
-					(void* )eh_handle);
-			ESP_LOGI(TAG, "%s, event base=:%s", __FUNCTION__, event_base);
-			ESP_LOGI(TAG, "%s, Node name=:%s", __FUNCTION__, node_name);
-			break;
-
-		case MQTT_EVENT_ERROR:
-			ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-			if (event->error_handle->error_type
-					== MQTT_ERROR_TYPE_TCP_TRANSPORT) {
-				log_error_if_nonzero("reported from esp-tls",
-						event->error_handle->esp_tls_last_esp_err);
-				log_error_if_nonzero("reported from tls stack",
-						event->error_handle->esp_tls_stack_err);
-				log_error_if_nonzero("captured as transport's socket errno",
-						event->error_handle->esp_transport_sock_errno);
-				ESP_LOGI(TAG, "Last errno string (%s)",
-						strerror(
-								event->error_handle->esp_transport_sock_errno));
-
-			}
-			break;
-
-		default:
-			ESP_LOGI(TAG, "Other event id:%d", event->event_id);
-			break;
+	default:
+		ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+		break;
 	}
 }
+
 
 /**
  * @brief sets up the mqtt service
@@ -436,7 +462,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 //	heap_trace_start();
 //	esp_err_t err = ESP_OK;
-
 
 	ESP_LOGI(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
 			esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
@@ -470,8 +495,6 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 
 		app_cfg->mqtt_ver = "3.11";
 
-
-
 		// Create the sub topic list
 		size_t numTopics = sizeof(topics) / sizeof(topics[0]);
 		ESP_LOGI(TAG, "%s :numTopics=[%d]", __FUNCTION__, numTopics);
@@ -494,7 +517,7 @@ esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg) {
 	return ESP_OK;
 }
 
-esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg) {
+esp_err_t setup_mqtt_config(mqtt_handler_config_t *app_cfg) {
 	// Configuration basic info
 	const char *client_id = espname;
 	const char *last_will_msg = espname;
@@ -534,7 +557,6 @@ esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg) {
 			.network = {
 					.disable_auto_reconnect = false,
 			}
-
 	};
 
 // Client initialization
@@ -667,7 +689,8 @@ const char** create_esp_subscriptions(unsigned int userNode,
 		if (topicLength == 0) {
 			sprintf(nodeName, "esp%u", userNode);
 
-		} else {
+		}
+		else {
 			strcpy(nodeName, prefix);
 			strcat(nodeName, userNodeStr);
 			strcat(nodeName, topics[i]);
