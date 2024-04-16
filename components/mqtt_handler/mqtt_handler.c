@@ -652,7 +652,7 @@ const char* createNodeNameTopic(const char *userNode, const char *topic) {
  * @return const char**
  *  - Array of completed topics
  */
-const char** create_esp_subscriptions(unsigned int userNode,
+char** create_esp_subscriptions(unsigned int userNode,
 		const char **topics, size_t numTopics) {
 	const char *t_pnt = *topics;
 	int ntopic = numTopics;
@@ -664,7 +664,7 @@ const char** create_esp_subscriptions(unsigned int userNode,
 	const char *prefix = "esp";
 	size_t prefixLength = strlen(prefix);
 
-	const char **nodeNames = (const char**) malloc(
+	char **nodeNames = (char**) malloc(
 			numTopics * sizeof(const char*));
 	if (nodeNames == NULL) {
 		ESP_LOGE(TAG, "Memory allocation failed\n");

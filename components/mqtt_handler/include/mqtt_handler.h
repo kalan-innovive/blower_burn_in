@@ -10,7 +10,7 @@ extern "C" {
 #include "mqtt_client.h"
 
 // Update the version when api changes are made
-#define MQTT_EH_VER "1.0.1";
+#define MQTT_EH_VER "2.0.1";
 
 // Assuming we have a type defined as:
 typedef void (*eh_handler_t)(void);
@@ -98,7 +98,7 @@ esp_err_t teardown_mqtt(esp_mqtt_client_handle_t client);
  * @return const char**
  *  - Array of completed topics
  */
-const char** create_esp_subscriptions(unsigned int userNode,
+char** create_esp_subscriptions(unsigned int userNode,
 		const char **topics, size_t numTopics);
 
 esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg);

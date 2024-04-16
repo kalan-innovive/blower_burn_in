@@ -47,7 +47,7 @@ SemaphoreHandle_t g_guisemaphore;
 //static lv_obj_t *g_lab_cloud = NULL;
 //static lv_obj_t *g_status_bar = NULL;
 //
-static void ui_main_menu(int32_t index_id);
+//static void ui_main_menu(int32_t index_id);
 ////static void ui_led_set_visible(bool visible);
 //
 typedef enum _screen_id {

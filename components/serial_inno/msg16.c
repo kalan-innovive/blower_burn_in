@@ -146,16 +146,21 @@ static size_t pack_write_resp_payload(const msg16_t *msg16, uint8_t *packed_msg)
 static size_t pack_write_req_payload(const msg16_t *msg16, uint8_t *packed_msg) {
 	//Payload length
 	size_t len_ = 0;
-	packed_msg[len_++] = READ_PAYLOAD_LEN;
+	// Pack the length of the payload
+	packed_msg[len_++] = (msg16->len *2) + 2;
+	// Pack the payload base adress
+	packed_msg[len_++] = (uint8_t) (msg16->addr & 0xff);
+	packed_msg[len_++] = (uint8_t) ((msg16->addr >> 8) & 0xff);
+
 	//Pack data
 	for (int ii = 0; ii < msg16->len; ii++) {
 		// Base register + the number of write requested
 		// Base register lsb first
-		packed_msg[len_++] = (uint8_t) (msg16->addr & 0xff);
-		packed_msg[len_++] = (uint8_t) ((msg16->addr >> 8) & 0xff);
+		packed_msg[len_++] = (uint8_t) (msg16->payload[ii] & 0xff);
+		packed_msg[len_++] = (uint8_t) ((msg16->payload[ii] >> 8) & 0xff);
 	}
 	// length
-	packed_msg[len_++] = (uint8_t) msg16->len;
+//	packed_msg[len_++] = (uint8_t) msg16->len;
 	return len_;
 
 }

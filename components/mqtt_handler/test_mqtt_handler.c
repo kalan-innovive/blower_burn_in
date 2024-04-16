@@ -119,7 +119,7 @@ static esp_err_t test_create_esp_subscriptions(void) {
 	const char *topics[] = { "up", "down", "ping" };
 	size_t numTopics = sizeof(topics) / sizeof(topics[0]);
 
-	const char **subscribed_topics = create_esp_subscriptions(userNode, topics,
+	char **subscribed_topics = create_esp_subscriptions(userNode, topics,
 			numTopics);
 
 	// Check each of the returned topics
@@ -208,7 +208,7 @@ static esp_err_t test_server_set_calibration_val(void) {
 	// Call the set_calibration_val function
 	esp_err_t err = set_calibration_val(482184725, -36);
 
-	return ESP_OK;
+	return err;
 }
 
 /**

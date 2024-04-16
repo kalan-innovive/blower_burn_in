@@ -106,6 +106,9 @@ typedef struct {
 	int qc_cal_val;
 	int num_burnin;
 	int burnin_val[MAX_CALIBRATION_VALUE_LEN];
+	int range;
+	int result;
+	char *result_msg;
 } db_resp_pre_post_burnin_t;
 
 typedef enum {

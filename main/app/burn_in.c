@@ -350,9 +350,9 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				return;
 			}
 			int passing = 0;
-			passing = (blower->min_val > -80) ? 1 : 0;
-			passing &= (blower->max_val < 80) ? 1 : 0;
-			passing &= (blower->range <= 11) ? 1 : 0;
+			passing = (blower->min_val > -40) ? 1 : 0;
+			passing &= (blower->max_val < 40) ? 1 : 0;
+			passing &= (blower->range <= 15) ? 1 : 0;
 
 			if (passing) {
 				blower->state =
