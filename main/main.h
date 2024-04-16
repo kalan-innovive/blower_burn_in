@@ -15,6 +15,7 @@
 
 #ifndef DEF_OFFSET_VAL
 #define DEF_OFFSET_VAL 0xFFFE
+#define DEF_OFFSET_RANGE 0
 #endif
 
 /**

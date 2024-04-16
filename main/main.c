@@ -6,6 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
+#include "freertos/queue.h"
 
 #include "esp_netif.h"
 #include "esp_heap_caps.h"
@@ -16,7 +17,6 @@
 #include "nvs.h"
 #include "esp_check.h"
 
-#include "freertos/queue.h"
 #include "settings.h"
 #include "app_event_handler.h"
 #include "gui/ui_main.h"
@@ -50,7 +50,6 @@
 
 static const char *TAG = "main";
 static esp_err_t run_blower_burn_in_app(void);
-
 
 QueueHandle_t task_queue_handle;
 QueueHandle_t uart_rx_queue;
@@ -110,27 +109,16 @@ static esp_err_t run_event_handler_tests() {
 
 #ifdef TESTING_SER_INNO
 #include "serial_inno_test.h"
-#define TESTING_BLOWER_COMM 100
-#define USING_CONTROL_LINE 100
-
 
 
 void run_ser_inno_tests(void *pvParameter){
-	esp_log_level_set("msg16", ESP_LOG_DEBUG);
-	esp_log_level_set("serial_inno", ESP_LOG_DEBUG);
 	setup_driver();
 	// Start the task for receiving
-//	xTaskCreate(&uart_rx_task, "uart_rx_task", 2048,
-//				NULL, configMAX_PRIORITIES, &uart_rx_handle);
-//	xTaskCreate(&rack_task, "rack_task", 2048,
-//					NULL, 6, &rack_task_handle);
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
-#ifdef TESTING_BLOWER_COMM
-	if (serial_inno_blower_tests() == ESP_OK){
-		ESP_LOGI(TAG, "Blower comm test successful");
-
-	}
-#else
+	xTaskCreate(&uart_rx_task, "uart_rx_task", 2048,
+				NULL, configMAX_PRIORITIES, &uart_rx_handle);
+	xTaskCreate(&rack_task, "rack_task", 2048,
+					NULL, 6, &rack_task_handle);
+	vTaskDelay(1000000 / portTICK_PERIOD_MS);
 
 //	if (serial_inno_unit_tests() == ESP_OK){
 //		ESP_LOGI(TAG, "Unit test successful");
@@ -150,8 +138,6 @@ void run_ser_inno_tests(void *pvParameter){
 //	else{
 //		ESP_LOGI(TAG, "In System test Failed");
 //	}
-#endif
-
 	vTaskDelay(100000 / portTICK_PERIOD_MS);
 
 }
@@ -201,27 +187,26 @@ static esp_err_t run_mqtt_test(void) {
  * Setup all components for the blower burn in app
  */
 static esp_err_t run_blower_burn_in_app(void) {
-
 	esp_err_t ret = ESP_OK;
 	ESP_LOGI(TAG, "Setting up Serial Inno and burn in task");
 	setup_driver();
 	// Start the task for receiving on InnoModbus
-	xTaskCreate(&uart_rx_task, "uart_rx_", 1024 * 3,
+	xTaskCreate(&uart_rx_task, "uart_rx_", 1024 * 6,
 	NULL, 12, &uart_rx_handle);
 
-	// Start the task for Blower Burn-in
-	xTaskCreate(&burn_in_task, "burn_in_", 1024 * 4,
+//	// Start the task for Blower Burn-in
+	xTaskCreate(&burn_in_task, "burn_in_", 1024 * 6,
 	NULL, 6, &burn_in_handle);
 
-	vTaskDelay(100 / portTICK_PERIOD_MS);
+	vTaskDelay(10 / portTICK_PERIOD_MS);
 	// Setup the event handler
 	init_event_handler();
 
 	// Setup mqtt client and configuration
 	app_cfg.config_type = CONFIG_TYPE_DEFAULT;
+	app_cfg.ver = "1.1.0";
 	app_cfg.event_base = get_event_handler_base();
 	app_cfg.eh_handler = get_event_handler_loop();
-	app_cfg.ver = "1.1.0";
 
 	if (wifi_conn) {
 
@@ -266,6 +251,7 @@ void app_main(void) {
 	bsp_i2c_init();
 	bsp_display_start();
 	bsp_board_init();
+
 #ifdef TESTING_INNO_COMPONENTS
 #ifdef TESTING_EH_LOOP
 	run_event_handler_tests();
@@ -312,6 +298,7 @@ void app_main(void) {
 	}
 
 	ESP_ERROR_CHECK(run_blower_burn_in_app());
+
 #endif
 
 }

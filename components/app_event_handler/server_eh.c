@@ -163,18 +163,18 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 
 	eh_event_t *new_event = NULL;
 	switch (id) {
-//		case MSG16_REQUEST:
-//			// Handle MSG16_REQUEST
-//			ESP_LOGI(TAG, "%s, MSG16_REQUEST type:%s, msg_id=%d, valid=%s",
-//					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
-//					(e->valid) ? "True" : "False");
-//			break;
-//		case SETTINGS_REQUEST:
-//			// Handle SETTINGS_REQUEST
-//			ESP_LOGI(TAG, "%s, SETTINGS_REQUEST type:%s, msg_id=%d, valid=%s",
-//					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
-//					(e->valid) ? "True" : "False");
-//			break;
+		case MSG16_REQUEST:
+			// Handle MSG16_REQUEST
+			ESP_LOGI(TAG, "%s, MSG16_REQUEST type:%s, msg_id=%d, valid=%s",
+					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
+					(e->valid) ? "True" : "False");
+			break;
+		case SETTINGS_REQUEST:
+			// Handle SETTINGS_REQUEST
+			ESP_LOGI(TAG, "%s, SETTINGS_REQUEST type:%s, msg_id=%d, valid=%s",
+					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
+					(e->valid) ? "True" : "False");
+			break;
 		case SERVER_EH_RESPONSE:
 			ESP_LOGD(TAG, "%s, SERVER_EH_RESPONSE type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
@@ -229,21 +229,6 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 			break;
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * @brief Parses incoming json messages from the event handler server
  *
@@ -632,211 +617,4 @@ void delete_event(eh_event_t *event) {
 //		esp_event_loop_run(esp_gps->event_loop_hdl, pdMS_TO_TICKS(50));
 //	}
 //	vTaskDelete(NULL);
-//}
-
-
-
-
-
-
-
-
-
-
-
-
-//
-//
-//
-//
-//typedef struct
-//{
-//  uint16_t type;
-//  uint16_t dev_id;
-//  uint16_t addr;
-//  uint16_t len;			// Set the length of the message to 0 if it is not valid
-//  uint16_t msg_val[25];
-//} __attribute__ ((packed)) msg16_t;
-//
-//typedef struct
-//{
-//  uint8_t *buf;
-//  int buf_sz;
-//  int esc_next;
-//  int len;
-//} comm_frame_t;
-//
-//unsigned
-//calc_chk (uint8_t * mem, unsigned len)
-//{
-//  unsigned chk = 0;
-//  uint8_t *p = mem;
-//  while (len--)
-//    {
-//      printf ("Checksum len=%d, val=%x, adding val=%x  \n", len, chk, *p);
-//      chk += *p++;
-//    }
-//  return (unsigned) chk;
-//}
-//
-//size_t
-//unpack_msg16 (uint8_t * packed_msg, size_t packed_msg_size, msg16_t * msg16)
-//{
-//  // unpack the packed message into a msg16 struct
-//  size_t i = 0;
-//  uint8_t *p = packed_msg;
-//
-//  // TODO: Check the length of the buffer
-//  // Check if the buffer is NULL
-//
-//  // start byte
-//  if (*p++ != 0x7e)
-//    {
-//      // error
-//      printf ("%d. Illegal start byte : 0X%02x\n", i, *p);
-//
-//      return 0;
-//    }
-//
-//  // device ID
-//  msg16->dev_id = (uint16_t) * p++;
-//  printf ("Unpacked dev_id| %02x\n", msg16->dev_id);
-//
-//  // type
-//  msg16->type = ((uint16_t) * p++);
-//  printf ("Unpacked type|  %02x\n", msg16->type);
-//
-//  uint16_t msg_len = *p++;
-//  if (msg16->type = 0x20)
-//    {
-//      msg16->len = msg_len / 2;
-//      printf ("Unpacked len|  %02x\n", msg16->len);
-//      msg16->addr = (uint16_t) ((*p++) | (*p++ << 8));
-//      printf ("Unpacked addr|  %03x\n", msg16->addr);
-//      i = packed_msg_size - 3;
-//
-//    }
-//  else if (msg16->type = 0xa0)
-//    {
-//      // length
-//
-//      msg16->len = (uint16_t) msg_len / 2;
-//
-//      printf ("Unpacked len|  %02x\n", msg16->len);
-//
-//      for (int j = 0; j < msg16->len; j++)
-//    	{
-//    	  msg16->msg_val[j] = (uint16_t) * p++ & 0xffff;
-//    	  msg16->msg_val[j] |= *p++ << 8;
-//    	  printf ("Unpacked Val:  0x%04X,  0x%04X \n", msg16->msg_val[j],
-//    		  (int16_t) msg16->msg_val[j]);
-//
-//    	}
-//    	i = packed_msg_size - 4;
-//    }
-//  uint16_t cal_sum =
-//    (uint16_t) calc_chk (&packed_msg[1], i);
-//
-//  uint16_t lsb = (uint16_t) (*p++);
-//  printf ("LSB:X%02x\n", lsb);
-//
-//  uint16_t msb = (uint16_t) (*p++) << 8;
-//  printf ("MSB:X%04x\n", msb);
-//
-//  uint16_t ret_sum = msb | lsb;
-//  printf ("Unpacked CHK: Calc=X%04x == CurrentX%04x\n", cal_sum, ret_sum);
-//
-//  if (cal_sum != ret_sum)
-//    {
-//      return 0;
-//    }
-//  return msg16->len;
-//
-//}
-
-//void
-//uart_rx_task0 (uint8_t * uart_buffer, int len)
-//{
-//
-//  char buf[128] = { '\0' };
-//  uint8_t msg_buffer[128] = { 0 };
-//  size_t uart_pos = 0;
-//  size_t msg_pos = 0;
-//  comm_frame_t com_frame;
-//  com_frame.buf = msg_buffer;
-//  com_frame.buf_sz = len;
-//  com_frame.esc_next = 0;
-//  com_frame.len = 0;
-//
-//  comm_frame_t *s = &com_frame;
-//
-//  uint8_t b;
-//  uint8_t *p = uart_buffer;
-//  printf ("Size of buffer: %d , Length:%d\n", (int) sizeof (uart_buffer),
-//	  len);
-//  // block while receiving data until a FLAG is received
-//  for (int i = 0; i < len; i++)
-//    {
-//      b = *p++;
-//      printf ("Byte %02x\n", b);
-//      // Return 0 on timeout
-////              uint8_t len = uart_read_bytes(UART_SERIAL_INNO, &b, 1, 10 / portTICK_PERIOD_MS);
-//
-//      if (b == FLAG && s->len == 0)
-//	{
-//	  printf ("Start Flag %02x\n", b);
-//
-//	  s->esc_next = 0;
-//	  s->len = 0;
-//	  // if the length is 0 continue
-//	}
-//
-//      // on flag, return length of frame if valid
-//      // this can return a zero length frame
-//      else if (b == FLAG)
-//	{
-//	  printf ("End Flag %02x\n", b);
-//
-//	  s->esc_next = 0;
-//	  s->len++;
-//	  s->buf[s->len] = b;
-//	  msg16_t msg;
-//
-//	  size_t msg_len = unpack_msg16 (msg_buffer, s->len, &msg);
-//	  if (msg_len == 0)
-//	    {
-//	      // TODO: send message decode error
-//	    }
-//	}
-//      // on escape, mark the next byte to be xor'd
-//      if (b == ESC)
-//	{
-//	  printf ("Escape Flag %02x\n", b);
-//
-//	  s->esc_next = 1;
-//	}
-//      // non-special character, add to buffer
-//      else
-//	{
-//	  if (s->esc_next)
-//	    {
-//	      printf ("Escape character %02x\n", b);
-//
-//	      b ^= 0x20;
-//	      s->esc_next = 0;
-//	      printf ("Escape character %02x\n", b);
-//	    }
-//
-//
-//	  // only write to buffer if we have space
-//	  // else, set the error flag so we know we are missing data
-//	  if (s->len < s->buf_sz)
-//	    {
-//	      s->buf[s->len] = b;
-//	      s->len++;
-//
-//	    }
-//	}
-//
-//    }
 //}
