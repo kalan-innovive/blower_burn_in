@@ -700,10 +700,10 @@ void burn_in_task(void *pvParameter) {
 		ESP_ERROR_CHECK(update_test_values());
 
 		// Clear modbus messages
-		int num_cleared_msg = clear_uart_rx_queue();
-		if (num_cleared_msg) {
-			ESP_LOGW(TAG, "[APP] Cleared MODBus messages:%d", num_cleared_msg);
-		}
+//		int num_cleared_msg = clear_uart_rx_queue();
+//		if (num_cleared_msg) {
+//			ESP_LOGW(TAG, "[APP] Cleared MODBus messages:%d", num_cleared_msg);
+//		}
 
 		/**
 		 * Loop Runs on the current state

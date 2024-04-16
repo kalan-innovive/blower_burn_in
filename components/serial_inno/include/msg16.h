@@ -15,6 +15,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
+
 #define READ_REQ 0x20
 #define WRITE_REQ 0x21
 #define READ_RESP 0xa0
@@ -40,7 +41,7 @@ extern "C" {
 
 #else
 
-#define global(var,val) extern var
+#define global(var, val) extern var
 
 #endif
 // pre-release gets 0xFF for version
@@ -49,14 +50,13 @@ extern "C" {
 #define HW_VERSION 107  // FIXME - should have a board rev included here
 
 
-
 typedef enum {
-	DEV_SUPA = 0x01,
-	DEV_EXHA = 0x03,
-	DEV_SUPB = 0x21,
-	DEV_EXB = 0x23,
-	DEV_UNDEF = 0xff,
-	DEV_RACK = 0x11,
+    DEV_SUPA = 0x01,
+    DEV_EXHA = 0x03,
+    DEV_SUPB = 0x21,
+    DEV_EXB = 0x23,
+    DEV_UNDEF = 0xff,
+    DEV_RACK = 0x11,
 } dev_id;
 const static char *dev_id_repr[] = {
         "SupplyA",
@@ -138,36 +138,37 @@ typedef enum {
 //    REG_CHIPIDH=0x1004,
 //    REG_CHIPIDL=0x1005,
 //    REG_MODBUS_ADDR=0x1006,
-	INFO_REVISION = 0xA000,
-	INFO_RACKTYPE = 0xA001,
-	INFO_ROWS = 0xA002,
-	INFO_COLUMNS = 0xA003,
-	INFO_SIDES = 0xA004,
-	INFO_CHECKSUM = 0xA005,
-	INFO_RACKREV = 0xA006,
+    INFO_REVISION = 0xA000,
+    INFO_RACKTYPE = 0xA001,
+    INFO_ROWS = 0xA002,
+    INFO_COLUMNS = 0xA003,
+    INFO_SIDES = 0xA004,
+    INFO_CHECKSUM = 0xA005,
+    INFO_RACKREV = 0xA006,
 
 } rack_reg_addr;
 
 typedef struct {
-	/* Type:READ_REQ, READ_RESP, WRITE_REQ, WRITE_REP*/
-	uint16_t type;
-	/* Type: one of dev_id values*/
-	uint16_t dev_id;
-	/* Address of register considered the base address for multi read and write*/
-	uint16_t addr;
-	/* Length:
-	 * READ_REQ= Number of consecutive registers requested stored in payload
-	 * READ_RESP: Number of registers in response starting at base address
-	 * WRITE_REQ : Number consecutive registers to write stored in payload
-	 * WRITE_RESP: Number of consecutive registers in payload
-	 */
-	uint16_t len;
-	/* Array holder of values set to Null if not using */
-	uint16_t payload[128];
+    /* Type:READ_REQ, READ_RESP, WRITE_REQ, WRITE_REP*/
+    uint16_t type;
+    /* Type: one of dev_id values*/
+    uint16_t dev_id;
+    /* Address of register considered the base address for multi read and write*/
+    uint16_t addr;
+    /* Length:
+     * READ_REQ= Number of consecutive registers requested stored in payload
+     * READ_RESP: Number of registers in response starting at base address
+     * WRITE_REQ : Number consecutive registers to write stored in payload
+     * WRITE_RESP: Number of consecutive registers in payload
+     */
+    uint16_t len;
+    /* Array holder of values set to Null if not using */
+    uint16_t payload[128];
 } __attribute__((packed)) msg16_t;
 
 size_t pack_msg16(const msg16_t *msg16, uint8_t *packed_msg,
-		size_t *packed_msg_size);
+                  size_t *packed_msg_size);
+
 //void send_msg16(msg16_t* msg16, char* response, size_t response_size);
 size_t unpack_msg16(uint8_t *packed_msg, size_t packed_msg_size,
                     msg16_t *msg16);
