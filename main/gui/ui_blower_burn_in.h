@@ -73,6 +73,9 @@ typedef enum {
 	FINISHED_BURNIN_TEST, // 10 minut timer is done waiting for blowers to be turned off
 	RUNNING_COOLDOWN_TEST,	// Rack off 30 min timer started
 	FINISHED_BURNIN_CYCLE,// 30 min Timer finished waiting for Rack to be turned on
+	STARTING_VALVE_TEST,	// Finished burnin test start 3hr timer
+	RUNNING_VALVE_TEST, // Running Valve exercise test Move Valve back and forth
+	FINISHED_VALVE_TEST, // Update the finished screen
 	CANCEL_BURNIN_TEST
 } burn_in_testing_state_t;
 

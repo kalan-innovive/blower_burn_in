@@ -209,12 +209,18 @@ void setup_driver() {
 
 
 	ESP_LOGI(tag, "Uart Config on UART1 ");
-
-	uart_config_t uart_config = { .baud_rate = 115200, .data_bits =
-			UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits =
-			UART_STOP_BITS_1, .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+	//@formated:off
+	uart_config_t uart_config = {
+			.baud_rate = 115200,
+			.data_bits =
+			UART_DATA_8_BITS,
+			.parity = UART_PARITY_DISABLE,
+			.stop_bits = UART_STOP_BITS_1,
+			.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
 			.rx_flow_ctrl_thresh = 122,
-			.source_clk = UART_SCLK_DEFAULT, };
+			.source_clk = UART_SCLK_DEFAULT,
+	};
+	//@formated:on
 	int intr_alloc_flags = 0;
 
 #if CONFIG_UART_ISR_IN_IRAM
@@ -289,8 +295,8 @@ int transact_read(const msg16_t *request, msg16_t *response, TickType_t timeout)
 
 	// send the packed message
 	num_bytes = uart_tx_task(packed_request, packed_size);
-	ESP_LOGI(tag, "Transact Read type%d, dev ID=%d, addr=%d, len=%d timeout=%lu ",
-			request->type, request->dev_id, request->addr, request->len, timeout);
+	ESP_LOGI(tag, "Transact Read type%d, dev ID=%d, addr=%d, len=%d",
+			request->type, request->dev_id, request->addr, request->len);
 
 	if (num_bytes == 0){
 			return 0;

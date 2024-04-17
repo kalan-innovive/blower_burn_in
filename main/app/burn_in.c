@@ -171,7 +171,7 @@ static int update_rack_blower_list() {
 			}
 
 			else {
-				ESP_LOGW(TAG, "%s, Blower %s; Could not update ChipID",
+				ESP_LOGW(TAG, "%s, Blower %d; Could not update ChipID",
 						__FUNCTION__,
 						devIDs[i]);
 

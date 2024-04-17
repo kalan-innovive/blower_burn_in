@@ -275,7 +275,7 @@ void app_main(void) {
 	//	    ESP_LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
 
 	esp_log_level_set("msg16", ESP_LOG_ERROR);
-	esp_log_level_set("serial_inno", ESP_LOG_ERROR);
+	esp_log_level_set("serial_inno", ESP_LOG_DEBUG);
 	esp_log_level_set("burn-in", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_blower-BI", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_Timer", ESP_LOG_WARN);

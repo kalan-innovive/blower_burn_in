@@ -20,7 +20,7 @@
 
 #include "include/msg16.h"
 #include "serial_inno.h"
-#include "serial_inno_api_test.h"
+//#include "serial_inno_api_test.h"
 
 #include <stdio.h>
 
