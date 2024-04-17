@@ -9,6 +9,7 @@
 #include "esp_err.h"
 #include "ui_blower_burn_in.h"
 #define UI_BURN 1
+#define UI_VALVE 0
 #if UI_BURN
 #define BURN_IN_TIME 10 *60
 #define BURN_IN_COOLDOWN_TIME 30 *60
@@ -16,14 +17,24 @@
 #define BURN_IN_TIME 1 *20
 #define BURN_IN_COOLDOWN_TIME  1*30
 #endif
+#if UI_VALVE
+#define BURN_IN_VALVE_TIME 10 *60
+#else
+#define BURN_IN_VALVE_TIME 20
+#endif
+
 const char *tag = "UI_EVENT";
 static const char *tag_timer = "UI_Timer";
-//static const char *tag_det = "UI_Detail";
+
 const char *notify_burnin_on =
 		"#0000ff Calibration Cycle Complete#\n Press \"OK\"\n Record values then\nTurn Power Supply Off";
 const char *notify_burnin_off = "Off Cycle Complete\n Turn Power Supply On";
 const char *notify_burnin_ready =
 		"#0000ff Burn In Ready#\n Turn Power Supply On";
+const char *notify_valve_burnin_off =
+		"#0000ff Valve Cycle Timer Complete#\n Press \"OK\"\n Turn off Power Supply\nRun Valve Through Leak By Test";
+const char *notify_valve_burnin_on =
+		"#0000ff Starting Valve Movement Test#\n Wait for timer to finish\n \n";
 
 void clock_run_cb(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;
@@ -31,9 +42,8 @@ void clock_run_cb(lv_timer_t *timer) {
 	gt->time--;
 	ESP_LOGD(tag_timer, "%s, Timer: %d", __FUNCTION__, gt->time);
 	if (gt->time <= 0) {
+		// A timer has finished
 		lv_timer_pause(timer);
-
-		//
 		esp_err_t ret = ui_timer_finished();
 		// only pause timer after successfully changing the state
 		if (ret == ESP_OK) {
@@ -65,6 +75,7 @@ void burn_in_test_start(lv_timer_t *timer) {
 //	update_test_state(RUNNING_BURNIN_TEST);
 	// Check if the rack is initialised
 	burn_in_testing_state_t state = get_burn_in_state();
+	//TODO:: Verify that the state was received
 
 	if (state == RUNNING_BURNIN_TEST) {
 //		update_test_state(RUNNING_BURNIN_TEST);
@@ -74,10 +85,17 @@ void burn_in_test_start(lv_timer_t *timer) {
 		lv_obj_clear_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
 		lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
+	} else if (state == RUNNING_VALVE_TEST) {
+		update_timer_counter(timer, BURN_IN_VALVE_TIME);
+		lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+		lv_label_set_text(ui_NotificationLabel, notify_burnin_on);
+		lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
+		lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
 	} else {
 		update_timer_counter(timer, 0);
 		lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
-		lv_label_set_text(ui_NotificationLabel, notify_burnin_ready);
+		lv_label_set_text(ui_NotificationLabel, notify_valve_burnin_on);
 
 		lv_obj_add_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
@@ -102,10 +120,19 @@ void burn_in_cooldown_start(lv_timer_t *timer) {
 	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_off);
 	lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
-
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
 }
+
+
+void burn_in_valve_finished(lv_timer_t *timer){
+	ESP_LOGI(tag, "%s, Finished valve Movement test Timer Event", __FUNCTION__);
+	lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+	lv_label_set_text(ui_NotificationLabel, notify_valve_burnin_off);
+	lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+}
+
 
 void burn_in_cancel(lv_timer_t *timer) {
 //	t_gui_timer *gt = timer->user_data;

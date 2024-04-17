@@ -49,6 +49,8 @@ static bool rack_power_changed;
 static unsigned chipid_list[4];
 static int testing[4];
 static int cur_offset[4];
+static int valve_type_list[4];
+static int testing_valve;
 static int vas_v[4];
 static int QC_v[4];
 
@@ -82,11 +84,13 @@ static void init_burn_in() {
 	ESP_LOGI(TAG,
 			"%s, Initializing burn in reseting cur_offset cas_v and qc_val  setting power, rack on to default",
 			__FUNCTION__);
+	testing_valve = 0;
 	for (int i = 0; i < 4; i++) {
 		testing[i] = 0;
 		cur_offset[i] = DEF_OFFSET_VAL;
 		vas_v[i] = DEF_OFFSET_VAL;
 		QC_v[i] = DEF_OFFSET_VAL;
+		valve_type_list[i] = 0;
 	}
 	check_rack_power_changed();
 	rack_on = false;
@@ -137,17 +141,21 @@ static int update_rack_blower_list() {
 //	rack_on = false;
 	int devIDs[4] = { DEV_SUPA, DEV_EXHA, DEV_SUPB, DEV_EXB };
 	unsigned chipid = 0;
+	unsigned valve_type = 0;
 	int offset = 0;
 	int num_avail = 0;
 
 	for (int i = 0; i < 4; i++) {
 		ESP_LOGD(TAG, "%s, Checking for Device:%d", __FUNCTION__, devIDs[i]);
 		chipid = 0;
+		valve_type= 0;
 		offset = DEF_OFFSET_VAL;
 
 		// Send a message and check for response
 		vTaskDelay(1);
 		suc = get_raw_pressure(devIDs[i], &offset);
+		vTaskDelay(1);
+
 
 		ESP_LOGD(TAG, "%s, Checking for Device:%d, Available: %d, Offset:%d",
 				__FUNCTION__, devIDs[i], suc, offset);
@@ -168,8 +176,20 @@ static int update_rack_blower_list() {
 				// Update the testing list
 				testing[i] = 1;
 				num_avail += 1;
-			}
 
+				vTaskDelay(1);
+				suc = get_blower_type(devIDs[i], &valve_type);
+				if (suc == 1) {
+
+					// Set the current offset value for the chip id
+					cur_offset[i] = offset;
+					ESP_LOGD(TAG, "%s, Updating Valve type for dev:%d type: %d",
+							__FUNCTION__, devIDs[i], valve_type);
+					valve_type_list[i] = chipid;
+					testing_valve ++;
+				}
+				vTaskDelay(1);
+			}
 			else {
 				ESP_LOGW(TAG, "%s, Blower %d; Could not update ChipID",
 						__FUNCTION__,
@@ -247,7 +267,7 @@ static void setup_blower_(burn_in_ui_value_t *brn_val) {
 
 			// Set the state
 			// TODO: change to a set state function
-			blower->state = STARTING_BLOWER_TEST;
+
 
 		} else {
 			ESP_LOGD(TAG,
@@ -641,6 +661,23 @@ static void on_settings_update(void *handler_arg, esp_event_base_t base,
 		}
 	}
 }
+static unsigned valve_pos = 0;
+static void move_valve_blower() {
+	int devIDs[4] = { DEV_SUPA, DEV_EXHA, DEV_SUPB, DEV_EXB };
+	valve_pos = (valve_pos == 0) ? 99 : 0;
+	for (int i = 0; i < 4; i++) {
+		if (testing[i] && valve_type_list[i]) {
+			// send the request to log the calibration value
+			int err = set_pwm(devIDs[i], valve_pos);
+			if (err != 1) {
+				ESP_LOGE(TAG,
+						"[%s, %d]Error sending request for ppb values to database",
+						__FUNCTION__, __LINE__);
+				vTaskDelay(300 / portTICK_PERIOD_MS);
+			}
+		}
+	}
+}
 
 /**
  *  ___ Public Function  definitions ______
@@ -794,6 +831,9 @@ void burn_in_task(void *pvParameter) {
 
 				if (check_rack_power_changed()) {
 					// Should be called once during burn in test
+					if (testing_valve>0){
+						update_test_state(STARTING_VALVE_TEST);
+					}
 					if (start_burnin() == ESP_OK) {
 						count = -1;
 						ESP_LOGI(TAG,
@@ -843,7 +883,6 @@ void burn_in_task(void *pvParameter) {
 		}
 		else if (state == FINISHED_BURNIN_TEST && !rack_on) {
 			// State transition if rack is turned off
-//			if (check_rack_power_changed()) {
 			check_rack_power_changed();
 			ESP_LOGI(TAG,
 					"[APP] FINISHED_BURNIN_TEST- submitting value for cycle");
@@ -852,12 +891,73 @@ void burn_in_task(void *pvParameter) {
 				ESP_LOGD(TAG, "%s, Rack turned off transition state",
 						__FUNCTION__);
 			}
-//			}
-		} else if (state == RUNNING_COOLDOWN_TEST) {
+		}
+
+
+
+
+		else if (state == STARTING_VALVE_TEST ) {
+			// Check if power is on
+			if (!rack_on) {
+				// Update the state to startting
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Changing State to Start power interrupted: Running cycle %d", test_cycle);
+				}
+			} else {
+				// Update the state to Running
+				esp_err_t ret = update_test_state(RUNNING_VALVE_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished Burnin Starting Valve Exercise Test: Running cycle %d", test_cycle);
+				}
+			}
+			// update the ui
+		}
+		else if (state == RUNNING_VALVE_TEST) {
+			// Move the valve around to exercise it
+			// Check if power is on
+			if (!rack_on) {
+
+				// Update the state to startting
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished: Running cycle %d", test_cycle);
+				}
+			} else {
+				move_valve_blower();
+			}
+		}
+		else if (state == FINISHED_VALVE_TEST) {
+					// Move state to
+			if (!rack_on) {
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished: Valve Burn in complete cycle %d", test_cycle);
+				}
+			}
+		}
+
+
+
+
+
+		else if (state == RUNNING_COOLDOWN_TEST) {
 			// Do something
 			// Check that the rack is still off to continue the timer
 			if (rack_on) {
 				// Update the state to startting
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished: Running cycle %d", test_cycle);
+				}
+			} else {
+
 
 				// We do not want to log the value until the timer has run down
 				esp_err_t err = update_test_state(CANCEL_BURNIN_TEST);

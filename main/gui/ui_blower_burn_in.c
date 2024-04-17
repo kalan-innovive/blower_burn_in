@@ -222,7 +222,7 @@ esp_err_t start_cooldown() {
 		ESP_LOGE(tag, "%s, Could not Start cooldown", __FUNCTION__);
 
 	} else if (cur_state == FINISHED_BURNIN_TEST) {
-// Aquire the ui semaphore to update timer
+		// Acquire the ui semaphore to update timer
 		if (ui_acquire() == ESP_OK) {
 			burn_in_cooldown_start(ui_timer);
 			ui_release();
@@ -233,10 +233,23 @@ esp_err_t start_cooldown() {
 
 			}
 		}
-
 	} else if (cur_state == RUNNING_COOLDOWN_TEST) {
-// Already in state
-// TODO: check the timer to verify that it is running
+		// Already in state
+		// TODO: check the timer to verify that it is running
+		ESP_LOGW(tag, "Already running Cooldown Test");
+	} else if (cur_state == STARTING_VALVE_TEST) {
+			// Acquire the ui semaphore to update timer
+		if (ui_acquire() == ESP_OK) {
+			//TODO: create the burnin timer countdown
+			burn_in_test_start(ui_timer);
+			ui_release();
+			// Update the state
+			if (update_test_state(RUNNING_VALVE_TEST) == ESP_OK) {
+				ret = ESP_OK;
+				ESP_LOGI(tag, "Starting Valve Test");
+
+			}
+		}
 		ESP_LOGW(tag, "Already running Cooldown Test");
 
 	} else {
@@ -352,6 +365,20 @@ esp_err_t ui_timer_finished(void) {
 				next_state = FINISHED_BURNIN_CYCLE;
 				ret = ESP_OK;
 				break;
+			case STARTING_VALVE_TEST:
+				// Ignore timer
+				next_state = STARTING_VALVE_TEST;
+				break;
+			case RUNNING_VALVE_TEST:
+				// Valve test has finished update the state
+				next_state = FINISHED_VALVE_TEST;
+				ret = ESP_OK;
+				break;
+			case FINISHED_VALVE_TEST:
+				// Move to Finished burnin state
+				next_state = FINISHED_BURNIN_CYCLE;
+				ret = ESP_OK;
+				break;
 			case CANCEL_BURNIN_TEST:
 				next_state = CANCEL_BURNIN_TEST;
 				// State should not be in this state
@@ -411,8 +438,13 @@ const char* burnin_state_to_str(burn_in_testing_state_t state) {
 			return "RUNNING_COOLDOWN_TEST";
 		case FINISHED_BURNIN_CYCLE:
 			return "FINISHED_BURNIN_CYCLE";
-		case CANCEL_BURNIN_TEST:
-			return "CANCEL_BURNIN_TEST";
+		case STARTING_VALVE_TEST:
+			return "STARTING_VALVE_TEST";
+		case RUNNING_VALVE_TEST:
+			return "RUNNING_VALVE_TEST";
+		case FINISHED_VALVE_TEST:
+			return "FINISHED_VALVE_TEST";
+
 		default:
 			return "UNKNOWN_STATE";
 	}

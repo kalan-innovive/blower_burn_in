@@ -146,6 +146,7 @@ void update_time_counter(lv_event_t *e);
 void clock_run_cb(lv_timer_t *timer);
 void burn_in_test_start(lv_timer_t *timer);
 void burn_in_cooldown_start(lv_timer_t *timer);
+void burn_in_valve_finished(lv_timer_t *timer);
 void burn_in_cancel(lv_timer_t *timer);
 void start_pressed(void);
 
