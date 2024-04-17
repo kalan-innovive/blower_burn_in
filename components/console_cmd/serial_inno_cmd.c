@@ -50,7 +50,9 @@ void register_serialinno(void){
 }
 //	static const char *return = "NOPE\n";
 
-
+static char* flag_none= "None";
+static char* flag_timout= "error:timeout";
+static char* flag_transact= "error:transaction";
 /**
  * Expected Json request
  *  arg = {"id": 1, "msg_id":435}
@@ -66,10 +68,7 @@ static int check_id(int argc, char **argv)
 	int ret2 = 0;
 	unsigned chipID = 0;
 	int offset = 0;
-	char* flag_none= "None";
-	char* flag_timout= "error:timeout";
-	char* flag_transact= "error:transaction";
-	char* flag = flag_none;
+	static char* ret_str = NULL;
 
 	if (argc != 2) {
 		printf("Error: Incorrect number of arguments.\n");
@@ -139,14 +138,18 @@ static int check_id(int argc, char **argv)
 	}
 
 	blowerinfo.is_updated = 1;
-	printf(" \n ");
-	printf(" \r\n ");
-	vTaskDelay(5);
-	printf(" \r\n ");
-	vTaskDelay(10);
+	printf("\n");
 
+	vTaskDelay(1);
+	printf("\n");
+	vTaskDelay(1);
 
-    printf("%s\n", cJSON_Print(json));
+	ret_str = cJSON_PrintUnformatted(json);
+    printf("%s\n", ret_str);
+	vTaskDelay(1);
+    printf("\n");
+	vTaskDelay(1);
+
 
 	cJSON_Delete(json);
     return 0;
@@ -161,7 +164,6 @@ static void register_check_id(void){
 	    };
 	    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
-
 static int check_id_moc(int argc, char **argv)
 {
 	int devid = 0;
@@ -170,7 +172,7 @@ static int check_id_moc(int argc, char **argv)
 	int ret2 = 0;
 	unsigned chipID = 87639689;
 	int offset = 35;
-	char* flag_none= "None";
+	static char* ret_str = NULL;
 
 	if (argc != 2) {
 		printf("Error: Incorrect number of arguments.\n");
@@ -203,17 +205,19 @@ static int check_id_moc(int argc, char **argv)
 	blowerinfo.uuid = 0;
 	blowerinfo.valid = 1;
 	blowerinfo.is_updated = 1;
+	vTaskDelay(1);
+	printf(" \r\n ");
+	vTaskDelay(1);
 	cJSON_AddStringToObject(json, "chipID", str_chipid);
 	cJSON_AddNumberToObject(json, "offset", 0);
 	cJSON_AddStringToObject(json, "flag", flag_none);
-	printf(" \r\n ");
-	vTaskDelay(1);
-	printf(" \r\n ");
-	vTaskDelay(1);
 
-    printf(" \n%s\n ", cJSON_Print(json));
+	ret_str = cJSON_PrintUnformatted(json);
+    printf("%s\n", ret_str);
 
 	cJSON_Delete(json);
+	vTaskDelay(1);
+	printf("\r\n");
     return 0;
 }
 
