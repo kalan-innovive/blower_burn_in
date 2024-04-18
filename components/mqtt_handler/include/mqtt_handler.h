@@ -10,7 +10,7 @@ extern "C" {
 #include "mqtt_client.h"
 
 // Update the version when api changes are made
-#define MQTT_EH_VER "1.0.1";
+#define MQTT_EH_VER "2.0.1";
 
 // Assuming we have a type defined as:
 typedef void (*eh_handler_t)(void);
@@ -56,7 +56,7 @@ typedef struct {
 	unsigned node_number;
 	char *node_name;	// Node identification name
 	char *eh_topic;		// Used to set the event handler node for the esp device
-	const char **sub_topics; // Topics that are subscribed to listen
+	char **sub_topics; // Topics that are subscribed to listen
 	const int *sub_topic_ids; // Topic ID list
 	size_t sub_topic_len; // Length of sub topic list
 	char *mac_addr_str; // String repr
@@ -98,11 +98,11 @@ esp_err_t teardown_mqtt(esp_mqtt_client_handle_t client);
  * @return const char**
  *  - Array of completed topics
  */
-const char** create_esp_subscriptions(unsigned int userNode,
+char** create_esp_subscriptions(unsigned int userNode,
 		const char **topics, size_t numTopics);
 
 esp_err_t setup_mqtt_default(mqtt_handler_config_t *app_cfg);
-esp_err_t setup_mqtt_setup(mqtt_handler_config_t *app_cfg);
+esp_err_t setup_mqtt_config(mqtt_handler_config_t *app_cfg);
 esp_err_t request_ppb_vals(unsigned chipID);
 esp_err_t set_calibration_val(unsigned chipID, int val);
 esp_err_t set_cal_burnin_val(unsigned chipID, int val);

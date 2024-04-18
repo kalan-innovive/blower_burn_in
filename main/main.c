@@ -37,7 +37,7 @@
 //#include "burn_in.h"
 //#include "burnin_valve.h"
 //#include "ui.h"
-//#include "mqtt_handler.h"
+#include "mqtt_handler.h"
 
 #include "apprackcomm.h"
 

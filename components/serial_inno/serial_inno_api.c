@@ -450,6 +450,67 @@ int set_pwm(int devid, unsigned val) {
 	return ret;
 }
 
+/*
+ * Creates a read transaction to get the current pwm of control system
+ * 0 = min pwm control
+ * 100 = max pwm_control
+ * @Param: int devid, unsigned *val
+ * @Return:  1 if successful, 0 or -1 if failed to get transaction
+ *  Error: -1 on invalid response
+ *  Error: 0 on if response timed out dev unavailable
+ */
+int get_uuid(int devid, unsigned *val)
+{
+	int ret = 0;
+	TickType_t timeout = 30 / portTICK_PERIOD_MS;
+	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid,
+			.addr = REG_BLOWER_UUID2, .len = 1 };
+
+	msg16_t msg_resp;
+	msg_resp.len = 0;
+	msg_resp.payload[0] = 0xffff;
+
+	unsigned tmp = 0;
+
+	ret = transact_read(&msg_req, &msg_resp, timeout);
+	if (ret < 1) {
+		ESP_LOGW(tag, "get_uuid Transact Error: %d", ret);
+
+	}
+	tmp = (uint16_t) msg_resp.payload[0];
+	ESP_LOGI(tag, " get_uuid Returning uuid: %d ", tmp);
+
+	*val = tmp;
+
+	return ret;
+}
+/*
+ * Creates a Write transaction to set uuid in nv store
+ * @Param: int devid, unsigned val uuid
+ * @Return:  1 if successful, 0 or -1 if failed to get transaction
+ *  Error: -1 on invalid response
+ *  Error: 0 on if response timed out dev unavailable
+ */
+int set_uuid(int devid, unsigned val) {
+	int ret = 0;
+	TickType_t timeout = 100 / portTICK_PERIOD_MS;
+	msg16_t msg_req = { .type = WRITE_REQ, .dev_id = devid,
+			.addr = REG_BLOWER_UUID2, .len = 1, .payload[0]= (uint16_t)(val & 0xffff) };
+
+	msg16_t msg_resp;
+	msg_resp.len = 0;
+	msg_resp.payload[0] = 0xffff;
+
+	ret = transact_write(&msg_req, &msg_resp, timeout);
+	if (ret < 1) {
+		ESP_LOGW(tag, "set_uuid Transact Error: %d", ret);
+
+	}
+	ESP_LOGI(tag, "Set set_uuid set %d ", (int) msg_resp.payload[0]);
+
+	return ret;
+}
+
 
 
 /*

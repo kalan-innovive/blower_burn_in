@@ -46,6 +46,9 @@ int get_fan_rpm(int devid, unsigned *val);
 /** PWM Registers Register*/
 int get_pwm(int devid, unsigned *val);
 int set_pwm(int devid, unsigned val);
+/** UUID Registers Register*/
+int get_uuid(int devid, unsigned *val);
+int set_uuid(int devid, unsigned val);
 /** Device ID Register*/
 int check_dev_id(int devid);
 /** Chip ID Register*/

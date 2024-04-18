@@ -16,8 +16,8 @@
 #define WRITE_RESP 0xa1
 
 #define REG_HWTYPE_RETURN 0xE107
-#define NUM_NV_STORE 16
-#define RECORD_VERSION 3
+#define NUM_NV_STORE 14
+#define RECORD_VERSION 4
 
 #define FLAG 0x07e
 #define ESC 0x07d
@@ -62,6 +62,24 @@ typedef enum{
 	UKNOWN_TYPE = 0xFFFF
 } blower_t;
 
+
+typedef enum {
+	BLOWER_TYPE_IDX = 0,
+	CAL_1 = 1,
+	CAL_2,
+	CAL_3,
+	CAL_4,
+	CAL_5,
+
+	KI_IDX = 6,
+	KP_IDX = 7,
+	CONT_FREQ_IDX = 8,
+	SAMP_FREQ_IDX = 9,
+	NUM_SAMPLE_IDX = 10,
+	UUID_IDX = 11
+
+}NVStoreIndex;
+
 typedef enum {
 	REG_STATUS,               //0
 	REG_CURR_PRESS,           //1
@@ -96,9 +114,12 @@ typedef enum {
 	REG_CHIPIDL,              //0x1005
 	REG_MODBUS_ADDR,          //0x1006
 	REG_BLOWER_TYPE,    	  //0x1007 0 == fan, 1 == valve- airflow related registers
+	REG_BLOWER_UUID1,    	  //0x1008 0 == fan, 1 == valve- airflow related registers
 
 	REG_NV_STORE_LOW = 0xA000,          //0xA000
-	REG_NV_STORE_HIGH = (REG_NV_STORE_LOW + NUM_NV_STORE - 1)
+	REG_NV_STORE_HIGH = (REG_NV_STORE_LOW + NUM_NV_STORE - 1),
+	REG_BLOWER_UUID2 = REG_NV_STORE_LOW + UUID_IDX // Set for record version 3 and 4 comparability
+
 } blower_reg_addr;
 
 typedef enum {

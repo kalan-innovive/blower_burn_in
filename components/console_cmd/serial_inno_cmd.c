@@ -66,9 +66,16 @@ static int check_id(int argc, char **argv)
 	int ret = 0;
 	int ret1 = 0;
 	int ret2 = 0;
-	unsigned chipID = 0;
+	unsigned uuid = 0;
+	unsigned chipID = 87639689;
 	int offset = 0;
 	static char* ret_str = NULL;
+	char str_chipid[25];
+	blowerinfo.devid = 0;
+	blowerinfo.chipid = 0;
+	blowerinfo.offset = 0;
+	blowerinfo.valid = 0;
+	blowerinfo.uuid = 0;
 
 	if (argc != 2) {
 		printf("Error: Incorrect number of arguments.\n");
@@ -87,8 +94,17 @@ static int check_id(int argc, char **argv)
 		printf("Error: Expected id and msg_id to be numbers.\n");
 		return 1; // Return an error
 	}
+	cJSON *uuid_json = cJSON_GetObjectItemCaseSensitive(json, "uuid");
+	if (!cJSON_IsNumber(id) ) {
+		cJSON_Delete(json);
+		printf("Warning: Expected uuid as a number.\n");
+	} else {
+		uuid = uuid_json->valueint;
+		set_uuid(devid, uuid);
+		get_uuid(devid, &uuid);
+	}
+
 	devid = id->valueint;
-	char str_chipid[25];
 
 
 	// send the message wit for response.
@@ -96,7 +112,8 @@ static int check_id(int argc, char **argv)
 	ret1 = get_chipid(devid, &chipID);
 	ret2 = get_raw_pressure(devid, &offset);
 
-	float raw_avg = 0;
+
+//	float raw_avg = 0;
 //	for (int i=0;i<5;i++) {
 //		ret2 = get_raw_pressure(devid, &offset);
 //		raw_avg+=offset;
@@ -107,7 +124,7 @@ static int check_id(int argc, char **argv)
 //		raw_avg+=offset;
 //	}
 
-	ret2 = get_raw_pressure(devid, &offset);
+//	ret2 = get_raw_pressure(devid, &offset);
 
 	if (ret == 1 && ret1 == 1 && ret2 == 1){
 
@@ -116,6 +133,9 @@ static int check_id(int argc, char **argv)
 		blowerinfo.chipid = chipID;
 		blowerinfo.offset = offset;
 		blowerinfo.valid = 1;
+		blowerinfo.uuid = uuid;
+
+
 		cJSON_AddStringToObject(json, "chipID", str_chipid);
 		cJSON_AddNumberToObject(json, "offset", offset);
 		cJSON_AddStringToObject(json, "flag", flag_none);
@@ -170,6 +190,7 @@ static int check_id_moc(int argc, char **argv)
 	int ret = 0;
 	int ret1 = 0;
 	int ret2 = 0;
+	unsigned uuid = 0;
 	unsigned chipID = 87639689;
 	int offset = 35;
 	static char* ret_str = NULL;
@@ -202,7 +223,7 @@ static int check_id_moc(int argc, char **argv)
 	blowerinfo.devid = devid;
 	blowerinfo.chipid = chipID;
 	blowerinfo.offset = offset;
-	blowerinfo.uuid = 0;
+	blowerinfo.uuid = uuid;
 	blowerinfo.valid = 1;
 	blowerinfo.is_updated = 1;
 	vTaskDelay(1);
