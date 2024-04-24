@@ -834,13 +834,7 @@ void burn_in_task(void *pvParameter) {
 					if (testing_valve>0){
 						update_test_state(STARTING_VALVE_TEST);
 					}
-					if (start_burnin() == ESP_OK) {
-						count = -1;
-						ESP_LOGI(TAG,
-								"[%d], Finished Setting up burn in test setting count t0 :%d",
-								__LINE__, count);
 
-					}
 				}
 			} else {
 				// Reset the flag since we did not aquire ui
@@ -907,6 +901,12 @@ void burn_in_task(void *pvParameter) {
 				}
 			} else {
 				// Update the state to Running
+				if (start_burnin() == ESP_OK) {
+					count = -1;
+					ESP_LOGI(TAG,
+							"[%d], Finished Setting up valve burn in test setting count t0 :%d",
+							__LINE__, count);
+				}
 				esp_err_t ret = update_test_state(RUNNING_VALVE_TEST);
 				if (ret == ESP_OK) {
 					test_cycle++;
@@ -920,7 +920,7 @@ void burn_in_task(void *pvParameter) {
 			// Check if power is on
 			if (!rack_on) {
 
-				// Update the state to startting
+				// Update the state to starting
 				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
 				if (ret == ESP_OK) {
 					test_cycle++;

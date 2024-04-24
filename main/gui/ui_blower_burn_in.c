@@ -237,21 +237,6 @@ esp_err_t start_cooldown() {
 		// Already in state
 		// TODO: check the timer to verify that it is running
 		ESP_LOGW(tag, "Already running Cooldown Test");
-	} else if (cur_state == STARTING_VALVE_TEST) {
-			// Acquire the ui semaphore to update timer
-		if (ui_acquire() == ESP_OK) {
-			//TODO: create the burnin timer countdown
-			burn_in_test_start(ui_timer);
-			ui_release();
-			// Update the state
-			if (update_test_state(RUNNING_VALVE_TEST) == ESP_OK) {
-				ret = ESP_OK;
-				ESP_LOGI(tag, "Starting Valve Test");
-
-			}
-		}
-		ESP_LOGW(tag, "Already running Cooldown Test");
-
 	} else {
 		ESP_LOGW(tag, "Calling Start_Cooldown from incorrect state");
 
@@ -291,7 +276,23 @@ esp_err_t start_burnin() {
 		} else {
 			ESP_LOGI(tag, "%s, Start_burnin failed to get ui Semaphore",
 					__FUNCTION__);
+		}
 
+	} else if (cur_state == STARTING_VALVE_TEST) {
+		// Acquire the ui semaphore to update timer
+		if (update_test_state(RUNNING_VALVE_TEST) == ESP_OK) {
+			ret = ESP_OK;
+			ESP_LOGI(tag, "Running Valve Test");
+		}
+		if (ui_acquire() == ESP_OK) {
+			burn_in_test_start(ui_timer);
+
+			ui_release();
+			// Update the state
+
+		} else {
+			ESP_LOGI(tag, "%s, Start_burnin failed to get ui Semaphore",
+					__FUNCTION__);
 		}
 
 	} else if (cur_state == RUNNING_BURNIN_TEST) {
@@ -299,7 +300,13 @@ esp_err_t start_burnin() {
 		// TODO: check the timer to verify that it is running
 		ESP_LOGW(tag, "%s, Already running burnin Test", __FUNCTION__);
 
+	}  else if (cur_state == RUNNING_VALVE_TEST) {
+		// Already in state
+		// TODO: check the timer to verify that it is running
+		ESP_LOGW(tag, "%s, Already running valve burnin", __FUNCTION__);
+
 	} else if (cur_state == CANCEL_BURNIN_TEST) {
+
 		if (update_test_state(STARTING_BURNIN_TEST) == ESP_OK) {
 			ret = ESP_OK;
 			ESP_LOGI(tag, "%s, Running burn in", __FUNCTION__);
@@ -316,6 +323,7 @@ esp_err_t start_burnin() {
 	}
 	return ret;
 }
+
 
 burn_in_testing_state_t get_burn_in_state(void) {
 	burn_in_testing_state_t ret = ERROR_VAL;

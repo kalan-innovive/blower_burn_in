@@ -9,7 +9,7 @@
 #include "esp_err.h"
 #include "ui_blower_burn_in.h"
 #define UI_BURN 1
-#define UI_VALVE 0
+#define UI_VALVE 1
 #if UI_BURN
 #define BURN_IN_TIME 10 *60
 #define BURN_IN_COOLDOWN_TIME 30 *60
@@ -18,7 +18,7 @@
 #define BURN_IN_COOLDOWN_TIME  1*30
 #endif
 #if UI_VALVE
-#define BURN_IN_VALVE_TIME 10 *60
+#define BURN_IN_VALVE_TIME ((3 *60*60) + (30*60) )
 #else
 #define BURN_IN_VALVE_TIME 20
 #endif
