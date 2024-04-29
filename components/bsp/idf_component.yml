@@ -1,4 +1,14 @@
 ## IDF Component Manager Manifest File
 dependencies:
-  espressif/button: ^2
-  espressif/es7210: "~1.0.0"
+
+  espressif/esp-box:
+    version: "3.*"
+    require: "no"
+
+  espressif/esp-box-lite:
+    version: "2.*"
+    require: "no"
+
+  espressif/esp-box-3:
+    version: "1.*"
+    require: "no"

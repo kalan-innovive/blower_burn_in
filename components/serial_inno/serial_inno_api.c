@@ -20,7 +20,7 @@
 
 #include "include/msg16.h"
 #include "serial_inno.h"
-#include "serial_inno_api_test.h"
+//#include "serial_inno_api_test.h"
 
 #include <stdio.h>
 
@@ -86,7 +86,7 @@ int get_blower_type(int devid, unsigned *blower_type) {
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 
 	if (ret < 1) {
-		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, "get_blower_type Transact Error: %d", ret);
 		return ret;
 	}
 
@@ -162,7 +162,7 @@ int set_blower_type(int devid, int val) {
  */
 int get_valve_position(int devid, unsigned *val) {
 	int ret = 0;
-	TickType_t timeout = 12;
+	TickType_t timeout = 3;
 
 	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_SERVO_DEG,
 				.len = 1 };
@@ -175,7 +175,7 @@ int get_valve_position(int devid, unsigned *val) {
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	unsigned tmp;
 	if (ret < 1) {
-		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, "get_valve_position Transact Error: %d", ret);
 		return ret;
 	}
 
@@ -210,7 +210,7 @@ int get_raw_pressure(int devid, int *val) {
 
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
-		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, " get_raw_pressure Transact Error: %d", ret);
 		return ret;
 
 	}
@@ -243,7 +243,7 @@ int get_caibration(int devid, int *val) {
 
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
-		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, "get_valve_position Transact Error: %d", ret);
 		return ret;
 	}
 
@@ -305,7 +305,7 @@ int get_target_pressure(int devid, unsigned *val) {
 
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
-		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, "get_target_pressure Transact Error: %d", ret);
 
 	}
 	tmp = (uint16_t) msg_resp.payload[0];
@@ -346,6 +346,7 @@ int set_target_pressure(int devid, unsigned val) {
 	ret = transact_write(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
 		ESP_LOGW(tag, "target_pressure Transact Error: %d", ret);
+		return ret;
 
 	}
 	ESP_LOGI(tag, "target_pressure value to: %d", (int16_t ) val);
@@ -375,7 +376,8 @@ int get_fan_rpm(int devid, unsigned *val) {
 
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
-		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, "transact_read Transact Error: %d", ret);
+		return ret;
 
 	}
 	tmp = (uint16_t) msg_resp.payload[0];
@@ -412,6 +414,7 @@ int get_pwm(int devid, unsigned *val) {
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
 		ESP_LOGW(tag, "get_pwm Transact Error: %d", ret);
+		return ret;
 
 	}
 	tmp = (uint16_t) msg_resp.payload[0];
@@ -446,67 +449,6 @@ int set_pwm(int devid, unsigned val) {
 
 	}
 	ESP_LOGI(tag, "Set set_pwm set %d ", (int) msg_resp.payload[0]);
-
-	return ret;
-}
-
-/*
- * Creates a read transaction to get the current pwm of control system
- * 0 = min pwm control
- * 100 = max pwm_control
- * @Param: int devid, unsigned *val
- * @Return:  1 if successful, 0 or -1 if failed to get transaction
- *  Error: -1 on invalid response
- *  Error: 0 on if response timed out dev unavailable
- */
-int get_uuid(int devid, unsigned *val)
-{
-	int ret = 0;
-	TickType_t timeout = 30 / portTICK_PERIOD_MS;
-	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid,
-			.addr = REG_BLOWER_UUID2, .len = 1 };
-
-	msg16_t msg_resp;
-	msg_resp.len = 0;
-	msg_resp.payload[0] = 0xffff;
-
-	unsigned tmp = 0;
-
-	ret = transact_read(&msg_req, &msg_resp, timeout);
-	if (ret < 1) {
-		ESP_LOGW(tag, "get_uuid Transact Error: %d", ret);
-
-	}
-	tmp = (uint16_t) msg_resp.payload[0];
-	ESP_LOGI(tag, " get_uuid Returning uuid: %d ", tmp);
-
-	*val = tmp;
-
-	return ret;
-}
-/*
- * Creates a Write transaction to set uuid in nv store
- * @Param: int devid, unsigned val uuid
- * @Return:  1 if successful, 0 or -1 if failed to get transaction
- *  Error: -1 on invalid response
- *  Error: 0 on if response timed out dev unavailable
- */
-int set_uuid(int devid, unsigned val) {
-	int ret = 0;
-	TickType_t timeout = 100 / portTICK_PERIOD_MS;
-	msg16_t msg_req = { .type = WRITE_REQ, .dev_id = devid,
-			.addr = REG_BLOWER_UUID2, .len = 1, .payload[0]= (uint16_t)(val & 0xffff) };
-
-	msg16_t msg_resp;
-	msg_resp.len = 0;
-	msg_resp.payload[0] = 0xffff;
-
-	ret = transact_write(&msg_req, &msg_resp, timeout);
-	if (ret < 1) {
-		ESP_LOGW(tag, "set_uuid Transact Error: %d", ret);
-
-	}
-	ESP_LOGI(tag, "Set set_uuid set %d ", (int) msg_resp.payload[0]);
 
 	return ret;
 }
@@ -570,20 +512,23 @@ int get_chipid(int devid, unsigned *chipid) {
 	msg16_t msg_resp;
 	msg_resp.len = 0;
 	msg_resp.payload[0] = 0;
+	msg_resp.payload[1] = 0;
 
 	unsigned high, low, c_id;
 
-	clear_uart_rx_queue();
+//	clear_uart_rx_queue();
 
 	//Run transaction verify that the response was received without error
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	// Why ret
 	if (ret < 1) {
-		ESP_LOGW(tag, "Transact Error: %d", ret);
+		ESP_LOGW(tag, "get_chipid Transact Error: %d", ret);
+		return ret;
 
 	}
 	if (msg_resp.len != 2) {
 		ESP_LOGW(tag, "Chip ID Transact Error %d: %d", ret, msg_resp.len);
+		return -1;
 
 	}
 	high = (msg_resp.payload[0] & 0xffff) << 16;

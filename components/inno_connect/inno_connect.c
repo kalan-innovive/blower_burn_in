@@ -24,17 +24,7 @@
 static const char *TAG = "inno_connect";
 static char IP_addr[150];
 
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-/* types of ipv6 addresses to be displayed on ipv6 events */
-const char *example_ipv6_addr_types_to_str[6] = {
-	"ESP_IP6_ADDR_IS_UNKNOWN",
-	"ESP_IP6_ADDR_IS_GLOBAL",
-	"ESP_IP6_ADDR_IS_LINK_LOCAL",
-	"ESP_IP6_ADDR_IS_SITE_LOCAL",
-	"ESP_IP6_ADDR_IS_UNIQUE_LOCAL",
-	"ESP_IP6_ADDR_IS_IPV4_MAPPED_IPV6"
-};
-#endif
+
 
 /**
  * @brief Checks the netif description if it contains specified prefix.
@@ -71,15 +61,7 @@ void example_print_all_netif_ips(const char *prefix)
 			sprintf(IP_addr, "%d.%d.%d.%d", IP2STR(&ip.ip));
 			ESP_LOGI(TAG, "Setting IPv4 address: %s", IP_addr);
 			ESP_LOGI(TAG, "- IPv4 address: " IPSTR ",", IP2STR(&ip.ip));
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-			esp_ip6_addr_t ip6[MAX_IP6_ADDRS_PER_NETIF];
-			int ip6_addrs = esp_netif_get_all_ip6(netif, ip6);
-			for (int j = 0; j < ip6_addrs; ++j) {
-				esp_ip6_addr_type_t ipv6_type = esp_netif_ip6_get_addr_type(
-						&(ip6[j]));
-			ESP_LOGI(TAG, "- IPv6 address: " IPV6STR ", type: %s", IPV62STR(ip6[j]), example_ipv6_addr_types_to_str[ipv6_type]);
-		}
-#endif
+
 		}
 	}
 }
@@ -96,18 +78,22 @@ const char* get_ip(void) {
 //
 //}
 
+
+/**
+ * Connects to all forms of transportation
+ * Wifi
+ * Bluetooth
+ * Serial
+ *
+ */
 esp_err_t inno_connect(void)
 {
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-    if (example_ethernet_connect() != ESP_OK) {
-        return ESP_FAIL;
-    }
-    ESP_ERROR_CHECK(esp_register_shutdown_handler(&example_ethernet_shutdown));
-#endif
+
 
 #if CONFIG_INNO_CONNECT_WIFI
 	ESP_LOGI(TAG, "Connecting to wifi");
 	esp_err_t err = ESP_FAIL;
+//	set_wifi_cradentail("Erik's iPhone","7342173e");
 
 #ifdef SSID_LIST_FROM_CFG
 
@@ -161,7 +147,7 @@ esp_err_t inno_connect(void)
 #endif
 
 #if CONFIG_INNO_CONNECT_WIFI
-	example_print_all_netif_ips(EXAMPLE_NETIF_DESC_STA);
+	example_print_all_netif_ips(INNO_NETIF_DESC_STA);
 #endif
 
 	return ESP_OK;
@@ -169,10 +155,7 @@ esp_err_t inno_connect(void)
 
 esp_err_t inno_disconnect(void)
 {
-#if CONFIG_EXAMPLE_CONNECT_ETHERNET
-    example_ethernet_shutdown();
-    ESP_ERROR_CHECK(esp_unregister_shutdown_handler(&example_ethernet_shutdown));
-#endif
+
 #if CONFIG_INNO_CONNECT_WIFI
 	connect_wifi_shutdown();
 	ESP_ERROR_CHECK(

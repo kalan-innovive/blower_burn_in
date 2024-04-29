@@ -163,18 +163,18 @@ static void resp_cmd_event_handler(void *handler_arg, esp_event_base_t base,
 
 	eh_event_t *new_event = NULL;
 	switch (id) {
-//		case MSG16_REQUEST:
-//			// Handle MSG16_REQUEST
-//			ESP_LOGI(TAG, "%s, MSG16_REQUEST type:%s, msg_id=%d, valid=%s",
-//					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
-//					(e->valid) ? "True" : "False");
-//			break;
-//		case SETTINGS_REQUEST:
-//			// Handle SETTINGS_REQUEST
-//			ESP_LOGI(TAG, "%s, SETTINGS_REQUEST type:%s, msg_id=%d, valid=%s",
-//					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
-//					(e->valid) ? "True" : "False");
-//			break;
+		case MSG16_REQUEST:
+			// Handle MSG16_REQUEST
+			ESP_LOGI(TAG, "%s, MSG16_REQUEST type:%s, msg_id=%d, valid=%s",
+					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
+					(e->valid) ? "True" : "False");
+			break;
+		case SETTINGS_REQUEST:
+			// Handle SETTINGS_REQUEST
+			ESP_LOGI(TAG, "%s, SETTINGS_REQUEST type:%s, msg_id=%d, valid=%s",
+					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
+					(e->valid) ? "True" : "False");
+			break;
 		case SERVER_EH_RESPONSE:
 			ESP_LOGD(TAG, "%s, SERVER_EH_RESPONSE type:%s, msg_id=%d, valid=%s",
 					__FUNCTION__, get_eh_event_id_string(e->type), e->msg_id,
@@ -375,6 +375,10 @@ esp_err_t db_pre_post_parser(cJSON *root, db_resp_pre_post_burnin_t **db_ppb) {
 	cJSON *vas_value = cJSON_GetObjectItem(root, "vas_val");
 	cJSON *qc_value = cJSON_GetObjectItem(root, "qc_val");
 	cJSON *burnin_value = cJSON_GetObjectItem(root, "burnin_value");
+	cJSON *range = cJSON_GetObjectItem(root, "burnin_value");
+	cJSON *result = cJSON_GetObjectItem(root, "result_code");
+	cJSON *result_msg = cJSON_GetObjectItem(root, "result_msg");
+	cJSON *uuid = cJSON_GetObjectItem(root, "uuid");
 
 	if (!cJSON_IsNumber(chip_id) || !cJSON_IsNumber(vas_value)
 			|| !cJSON_IsNumber(qc_value) || !cJSON_IsArray(burnin_value)) {
