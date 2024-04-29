@@ -27,7 +27,7 @@
 #include "serial_inno.h"
 #include "offset_data.h"
 #include "app_event_handler.h"
-#include "gui/ui_burnin/ui_main.h"
+#include "gui/ui_main.h"
 #include "mqtt_handler.h"
 
 static const char *TAG = "burn-in";
@@ -49,6 +49,8 @@ static bool rack_power_changed;
 static unsigned chipid_list[4];
 static int testing[4];
 static int cur_offset[4];
+static int valve_type_list[4];
+static int testing_valve;
 static int vas_v[4];
 static int QC_v[4];
 
@@ -82,11 +84,13 @@ static void init_burn_in() {
 	ESP_LOGI(TAG,
 			"%s, Initializing burn in reseting cur_offset cas_v and qc_val  setting power, rack on to default",
 			__FUNCTION__);
+	testing_valve = 0;
 	for (int i = 0; i < 4; i++) {
 		testing[i] = 0;
 		cur_offset[i] = DEF_OFFSET_VAL;
 		vas_v[i] = DEF_OFFSET_VAL;
 		QC_v[i] = DEF_OFFSET_VAL;
+		valve_type_list[i] = 0;
 	}
 	check_rack_power_changed();
 	rack_on = false;
@@ -137,22 +141,30 @@ static int update_rack_blower_list() {
 //	rack_on = false;
 	int devIDs[4] = { DEV_SUPA, DEV_EXHA, DEV_SUPB, DEV_EXB };
 	unsigned chipid = 0;
+	unsigned valve_type = 0;
 	int offset = 0;
 	int num_avail = 0;
 
 	for (int i = 0; i < 4; i++) {
 		ESP_LOGD(TAG, "%s, Checking for Device:%d", __FUNCTION__, devIDs[i]);
 		chipid = 0;
+		valve_type= 0;
 		offset = DEF_OFFSET_VAL;
 
 		// Send a message and check for response
+		vTaskDelay(1);
 		suc = get_raw_pressure(devIDs[i], &offset);
+		vTaskDelay(1);
+
 
 		ESP_LOGD(TAG, "%s, Checking for Device:%d, Available: %d, Offset:%d",
 				__FUNCTION__, devIDs[i], suc, offset);
 		// If we can get the offset check if the chip id is readable
 		if (suc == 1) {
+			vTaskDelay(1);
 			suc = get_chipid(devIDs[i], &chipid);
+			vTaskDelay(1);
+
 			if (suc == 1) {
 
 				// Set the current offset value for the chip id
@@ -164,10 +176,22 @@ static int update_rack_blower_list() {
 				// Update the testing list
 				testing[i] = 1;
 				num_avail += 1;
-			}
 
+				vTaskDelay(1);
+				suc = get_blower_type(devIDs[i], &valve_type);
+				if (suc == 1) {
+
+					// Set the current offset value for the chip id
+					cur_offset[i] = offset;
+					ESP_LOGD(TAG, "%s, Updating Valve type for dev:%d type: %d",
+							__FUNCTION__, devIDs[i], valve_type);
+					valve_type_list[i] = chipid;
+					testing_valve ++;
+				}
+				vTaskDelay(1);
+			}
 			else {
-				ESP_LOGW(TAG, "%s, Blower %s; Could not update ChipID",
+				ESP_LOGW(TAG, "%s, Blower %d; Could not update ChipID",
 						__FUNCTION__,
 						devIDs[i]);
 
@@ -193,6 +217,7 @@ static int check_power_on() {
 
 		// Send a message and check for response
 		suc = check_dev_id(devIDs[i]);
+		vTaskDelay(0);
 
 		// If we receive a response we update the power on and return
 		if (suc == 1) {
@@ -241,7 +266,8 @@ static void setup_blower_(burn_in_ui_value_t *brn_val) {
 			blower->offset = cur_offset[i];
 
 			// Set the state
-			blower->state = STARTING_BLOWER_TEST;
+			// TODO: change to a set state function
+
 
 		} else {
 			ESP_LOGD(TAG,
@@ -312,24 +338,35 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				blower->vas_offset = cd->vas_offset;
 				blower->qc_offset = cd->qc_offset;
 
-				if (blower->vas_offset == DEF_OFFSET_VAL || blower->qc_offset == DEF_OFFSET_VAL){
+				// If the database returns -2222 do not calculate the range
+				if (blower->vas_offset < -250 || blower->vas_offset > 250 ||blower->qc_offset < -250 ||blower->qc_offset > 250 ){
 					// Send a request for the values
-					get_ppb_values();
+					blower->min_val = -41;
+					blower->max_val = 41;
+					blower->range = 0;
 				}
 
-				// Set the min max and range values
-				blower->min_val = get_min_last_n(cd, 6);
-				blower->max_val = get_max_last_n(cd, 6);
-				blower->range = blower->max_val - blower->min_val;
-				ESP_LOGD(TAG,
-					"[%s,%d]    Blower Values: min %d; max %d, Range: %d____",
-					__FUNCTION__, __LINE__, blower->min_val,blower->max_val,blower->range
-					);
+				else if (blower->vas_offset == DEF_OFFSET_VAL || blower->qc_offset == DEF_OFFSET_VAL){
+					// Send a request for the values
+//					get_ppb_values();
+					blower->min_val = 10;
+					blower->max_val = -10;
+					blower->range = 0;
+				} else {
 
+
+					// Set the min max and range values
+					blower->min_val = get_min_last_n(cd, 4);
+					blower->max_val = get_max_last_n(cd, 4);
+					blower->range = offset_range_last_n(cd, 4);
+					// Range should be greater than 0 to get rid of false posatives
+					blower->range = (blower->range==0) ? 1 : blower->range;
+				}
 				// set the burn in array
 				int num_burn_val = copy_array(&cd->offset_array,
 						blower->burn_in_offset, NUM_OF_TEST);
 				blower->num_point = num_burn_val;
+				// Check if there are any values in burn in
 
 				ESP_LOGD(TAG,
 						"[%s,%d]    Copied %d items to the array\t Current test array count %d________________",
@@ -350,9 +387,9 @@ static void update_ui_blower_vals(burn_in_ui_value_t *brn_val) {
 				return;
 			}
 			int passing = 0;
-			passing = (blower->min_val > -80) ? 1 : 0;
-			passing &= (blower->max_val < 80) ? 1 : 0;
-			passing &= (blower->range <= 11) ? 1 : 0;
+			passing = (blower->min_val > -40) ? 1 : 0;
+			passing &= (blower->max_val < 40) ? 1 : 0;
+			passing &= (blower->range <= 15) ? 1 : 0;
 
 			if (passing) {
 				blower->state =
@@ -382,7 +419,7 @@ static void init_blower_test(burn_in_ui_value_t *brn_val) {
 		strcpy(blower->name, test_blower_device_names[i]);
 		strcpy(blower->chip_id, " ");
 		blower->offset = DEF_OFFSET_VAL;
-		blower->range = DEF_OFFSET_VAL;
+		blower->range = DEF_OFFSET_RANGE;
 		blower->vas_offset = DEF_OFFSET_VAL;
 		blower->qc_offset = DEF_OFFSET_VAL;
 		for (int ii = 0; ii < NUM_OF_TEST; ii++) {
@@ -392,7 +429,7 @@ static void init_blower_test(burn_in_ui_value_t *brn_val) {
 
 		blower->min_val = DEF_OFFSET_VAL;
 		blower->max_val = DEF_OFFSET_VAL;
-		blower->num_point = DEF_OFFSET_VAL;
+		blower->num_point = 0;
 	}
 }
 
@@ -428,7 +465,7 @@ static int get_ppb_values() {
 	int ret = 0;
 	for (int i = 0; i < 4; i++) {
 		if (testing[i]) {
-			// send the request to get the burnin values
+			// send the request to log the calibration value
 			esp_err_t err = request_ppb_vals(chipid_list[i]);
 			if (err != ESP_OK) {
 				ESP_LOGE(TAG,
@@ -468,7 +505,7 @@ static esp_err_t register_burnin_eh_calback(void) {
 static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		int32_t id, void *event_data) {
 
-	ESP_LOGD(TAG,
+	ESP_LOGI(TAG,
 			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
 			__FUNCTION__, __LINE__, id, (void* )event_data);
 
@@ -500,7 +537,7 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 					__FUNCTION__, (void* )data);
 			return;
 		}
-		ESP_LOGD(TAG, "[%s,%d], msg_struct == :%p",
+		ESP_LOGD(TAG, "[%s,%d]/t, msg_struct == :%p",
 				__FUNCTION__, __LINE__, (void* )data);
 
 // Now you can access the members of the db_resp_pre_post_burnin_t struct
@@ -525,7 +562,6 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 		c_data.qc_offset = data->qc_cal_val;
 		c_data.vas_offset = data->vas_cal_val;
 
-
 // Update the data array
 		r = insert_array(&c_data.offset_array, data->burnin_val,
 				data->num_burnin);
@@ -549,88 +585,106 @@ static void on_ppb_response(void *handler_arg, esp_event_base_t base,
 	}
 }
 
-///**
-// * @brief event handler function for Burn in ppb event available
-// *  - Called by event handler when a DB_GET_PRE_POST_BURNIN is posted
-// */
-//static void on_settings_update(void *handler_arg, esp_event_base_t base,
-//		int32_t id, void *event_data) {
-//
-//	ESP_LOGI(TAG,
-//			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
-//			__FUNCTION__, __LINE__, id, (void* )event_data);
-//
-//// Cast handler_arg to eh_event_t
-//	eh_event_t *event = (eh_event_t*) event_data;
-//
-//	if (event == NULL) {
-//		ESP_LOGE(TAG, "%s, Error: event_data==NULL at:%p,",
-//				__FUNCTION__,
-//				(void* ) event);
-////		return;
-//	}
-//
-//// Check that the event is valid
-//	/* TODO: Check that this is thread sage*/
-//	else if (event->valid && event->type == SETTINGS_REQUEST) {
-//
-//		ESP_LOGD(TAG, "[%s,%d]\t Event valid=%d, msg_id=%d, type=%d",
-//				__FUNCTION__, __LINE__, event->valid, event->msg_id,
-//				event->type);
-//
-//// Cast msg_struct into a db_resp_pre_post_burnin_t
-//		settings_req_t *setting =
-//				(settings_req_t*) event->msg_struct;
-//
-////Error Checking that we have the correct struct
-//		if (setting == NULL) {
-//			ESP_LOGE(TAG, "%s, msg_struct == null at:%p",
-//					__FUNCTION__, (void* )setting);
-//			return;
-//		}
-//		ESP_LOGD(TAG, "[%s,%d]/t, Settings request type == :%d",
-//				__FUNCTION__, __LINE__, setting->type);
-//
-//		switch (setting->type) {
-//			case IP_ADDR:
-//				handle_ip_addr((char*) setting->data);
-//				break;
-//			case SSID_STR:
-//				//				handle_ssid_str((char*) setting->data);
-//				break;
-//			case WIFI_PASSWD:
-//				//				handle_wifi_passwd((char*) setting->data);
-//				break;
-//			case MQTT_CONF:
-//				//				handle_mqtt_conf((mqtt_conf_str*) setting->data);
-//				break;
-//			case MQTT_STATUS:
-//				handle_mqtt_status(*(bool*) setting->data);
-//				break;
-//			case MODBUS_POWER:
-//				handle_modbus_power(*(bool*) setting->data);
-//				break;
-//			case NODE_NAME:
-//				handle_node_name((char*) setting->data);
-//				break;
-//			case SERIAL_STATUS:
-//				handle_serial_status(*(bool*) setting->data);
-//				break;
-//			case BLT_STATUS:
-//				handle_blt_status(*(bool*) setting->data);
-//				break;
-//			default:
-//				// unknown type should break here and hang durring debug
-//				break;
-//		}
-//	}
-//}
+/**
+ * @brief event handler function for Burn in ppb event available
+ *  - Called by event handler when a DB_GET_PRE_POST_BURNIN is posted
+ */
+static void on_settings_update(void *handler_arg, esp_event_base_t base,
+		int32_t id, void *event_data) {
+
+	ESP_LOGI(TAG,
+			"[%s,%d]/t Received from loop id: %ld event pointer:%p",
+			__FUNCTION__, __LINE__, id, (void* )event_data);
+
+// Cast handler_arg to eh_event_t
+	eh_event_t *event = (eh_event_t*) event_data;
+
+	if (event == NULL) {
+		ESP_LOGE(TAG, "%s, Error: event_data==NULL at:%p,",
+				__FUNCTION__,
+				(void* ) event);
+//		return;
+	}
+
+// Check that the event is valid
+	/* TODO: Check that this is thread sage*/
+	else if (event->valid && event->type == SETTINGS_REQUEST) {
+
+		ESP_LOGD(TAG, "[%s,%d]\t Event valid=%d, msg_id=%d, type=%d",
+				__FUNCTION__, __LINE__, event->valid, event->msg_id,
+				event->type);
+
+// Cast msg_struct into a db_resp_pre_post_burnin_t
+		settings_req_t *setting =
+				(settings_req_t*) event->msg_struct;
+
+//Error Checking that we have the correct struct
+		if (setting == NULL) {
+			ESP_LOGE(TAG, "%s, msg_struct == null at:%p",
+					__FUNCTION__, (void* )setting);
+			return;
+		}
+		ESP_LOGD(TAG, "[%s,%d]/t, Settings request type == :%d",
+				__FUNCTION__, __LINE__, setting->type);
+
+		switch (setting->type) {
+			case IP_ADDR:
+				handle_ip_addr((char*) setting->data);
+				break;
+			case SSID_STR:
+				//				handle_ssid_str((char*) setting->data);
+				break;
+			case WIFI_PASSWD:
+				//				handle_wifi_passwd((char*) setting->data);
+				break;
+			case MQTT_CONF:
+				//				handle_mqtt_conf((mqtt_conf_str*) setting->data);
+				break;
+			case MQTT_STATUS:
+				handle_mqtt_status(*(bool*) setting->data);
+				break;
+			case MODBUS_POWER:
+				handle_modbus_power(*(bool*) setting->data);
+				break;
+			case NODE_NAME:
+				handle_node_name((char*) setting->data);
+				break;
+			case SERIAL_STATUS:
+				handle_serial_status(*(bool*) setting->data);
+				break;
+			case BLT_STATUS:
+				handle_blt_status(*(bool*) setting->data);
+				break;
+			default:
+				// unknown type should break here and hang durring debug
+				break;
+		}
+	}
+}
+static unsigned valve_pos = 0;
+static void move_valve_blower() {
+	int devIDs[4] = { DEV_SUPA, DEV_EXHA, DEV_SUPB, DEV_EXB };
+	valve_pos = (valve_pos == 0) ? 99 : 0;
+	for (int i = 0; i < 4; i++) {
+		if (testing[i] && valve_type_list[i]) {
+			// send the request to log the calibration value
+			int err = set_pwm(devIDs[i], valve_pos);
+			if (err != 1) {
+				ESP_LOGE(TAG,
+						"[%s, %d]Error sending request for ppb values to database",
+						__FUNCTION__, __LINE__);
+				vTaskDelay(300 / portTICK_PERIOD_MS);
+			}
+		}
+	}
+}
 
 /**
  *  ___ Public Function  definitions ______
  */
 
 void burn_in_task(void *pvParameter) {
+//	vTaskDelay(APP_START_DELAY_MS / portTICK_PERIOD_MS);
 	init_burn_in();
 	int count = 0;
 	int num_available = 0;
@@ -683,10 +737,10 @@ void burn_in_task(void *pvParameter) {
 		ESP_ERROR_CHECK(update_test_values());
 
 		// Clear modbus messages
-		int num_cleared_msg = clear_uart_rx_queue();
-		if (num_cleared_msg) {
-			ESP_LOGW(TAG, "[APP] Cleared MODBus messages:%d", num_cleared_msg);
-		}
+//		int num_cleared_msg = clear_uart_rx_queue();
+//		if (num_cleared_msg) {
+//			ESP_LOGW(TAG, "[APP] Cleared MODBus messages:%d", num_cleared_msg);
+//		}
 
 		/**
 		 * Loop Runs on the current state
@@ -752,7 +806,6 @@ void burn_in_task(void *pvParameter) {
 				burn_in_ui_value_t *b_val;
 
 				b_val = get_test_vals();
-//				if (b_val == null)
 				// Initializes Offset range and chipID values to UI
 				setup_blower_(b_val);
 
@@ -778,13 +831,10 @@ void burn_in_task(void *pvParameter) {
 
 				if (check_rack_power_changed()) {
 					// Should be called once during burn in test
-					if (start_burnin() == ESP_OK) {
-						count = -1;
-						ESP_LOGI(TAG,
-								"[%d], Finished Setting up burn in test setting count t0 :%d",
-								__LINE__, count);
-
+					if (testing_valve>0){
+						update_test_state(STARTING_VALVE_TEST);
 					}
+
 				}
 			} else {
 				// Reset the flag since we did not aquire ui
@@ -798,8 +848,10 @@ void burn_in_task(void *pvParameter) {
 		else if (state == RUNNING_BURNIN_TEST) {
 			update_rack_blower_list();
 //			if (count % UPDATE_UI_COUNT == 0)
-//			if (count % 10 == 0)
-			if (count % 10 == 0) {
+			if (count % 45 == 5) {
+				get_ppb_values();
+			}
+			if (count % 3 == 1){
 
 				// Update every
 				if (test_vals_acquire(10)) {
@@ -818,21 +870,13 @@ void burn_in_task(void *pvParameter) {
 
 					ESP_LOGI(TAG,
 							"[APP] RUNNING_BURNIN_TEST updating test values");
-					// Why is this being done in the Running thread should be part of startup???
-//					if (check_rack_power_changed()) {
-//
-//						// Should be called once during burn in test
-//						if (start_burnin() == ESP_OK) {
-//							ESP_LOGI(TAG, "Running burn in test");
-//						}
-//					}
+
 				}
 			}
 
 		}
 		else if (state == FINISHED_BURNIN_TEST && !rack_on) {
 			// State transition if rack is turned off
-//			if (check_rack_power_changed()) {
 			check_rack_power_changed();
 			ESP_LOGI(TAG,
 					"[APP] FINISHED_BURNIN_TEST- submitting value for cycle");
@@ -841,12 +885,79 @@ void burn_in_task(void *pvParameter) {
 				ESP_LOGD(TAG, "%s, Rack turned off transition state",
 						__FUNCTION__);
 			}
-//			}
-		} else if (state == RUNNING_COOLDOWN_TEST) {
+		}
+
+
+
+
+		else if (state == STARTING_VALVE_TEST ) {
+			// Check if power is on
+			if (!rack_on) {
+				// Update the state to startting
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Changing State to Start power interrupted: Running cycle %d", test_cycle);
+				}
+			} else {
+				// Update the state to Running
+				if (start_burnin() == ESP_OK) {
+					count = -1;
+					ESP_LOGI(TAG,
+							"[%d], Finished Setting up valve burn in test setting count t0 :%d",
+							__LINE__, count);
+				}
+				esp_err_t ret = update_test_state(RUNNING_VALVE_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished Burnin Starting Valve Exercise Test: Running cycle %d", test_cycle);
+				}
+			}
+			// update the ui
+		}
+		else if (state == RUNNING_VALVE_TEST) {
+			// Move the valve around to exercise it
+			// Check if power is on
+			if (!rack_on) {
+
+				// Update the state to starting
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished: Running cycle %d", test_cycle);
+				}
+			} else {
+				move_valve_blower();
+			}
+		}
+		else if (state == FINISHED_VALVE_TEST) {
+					// Move state to
+			if (!rack_on) {
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished: Valve Burn in complete cycle %d", test_cycle);
+				}
+			}
+		}
+
+
+
+
+
+		else if (state == RUNNING_COOLDOWN_TEST) {
 			// Do something
 			// Check that the rack is still off to continue the timer
 			if (rack_on) {
 				// Update the state to startting
+				esp_err_t ret = update_test_state(STARTING_BURNIN_TEST);
+				if (ret == ESP_OK) {
+					test_cycle++;
+					ESP_LOGI(TAG, "[APP] Finished: Running cycle %d", test_cycle);
+				}
+			} else {
+
 
 				// We do not want to log the value until the timer has run down
 				esp_err_t err = update_test_state(CANCEL_BURNIN_TEST);

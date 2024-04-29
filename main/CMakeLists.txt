@@ -38,11 +38,17 @@ set(APP_RACKCOMM on)
 idf_component_register(
 	SRCS  ${src}
     INCLUDE_DIRS    ${include_dirs} 												# optional, add here public include directories
-    PRIV_INCLUDE_DIRS   															# optional, add here private include directories
-    REQUIRES            app_event_handler esp-box serial_inno lvgl mqtt_handler inno_connect console_cmd	# optional, list the public requirements (component names)
-    PRIV_REQUIRES       bsp es7210 nvs_flash 										# optional, list the private requirements
+
+#    PRIV_INCLUDE_DIRS   															# optional, add here private include directories
+#    REQUIRES            app_event_handler esp-box serial_inno lvgl mqtt_handler inno_connect	# optional, list the public requirements (component names)
+#    PRIV_REQUIRES       bsp es7210 nvs_flash 										# optional, list the private requirements
 )
 
 
-target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-format")
+target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-format" "-Wno-deprecated-declarations")
 
+
+set_source_files_properties(
+    ${LV_DEMOS_SOURCES}
+    PROPERTIES COMPILE_OPTIONS
+    -DLV_LVGL_H_INCLUDE_SIMPLE)
