@@ -1,5 +1,5 @@
 #string(REGEX MATCH "factory_demo" PROJECT_IS_FACTORY_DEMO "${PROJECT_DIR}")
-string(REGEX MATCH "factory_demo" PROJECT_IS_FACTORY_DEMO "${PROJECT_DIR}")
+#string(REGEX MATCH "factory_demo" PROJECT_IS_FACTORY_DEMO "${PROJECT_DIR}")
 
 if(EXISTS ${PROJECT_DIR}/sdkconfig)
     message(STATUS "use sdkconfig")

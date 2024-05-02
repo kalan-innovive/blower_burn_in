@@ -94,15 +94,15 @@ static int check_id(int argc, char **argv)
 		printf("Error: Expected id and msg_id to be numbers.\n");
 		return 1; // Return an error
 	}
-	cJSON *uuid_json = cJSON_GetObjectItemCaseSensitive(json, "uuid");
-	if (!cJSON_IsNumber(id) ) {
-		cJSON_Delete(json);
-		printf("Warning: Expected uuid as a number.\n");
-	} else {
-		uuid = uuid_json->valueint;
-		set_uuid(devid, uuid);
-		get_uuid(devid, &uuid);
-	}
+//	cJSON *uuid_json = cJSON_GetObjectItemCaseSensitive(json, "uuid");
+//	if (!cJSON_IsNumber(id) ) {
+//		cJSON_Delete(json);
+//		printf("Warning: Expected uuid as a number.\n");
+//	} else {
+//		uuid = uuid_json->valueint;
+//		set_uuid(devid, uuid);
+//		get_uuid(devid, &uuid);
+//	}
 
 	devid = id->valueint;
 

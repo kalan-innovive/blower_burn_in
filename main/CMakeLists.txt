@@ -1,9 +1,9 @@
 # See the build system documentation in IDF programming guide
 # for more information about component CMakeLists.txt files.
 
-file(GLOB_RECURSE LV_DEMOS_SOURCES ./*.c)
-message(STATUS "\n\n")
-message(STATUS "LV_DEMOS_SOURCES:   ${LV_DEMOS_SOURCES}")
+#file(GLOB_RECURSE LV_DEMOS_SOURCES ./*.c)
+#message(STATUS "\n\n")
+#message(STATUS "LV_DEMOS_SOURCES:   ${LV_DEMOS_SOURCES}")
 
 if(APP_BLOWERBURNIN)
 	message(STATUS "Including blower burn in Source\n")

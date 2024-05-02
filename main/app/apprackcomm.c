@@ -77,7 +77,7 @@ void apprackcomm_task(void *pvParameter){
 				if (blowerinfo.valid) {
 					lv_label_set_text_fmt(ui_deviceLabel, "%d", blowerinfo.devid);
 					lv_label_set_text_fmt(ui_chipidLabel,"%u",blowerinfo.chipid);
-					lv_label_set_text_fmt(ui_offsetLabel,"%d mInH2O",blowerinfo.offset);
+					lv_label_set_text_fmt(ui_offsetLabel,"%u mInH2O",blowerinfo.offset);
 					lv_label_set_text_fmt(ui_uuidLabel,"%u", blowerinfo.uuid);
 
 				}

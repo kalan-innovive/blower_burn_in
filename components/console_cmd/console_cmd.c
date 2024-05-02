@@ -38,14 +38,14 @@ esp_err_t setup_console_cmds(console_setup_config_t *cons_conf)
     repl_config.prompt = PROMPT_STR ">";
     repl_config.max_cmdline_length = CMD_LINE_MAX_LENGTH;
 
-#if CONFIG_CONSOLE_STORE_HISTORY
-	    initialize_filesystem();
-
-    repl_config.history_save_path = HISTORY_PATH;
-    ESP_LOGI(TAG, "Command history enabled");
-#else
+//#if CONFIG_CONSOLE_STORE_HISTORY
+//	    initialize_filesystem();
+//
+//    repl_config.history_save_path = HISTORY_PATH;
+//    ESP_LOGI(TAG, "Command history enabled");
+//#else
     ESP_LOGI(TAG, "Command history disabled");
-#endif
+//#endif
 
     /* Register commands */
     esp_console_register_help_command();
