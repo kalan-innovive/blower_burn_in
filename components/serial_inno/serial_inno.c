@@ -236,7 +236,6 @@ void setup_driver() {
 	ESP_LOGI(tag, "Uart Config installed on UART1 ");
 	vTaskDelay(100);
 
-
 	uart_set_pin(UART_SERIAL_INNO, 43, 44, 14, -1);
 	ESP_LOGI(tag, "Uart Pins installed on UART1 ");
 	vTaskDelay(100);

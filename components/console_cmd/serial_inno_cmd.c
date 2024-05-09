@@ -35,6 +35,9 @@ static void register_check_id(void);
 //static void register_get_connecteddevices(void);
 
 static void register_check_id_moc(void);
+static void register_get_dev_info(void);
+static void register_run_cal_test(void);
+static void register_check_id();
 
 
 void register_serialinno(void){
@@ -94,15 +97,18 @@ static int check_id(int argc, char **argv)
 		printf("Error: Expected id and msg_id to be numbers.\n");
 		return 1; // Return an error
 	}
-//	cJSON *uuid_json = cJSON_GetObjectItemCaseSensitive(json, "uuid");
-//	if (!cJSON_IsNumber(id) ) {
-//		cJSON_Delete(json);
-//		printf("Warning: Expected uuid as a number.\n");
-//	} else {
-//		uuid = uuid_json->valueint;
-//		set_uuid(devid, uuid);
-//		get_uuid(devid, &uuid);
-//	}
+	cJSON *uuid_json = cJSON_GetObjectItemCaseSensitive(json, "uuid");
+	if (uuid_json == NULL && !cJSON_IsNumber(uuid_json)) {
+
+		printf("Warning: Expected uuid as a number.\n");
+	} else {
+		uuid = uuid_json->valueint;
+		printf("   Updating uuid:%u\n", (unsigned) uuid);
+
+		set_uuid(devid, uuid);
+		get_uuid(devid, &uuid);
+	}
+
 
 	devid = id->valueint;
 
@@ -184,6 +190,26 @@ static void register_check_id(void){
 	    };
 	    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
+static void register_get_dev_info(void){
+	const esp_console_cmd_t cmd = {
+	        .command = "check_id",
+	        .help = "Checks if an ID is on the system",
+	        .hint = "{\"id\":11}",
+	        .func = &check_id,
+	    };
+	    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
+static void register_register_run_cal_test(void){
+	const esp_console_cmd_t cmd = {
+	        .command = "cal_test",
+	        .help = "Runs a calibration test, inserts UUID if present",
+	        .hint = "{\"id\":255, \"uuid\":\"04010001\"}",
+	        .func = &check_id,
+	    };
+	    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
 static int check_id_moc(int argc, char **argv)
 {
 	int devid = 0;
@@ -246,7 +272,7 @@ static void register_check_id_moc(void){
 	const esp_console_cmd_t cmd = {
 	        .command = "check_id_moc",
 	        .help = "Checks if an ID is on the system",
-	        .hint = "{\"id\":11}",
+	        .hint = "{\"id\":255}",
 	        .func = &check_id_moc,
 	    };
 	    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
