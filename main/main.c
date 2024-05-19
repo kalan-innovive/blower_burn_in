@@ -59,6 +59,7 @@ QueueHandle_t rack_queue;
 TaskHandle_t rack_task_handle;
 TaskHandle_t uart_rx_handle;
 TaskHandle_t burn_in_handle;
+TaskHandle_t valve_handle;
 
 mqtt_handler_config_t app_cfg;
 int wifi_conn=0;
@@ -275,7 +276,7 @@ void app_main(void) {
 	//	    ESP_LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
 
 	esp_log_level_set("msg16", ESP_LOG_ERROR);
-	esp_log_level_set("serial_inno", ESP_LOG_DEBUG);
+	esp_log_level_set("serial_inno", ESP_LOG_WARN);
 	esp_log_level_set("burn-in", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_blower-BI", ESP_LOG_DEBUG);
 	esp_log_level_set("UI_Timer", ESP_LOG_WARN);

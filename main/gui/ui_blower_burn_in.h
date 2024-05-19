@@ -30,6 +30,7 @@ typedef enum {
 	NA_INDEX
 } blower_ui_index;
 
+
 typedef enum {
 	NA_APP_STATUS = -1,
 	APP_READY = 0,
@@ -62,7 +63,8 @@ typedef enum {
 	STARTING_BLOWER_TEST, // Setting up blower can read the default value and the chipid
 	RUNNING_BLOWER_TEST, // Blowers that have been updated from the server and are running the burn in
 	SUCCESS_BLOWER_TEST, // Blowers that have finished and passed tests
-	FAILED_BLOWER_TEST   	// Blowers that failed test for reason
+	FAILED_BLOWER_TEST,   	// Blowers that failed test for reason
+	WARNING_BLOWER_TEST
 } blower_testing_state_t;
 
 // This should hold the current state
@@ -196,6 +198,7 @@ esp_err_t handle_blt_status(bool blt_connected);
 // Should be static?
 esp_err_t update_connect_values(void);
 
+extern char control_blower_device_names[4][16];
 extern char test_blower_device_names[4][16];
 
 #ifdef __cplusplus

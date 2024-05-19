@@ -29,11 +29,6 @@
  * ______ Forward Declarations _____
  */
 extern lv_timer_t *ui_timer;
-char test_blower_device_names[4][16] = {
-		"Supply A",
-		"Exhaust A",
-		"Supply B",
-		"Exhaust B" };
 
 /**
  * ______ Static Functions _____
@@ -50,6 +45,8 @@ static void print_blower_vals(blower_test_value_t *b_val);
 static void default_blower_test_val_ui(blower_test_label_map_t *b_lv,
 		blower_test_value_t *b_vals);
 static void detail_view_chart_init(lv_obj_t *chart);
+static esp_err_t start_valve_movement();
+static esp_err_t end_valve_movement();
 
 /**
  * ______ Static Declartaions _____
@@ -78,6 +75,17 @@ static int chart_data_prev_val[NUM_OF_TEST];
 
 static const char default_chip_id[16] = { "000" };
 static const char *tag = "UI_blower-BI";
+char test_blower_device_names[4][16] = {
+		"Supply A",
+		"Exhaust A",
+		"Supply B",
+		"Exhaust B" };
+
+char control_blower_device_names[4][16] = {
+		"HVAC SA",
+		"HVAC EA",
+		"HVAC SB",
+		"HVAC EA" };
 
 /**
  * ______ Public Functions _____
@@ -188,6 +196,20 @@ esp_err_t update_test_state(burn_in_testing_state_t state) {
 			update_timer_counter(ui_timer, 0);
 
 		}
+		else if(state == STARTING_VALVE_TEST) {
+			// end the timer and clear the detail view
+			ret = start_valve_movement();
+			if (ret !=ESP_OK ) {
+				ESP_LOGI(tag,"%s, Start_valve_movement Failed to init ui", __FUNCTION__);
+			}
+		}
+		else if(state == FINISHED_VALVE_TEST) {
+			// Switch the timer off and display result
+			ret = end_valve_movement();
+			if (ret !=ESP_OK ) {
+				ESP_LOGI(tag,"%s, End Valve Movement Failed to init ui", __FUNCTION__);
+			}
+		}
 		test_vals_release();
 
 		if (cur_state != state) {
@@ -195,10 +217,9 @@ esp_err_t update_test_state(burn_in_testing_state_t state) {
 					"%s, Updating testing state|Current: %s|Updated: %s|___________",
 					__FUNCTION__,
 					burnin_state_to_str(cur_state), burnin_state_to_str(state));
-
 		}
-
-	} else {
+	}
+	else {
 		ESP_LOGE(tag,
 				"%s, Updating testing state| Could not acquire semaphore to update test state",
 				__FUNCTION__);
@@ -248,6 +269,46 @@ esp_err_t start_cooldown() {
  * Call function when not in UI thread
  * Function updates the current state to RUNNING_COOLDOWN_TEST
  *  and Resets the timer for the ui
+ *  Ret the success of the operations
+ */
+static esp_err_t start_valve_movement() {
+	esp_err_t ret = ESP_FAIL;
+
+		// Acquire the ui semaphore to update timer
+	if (ui_acquire() == ESP_OK) {
+		burn_in_movement_start(ui_timer);
+		ret = ESP_OK;
+
+		ui_release();
+
+	}
+	return ret;
+}
+
+/*
+ * Call function when not in UI thread
+ * Function updates the current state to RUNNING_COOLDOWN_TEST
+ *  and Resets the timer for the ui
+ *  Ret the success of the operations
+ */
+static esp_err_t end_valve_movement() {
+	esp_err_t ret = ESP_FAIL;
+
+		// Acquire the ui semaphore to update timer
+	if (ui_acquire() == ESP_OK) {
+		burn_in_valve_finished(ui_timer);
+		ret = ESP_OK;
+
+		ui_release();
+
+	}
+	return ret;
+}
+
+/*
+ * Call function when not in UI thread
+ * Function updates the current state to RUNNING_COOLDOWN_TEST
+ *  and Resets the timer for the ui
  *  @return - the success of the operations
  */
 esp_err_t start_burnin() {
@@ -278,22 +339,17 @@ esp_err_t start_burnin() {
 					__FUNCTION__);
 		}
 
-	} else if (cur_state == STARTING_VALVE_TEST) {
-		// Acquire the ui semaphore to update timer
-		if (update_test_state(RUNNING_VALVE_TEST) == ESP_OK) {
-			ret = ESP_OK;
-			ESP_LOGI(tag, "Running Valve Test");
-		}
-		if (ui_acquire() == ESP_OK) {
-			burn_in_test_start(ui_timer);
-
-			ui_release();
-			// Update the state
-
-		} else {
-			ESP_LOGI(tag, "%s, Start_burnin failed to get ui Semaphore",
-					__FUNCTION__);
-		}
+//	} else if (cur_state == STARTING_VALVE_TEST) {
+//		// Acquire the ui semaphore to update timer
+////		if (update_test_state(RUNNING_VALVE_TEST) == ESP_OK) {
+////			ret = ESP_OK;
+////			ESP_LOGI(tag, "Running Valve Test");
+////		}
+//		ret = start_valve_movement();
+//		if (ret!=ESP_OK){
+//			ESP_LOGI(tag, "%s, start_valve_movement failed ",
+//					__FUNCTION__);
+//		}
 
 	} else if (cur_state == RUNNING_BURNIN_TEST) {
 		// Already in state
@@ -506,6 +562,7 @@ esp_err_t update_detail_values(int dev_id) {
 		blower_test_value_t *b_vals = &brn_val.blowers[dev_id];
 		print_blower_vals(b_vals);
 
+
 		//TODO: Check if there was an error
 		int error_id = 0;
 		// error_msg == 1 failed for range
@@ -518,10 +575,10 @@ esp_err_t update_detail_values(int dev_id) {
 		char *failed_msg[4] = { "  ", f_range, f_TEB, f_both };
 
 		if (b_vals->state == FAILED_BLOWER_TEST) {
-			if (b_vals->range > 11) {
+			if (b_vals->range > 15) {
 				error_id += 1;
 			}
-			if (b_vals->max_val > 80 || b_vals->min_val < -80) {
+			if (b_vals->max_val > 40 || b_vals->min_val < -40) {
 				error_id += 2;
 			}
 			lv_label_set_text(ui_ErrorLable, failed_msg[error_id]);
@@ -881,6 +938,11 @@ void update_blower_status_ui(lv_obj_t *lv_label,
 			state_str = "Failed";
 			text_color = lv_red;
 			bg_color = lv_light;
+			break;
+		case WARNING_BLOWER_TEST:
+			state_str = "SETUP ERR";
+			text_color = lv_light;
+			bg_color = lv_dark;
 			break;
 		default:
 			state_str = "";

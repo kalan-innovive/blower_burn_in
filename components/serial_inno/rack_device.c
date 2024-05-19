@@ -17,6 +17,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/uart.h"
+#include "reg_types.h"
 
 extern QueueHandle_t rack_queue;
 rack_registers_t rack_regs;

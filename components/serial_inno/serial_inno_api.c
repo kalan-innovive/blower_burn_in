@@ -26,7 +26,8 @@
 
 #include "driver/gpio.h"
 #include "sdkconfig.h"
-
+#include "reg_types.h"
+#include "dev_types.h"
 static const char *tag = "inno_api";
 
 /*

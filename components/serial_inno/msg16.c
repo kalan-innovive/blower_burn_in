@@ -13,6 +13,9 @@
 #include "esp_log.h"
 
 #include "freertos/FreeRTOS.h"
+#include "dev_types.h"
+#include "reg_types.h"
+
 
 static const char *tag = "msg16";
 

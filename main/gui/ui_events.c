@@ -35,6 +35,8 @@ const char *notify_valve_burnin_off =
 		"#0000ff Valve Cycle Timer Complete#\n Press \"OK\"\n Turn off Power Supply\nRun Valve Through Leak By Test";
 const char *notify_valve_burnin_on =
 		"#0000ff Starting Valve Movement Test#\n Wait for timer to finish\n \n";
+const char *notify_valve_leakby_complete =
+		"#0000ff Valve Blowby Complete#\n Press \"OK\"\n Turn off Power Supply\nComplete final valve checks";
 
 void clock_run_cb(lv_timer_t *timer) {
 	t_gui_timer *gt = timer->user_data;
@@ -85,14 +87,16 @@ void burn_in_test_start(lv_timer_t *timer) {
 		lv_obj_clear_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
 		lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 
-	} else if (state == RUNNING_VALVE_TEST) {
-		update_timer_counter(timer, BURN_IN_VALVE_TIME);
-		lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
-		lv_label_set_text(ui_NotificationLabel, notify_burnin_on);
-		lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
-		lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
-
-	} else {
+	}
+//	else if (state == RUNNING_VALVE_TEST) {
+//		update_timer_counter(timer, BURN_IN_VALVE_TIME);
+//		lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+//		lv_label_set_text(ui_NotificationLabel, notify_burnin_on);
+//		lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
+//		lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+//
+//	}
+	else {
 		update_timer_counter(timer, 0);
 		lv_obj_clear_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 		lv_label_set_text(ui_NotificationLabel, notify_valve_burnin_on);
@@ -119,6 +123,19 @@ void burn_in_cooldown_start(lv_timer_t *timer) {
 	update_timer_counter(timer, BURN_IN_COOLDOWN_TIME);
 	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
 	lv_label_set_text(ui_NotificationLabel, notify_burnin_off);
+	lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
+	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
+
+}
+
+void burn_in_movement_start(lv_timer_t *timer) {
+	ESP_LOGI(tag, "%s, Valve Movement Start Timer Event", __FUNCTION__);
+	update_timer_counter(timer, BURN_IN_VALVE_TIME);
+	//Set the notification screen for movement phase
+	// Set the timer on
+	// Set the ok button on
+	lv_obj_add_flag(ui_NotaficationPanel, LV_OBJ_FLAG_HIDDEN);
+	lv_label_set_text(ui_NotificationLabel, notify_valve_burnin_on);
 	lv_obj_add_flag(ui_OKButton, LV_OBJ_FLAG_HIDDEN);
 	lv_obj_clear_flag(ui_TimerNotificationPanel, LV_OBJ_FLAG_HIDDEN);
 

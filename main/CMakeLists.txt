@@ -3,8 +3,8 @@
 
 #file(GLOB_RECURSE LV_DEMOS_SOURCES ./*.c)
 
-set(include_dirs  "." "gui" "app")
-set(src_dirs  "." "gui" "app" "gui/image")
+set(include_dirs  "." "gui" "app" "app/burn_in/include")
+set(src_dirs  "." "gui" "app" "gui/image" "app/burn_in")
 
 #set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components)
 
