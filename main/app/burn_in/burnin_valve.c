@@ -150,12 +150,7 @@ void valve_burnin_task(void *arg) {
     b->start_time = esp_timer_get_time();
     b->num_iterations = 0;
 
-    // Create the ach configs
-//    init_burnin_task_runner_handle(b->runner_handle[0],task_calibration, Side)
 
-
-    side_dev_conf_t s_A = {0, sideA, {NULL, NULL}};
-    side_dev_conf_t s_B = {1, sideB, {NULL, NULL}};
     burnin_task_runner_handle_t runner_one;
     burnin_task_runner_handle_t runner_two;
     b->runner_handle[0] = &runner_one;
