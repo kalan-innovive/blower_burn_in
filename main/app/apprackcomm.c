@@ -61,6 +61,7 @@ void stop_appracktask(){
 }
 
 blower_update blowerinfo ={0,0,0,0,0,0};
+blower_version blow_version = DEFAULT_BLOWER_VER_VALUES;
 
 //const char[5]* ={1,3,0x21, 0x23, 0x11}
 void apprackcomm_task(void *pvParameter){
@@ -92,6 +93,28 @@ void apprackcomm_task(void *pvParameter){
 				bsp_display_unlock();
 			}
 		}
+		//TODO: update the blower version struct
+//		if (blow_version.is_updated) {
+//			if (bsp_display_lock(0)) {
+//
+//				if (blowerinfo.valid) {
+//					lv_label_set_text_fmt(ui_deviceLabel, "%d", blowerinfo.devid);
+//					lv_label_set_text_fmt(ui_chipidLabel,"%u",blowerinfo.chipid);
+//					lv_label_set_text_fmt(ui_offsetLabel,"%u mInH2O",blowerinfo.offset);
+//					lv_label_set_text_fmt(ui_uuidLabel,"%u", blowerinfo.uuid);
+//
+//				}
+//				else if(!blowerinfo.valid){
+//					lv_label_set_text(ui_deviceLabel,"NA");
+//					lv_label_set_text(ui_chipidLabel,"");
+//					lv_label_set_text(ui_offsetLabel, "");
+//					lv_label_set_text(ui_uuidLabel,"");
+//
+//				}
+//				blowerinfo.is_updated = 0;
+//				bsp_display_unlock();
+//			}
+//		}
 
 
 	};
