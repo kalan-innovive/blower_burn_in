@@ -129,7 +129,7 @@ void uart_rx_task(void *pvParameters) {
 				ESP_LOGD(tag, "Received length %d| Packed msg16 type %d", s->len, msg16.type);
 
 				xQueueSend(uart_rx_queue, (void*)&msg16, portMAX_DELAY);
-				ESP_LOGI(tag, "Done, Finished sending msg16: Type: %d, dev=%d, Addr=%d",
+				ESP_LOGI(tag, "Done, Finished sending msg16: Type: %d, dev=%d, Addr=%u",
 						msg16.type, msg16.dev_id, msg16.addr);
 			}
 			s->len = 0;

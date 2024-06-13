@@ -40,7 +40,7 @@ TaskHandle_t uart_rx_handle;
 
 
 static void setup_task() {
-	esp_log_level_set("msg16", ESP_LOG_INFO);
+	esp_log_level_set("msg16", ESP_LOG_DEBUG);
 	esp_log_level_set("serial_inno", ESP_LOG_DEBUG);
 	ESP_LOGI(tag, "Setting up Serial Inno and console");
 

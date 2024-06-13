@@ -15,6 +15,11 @@ typedef struct{
 	unsigned chipid;
 	unsigned uuid;
 	int offset;
+	int hw_ver;
+	int sw_ver_maj;
+	int sw_ver_min;
+	int p_sensor_type;
+	int blower_type;
 	int is_updated;
 	int valid;
 

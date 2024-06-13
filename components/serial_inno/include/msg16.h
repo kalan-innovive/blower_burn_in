@@ -43,7 +43,13 @@
 #define SW_VERSION 8
 #define HW_VERSION 107  // FIXME - should have a board rev included here
 
-
+typedef enum {
+	PRESSURE_SENSOR_TYPE_MPXV7002 = 0, 		/** Voltage regulated pressure sensor*/
+	PRESSURE_SENSOR_TYPE_MS4515DS3BS002 = 1,	/** TE Pressure Sensor 2 In H2O*/
+	PRESSURE_SENSOR_TYPE_HSCDRRD002NDSA3 =2,	/** Honeywell Pressure Sensor 2 In H2O*/
+	PRESSURE_SENSOR_TYPE_HSCDRRD005NDSA3 = 3,	/** Honeywell Pressure Sensor 5 In H2O*/
+	PRESSURE_SENSOR_TYPE_UNKNOWN = 0xFFFF,	/** Pressure Sensor is undefined will default to app sensor*/
+}pressure_type;
 
 typedef enum {
 	DEV_SUPA = 0x01,

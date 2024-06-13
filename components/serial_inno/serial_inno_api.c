@@ -73,7 +73,10 @@ int get_blower_type(int devid, unsigned *blower_type) {
 	int ret = 0;
 	TickType_t timeout = 12;
 
-	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_BLOWER_TYPE,
+//	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_BLOWER_TYPE,
+//				.len = 1 };
+
+	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_RPM_B,
 				.len = 1 };
 
 	msg16_t msg_resp;
@@ -150,6 +153,108 @@ int set_blower_type(int devid, int val) {
 	}
 	ESP_LOGI(tag, "Set Blower Type value to: %d", (int16_t ) val);
 
+	return ret;
+}
+
+/** Get the pressure sensor type*/
+int set_sensor_type(int devid, unsigned val){
+	int ret = 0;
+	TickType_t timeout = 100 / portTICK_PERIOD_MS;
+
+
+
+	if (val == PRESSURE_SENSOR_TYPE_MPXV7002){
+			ESP_LOGI(tag, "Setting blowerType  0x%04x, Fan", val);
+	}
+	else if (val == PRESSURE_SENSOR_TYPE_MS4515DS3BS002){
+		ESP_LOGI(tag, "Setting blowerType  0x%04x, VALVE", val);
+	}
+	else if (val == PRESSURE_SENSOR_TYPE_HSCDRRD002NDSA3){
+			ESP_LOGI(tag, "Setting blowerType  0x%04x, CONTROL", val);
+		}
+	else if (val == PRESSURE_SENSOR_TYPE_HSCDRRD005NDSA3){
+			ESP_LOGI(tag, "Setting blowerType  0x%04x, CONTROL", val);
+		}
+	else if (val == PRESSURE_SENSOR_TYPE_UNKNOWN){
+		ESP_LOGI(tag, "Not valid sensorType  0x%04x, PRESSURE_SENSOR_TYPE_UNKNOWN", val);
+		return -2;
+	}
+	else {
+		ESP_LOGI(tag, "Abborting Type  0x%04x, UKNOWN", val);
+		return -2;
+
+	}
+
+	uint8_t val_h, val_l;
+	val_l = (val & 0x00FF);
+	val_h = ~(val & 0x00FF);
+	uint16_t s_msg = (val_h<<8) +val_l;
+
+
+	msg16_t msg_req = { .type = WRITE_REQ, .dev_id = devid,
+				.addr = REG_PRESSURE_SENSOR_TYPE, .len = 1, .payload[0]= s_msg };
+
+
+	msg16_t msg_resp;
+	msg_resp.len = 0;
+	msg_resp.payload[0] = 0xFFFF;
+
+
+	ret = transact_write(&msg_req, &msg_resp, timeout);
+	if (ret < 1) {
+		ESP_LOGW(tag, " set_blower_type Transact Error: %d", ret);
+
+	}
+	ESP_LOGI(tag, "Set Blower Type value to: %d", (int ) s_msg);
+
+	return ret;
+}
+
+
+int get_sensor_type(int devid, unsigned *val) {
+	int ret = 0;
+	TickType_t timeout = 12;
+
+	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_PRESSURE_SENSOR_TYPE,
+				.len = 1 };
+
+	msg16_t msg_resp;
+	msg_resp.len = 0;
+	msg_resp.payload[0] = 0;
+
+
+	clear_uart_rx_queue();
+
+	ret = transact_read(&msg_req, &msg_resp, timeout);
+
+	if (ret < 1) {
+		ESP_LOGW(tag, "get_blower_type Transact Error: %d", ret);
+		return ret;
+	}
+
+	unsigned temp  = msg_resp.payload[0] ;
+	if (temp == PRESSURE_SENSOR_TYPE_MPXV7002){
+			ESP_LOGI(tag, "Setting blowerType  0x%04x, Fan", temp);
+	}
+	else if (temp == PRESSURE_SENSOR_TYPE_MS4515DS3BS002){
+		ESP_LOGI(tag, "Setting blowerType  0x%04x, VALVE", temp);
+	}
+	else if (temp == PRESSURE_SENSOR_TYPE_HSCDRRD002NDSA3){
+			ESP_LOGI(tag, "Setting blowerType  0x%04x, CONTROL", temp);
+		}
+	else if (temp == PRESSURE_SENSOR_TYPE_HSCDRRD005NDSA3){
+			ESP_LOGI(tag, "Setting blowerType  0x%04x, CONTROL", temp);
+		}
+	else if (temp == PRESSURE_SENSOR_TYPE_UNKNOWN){
+		ESP_LOGI(tag, "Not valid sensorType  0x%04x, PRESSURE_SENSOR_TYPE_UNKNOWN", temp);
+		return -2;
+	}
+	else {
+		ESP_LOGI(tag, "Aborting Type  0x%04x, UKNOWN", temp);
+		return -2;
+
+	}
+	*val = (unsigned) temp;
 	return ret;
 }
 
@@ -426,6 +531,7 @@ int get_pwm(int devid, unsigned *val) {
 	return ret;
 }
 
+
 /*
  * Creates a Write transaction to set pwm testmode
  * @Param: int devid, unsigned val in miH2O
@@ -467,21 +573,25 @@ int get_uuid(int devid, unsigned *val)
 	int ret = 0;
 	TickType_t timeout = 30 / portTICK_PERIOD_MS;
 	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid,
-			.addr = REG_BLOWER_UUID2, .len = 1 };
+			.addr = REG_BLOWER_UUID2, .len = 2};
 
 	msg16_t msg_resp;
 	msg_resp.len = 0;
 	msg_resp.payload[0] = 0xffff;
 
 	unsigned tmp = 0;
-
+	ESP_LOGW(tag, "get_uuid Transact : %d", msg_req.addr);
 	ret = transact_read(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
 		ESP_LOGW(tag, "get_uuid Transact Error: %d", ret);
 
 	}
-	tmp = (uint16_t) msg_resp.payload[0];
-	ESP_LOGI(tag, " get_uuid Returning uuid: %d ", tmp);
+	uint16_t  tmp_h, tmp_l;
+	tmp_h = (msg_resp.payload[0] & 0xFFFF);
+	tmp_l = (msg_resp.payload[1] & 0xFFFF);
+	tmp = (tmp_h << 16) |tmp_l;
+	ESP_LOGI(tag, " get_uuid high: 0x%04X low:0x%04X", tmp_h, tmp_l);
+	ESP_LOGI(tag, " get_uuid Returning uuid: 0x%08X ", tmp);
 
 	*val = tmp;
 
@@ -496,20 +606,35 @@ int get_uuid(int devid, unsigned *val)
  */
 int set_uuid(int devid, unsigned val) {
 	int ret = 0;
+	unsigned tmp;
+	uint16_t  tmp_h, tmp_l;
+	ESP_LOGI(tag, " set_uuid: 0x%08X ", val);
+	tmp_h = (val >>16) & 0x0000FFFF;
+	tmp_l = (val & 0x0000FFFF);
+	tmp = (tmp_h << 16) | tmp_l;
+	ESP_LOGI(tag, " set_uuid high: 0x%04X low:0x%04X ", tmp_h, tmp_l);
+	ESP_LOGI(tag, " set_uuid Setting uuid: 0x%08X ", tmp);
+
 	TickType_t timeout = 100 / portTICK_PERIOD_MS;
 	msg16_t msg_req = { .type = WRITE_REQ, .dev_id = devid,
-			.addr = REG_BLOWER_UUID2, .len = 1, .payload[0]= (uint16_t)(val & 0xffff) };
+			.addr = REG_BLOWER_UUID2, .len = 2 };
+	msg_req.payload[0] = tmp_h;
+	msg_req.payload[1] = tmp_l;
+	ESP_LOGI(tag, " set_uuid high: 0x%04X low:0x%04X ", msg_req.payload[0], msg_req.payload[1]);
+
 
 	msg16_t msg_resp;
 	msg_resp.len = 0;
 	msg_resp.payload[0] = 0xffff;
+	msg_resp.payload[1] = 0xffff;
+	ESP_LOGI(tag, "set_uuid Transact: %d, addr:%d", val, (int)msg_req.addr);
 
 	ret = transact_write(&msg_req, &msg_resp, timeout);
 	if (ret < 1) {
 		ESP_LOGW(tag, "set_uuid Transact Error: %d", ret);
 
 	}
-	ESP_LOGI(tag, "Set set_uuid set %d ", (int) msg_resp.payload[0]);
+	ESP_LOGI(tag, "Set set_uuid set %u : %u ", tmp, val);
 
 	return ret;
 }
@@ -598,6 +723,83 @@ int get_chipid(int devid, unsigned *chipid) {
 	ESP_LOGI(tag, "Returning ChipID High 0x%04x Low 0x%04x  ChipID:%u", msg_resp.payload[0],msg_resp.payload[1], c_id);
 
 	*chipid = c_id;
+
+	return ret;
+
+}
+
+
+/*
+ * Creates a read transaction to get the Hardware Version of the Device
+ * @Param: int devid, unsigned *chipid
+ * @Return:  1 if successful, 0 or -1 if failed to get transaction
+ *  Error: -1 on invalid response
+ *  Error: 0 on if response timed out dev unavailable
+ */
+
+
+int get_hw_version(int devid, unsigned *val) {
+	int ret = 0;
+	TickType_t timeout = 30 / portTICK_PERIOD_MS;
+
+	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_HWTYPE,
+				.len = 1 };
+
+	msg16_t msg_resp;
+	msg_resp.len = 0;
+	msg_resp.payload[0] = 0;
+
+	//Run transaction verify that the response was received without error
+	ret = transact_read(&msg_req, &msg_resp, timeout);
+	// Why ret
+	if (ret < 1) {
+		ESP_LOGW(tag, "get_hw_version Transact Error: %d", ret);
+		return ret;
+
+	}
+	if (msg_resp.len != 1) {
+		ESP_LOGW(tag, "get_hw_version Transact Error %d: %d", ret, msg_resp.len);
+		return -1;
+	}
+
+	ESP_LOGI(tag, "Returning Hardware Version 0x%04x ", msg_resp.payload[0]);
+
+	*val = msg_resp.payload[0];
+
+	return ret;
+
+}
+
+int get_sw_version(int devid, unsigned *major, unsigned *minor) {
+	int ret = 0;
+	TickType_t timeout = 30 / portTICK_PERIOD_MS;
+
+	msg16_t msg_req = { .type = READ_REQ, .dev_id = devid, .addr = REG_VERSION,
+				.len = 1 };
+
+	msg16_t msg_resp;
+	msg_resp.len = 0;
+	msg_resp.payload[0] = 0;
+
+	//Run transaction verify that the response was received without error
+	ret = transact_read(&msg_req, &msg_resp, timeout);
+	// Why ret
+	if (ret < 1) {
+		ESP_LOGW(tag, "get_sw_version Transact Error: %d", ret);
+		return ret;
+
+	}
+	if (msg_resp.len != 1) {
+		ESP_LOGW(tag, "get_sw_version Transact Error %d: %d", ret, msg_resp.len);
+		return -1;
+	}
+	unsigned temp = msg_resp.payload[0];
+	temp = (temp && 0x00FF);
+
+	ESP_LOGI(tag, "Returning Software Version 0x%04x ", temp);
+
+	*major = temp;
+	*minor = 0;
 
 	return ret;
 

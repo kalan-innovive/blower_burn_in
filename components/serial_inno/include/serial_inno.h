@@ -53,5 +53,13 @@ int set_uuid(int devid, unsigned val);
 int check_dev_id(int devid);
 /** Chip ID Register*/
 int get_chipid(int devid, unsigned *chipid);
+/** Hardware Register*/
+int get_hw_version(int devid, unsigned *val) ;
+/** Hardware Register*/
+int get_sw_version(int devid, unsigned *major, unsigned *minor);
+/** Get the pressure sensor type*/
+int get_sensor_type(int devid, unsigned *val);
+/** Set the sensor type*/
+int set_sensor_type(int devid, unsigned val);
 
 #endif /* COMPONENTS_SERIAL_INNO_INCLUDE_SERIAL_INNO_TEST_H_ */
