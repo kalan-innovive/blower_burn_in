@@ -20,6 +20,7 @@ typedef struct{
 	int sw_ver_min;
 	int p_sensor_type;
 	int blower_type;
+	int cmd;
 	int is_updated;
 	int valid;
 

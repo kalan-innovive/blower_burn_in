@@ -794,7 +794,8 @@ int get_sw_version(int devid, unsigned *major, unsigned *minor) {
 		return -1;
 	}
 	unsigned temp = msg_resp.payload[0];
-	temp = (temp && 0x00FF);
+	ESP_LOGI(tag, "Returning Software Version %d, %d ", temp, temp & 0xFF);
+	temp = (temp & 0x00FF);
 
 	ESP_LOGI(tag, "Returning Software Version 0x%04x ", temp);
 

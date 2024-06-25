@@ -40,8 +40,8 @@ TaskHandle_t uart_rx_handle;
 
 
 static void setup_task() {
-	esp_log_level_set("msg16", ESP_LOG_DEBUG);
-	esp_log_level_set("serial_inno", ESP_LOG_DEBUG);
+	esp_log_level_set("msg16", ESP_LOG_WARN);
+	esp_log_level_set("serial_inno", ESP_LOG_WARN);
 	ESP_LOGI(tag, "Setting up Serial Inno and console");
 
 	setup_driver();
@@ -80,6 +80,7 @@ void apprackcomm_task(void *pvParameter){
 					lv_label_set_text_fmt(ui_chipidLabel,"%u",blowerinfo.chipid);
 					lv_label_set_text_fmt(ui_offsetLabel,"%u mInH2O",blowerinfo.offset);
 					lv_label_set_text_fmt(ui_uuidLabel,"%u", blowerinfo.uuid);
+
 
 				}
 				else if(!blowerinfo.valid){
